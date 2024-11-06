@@ -1,0 +1,9 @@
+version: '3.8'
+
+services:
+  pipeline-app:
+    image: miguelangelcr/as221s6_t07_nexcoin:latest
+    container_name: pipeline_app
+    ports:
+      - "80:80"
+    restart: always

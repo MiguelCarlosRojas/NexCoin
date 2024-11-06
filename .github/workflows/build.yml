@@ -14,11 +14,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+          fetch-depth: 0
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   docker:
@@ -37,20 +37,21 @@ jobs:
 
       - name: Determine next version
         id: version
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         run: |
-          # List tags from Docker Hub using the Docker CLI
-          TAGS=$(curl -s -H "Authorization: Bearer ${DOCKERHUB_TOKEN}" "https://hub.docker.com/v2/repositories/${DOCKERHUB_USERNAME}/as221s6_t07_nexcoin/tags/?page_size=100" | jq -r '.results[].name' | grep "^v" | sort -V | tail -n1)
+          # Fetch the latest tag from Docker Hub
+          LATEST_TAG=$(curl -s -H "Authorization: Bearer ${DOCKERHUB_TOKEN}" \
+            "https://hub.docker.com/v2/repositories/${DOCKERHUB_USERNAME}/as221s6_t07_nexcoin/tags/?page_size=100" | \
+            jq -r '.results[].name' | grep "^v" | sort -V | tail -n1)
 
-          # Check if we have a previous tag
-          if [[ -z "$TAGS" ]]; then
-            # Start from v1.0 if no previous tags found
+          # Initialize or increment version
+          if [[ -z "$LATEST_TAG" ]]; then
             MAJOR=1
             MINOR=0
           else
-            # Extract major and minor version numbers
-            MAJOR=$(echo "$TAGS" | cut -d'.' -f1 | sed 's/v//')
-            MINOR=$(echo "$TAGS" | cut -d'.' -f2)
-            # Increment minor version up to 5, then reset and increment major
+            MAJOR=$(echo "$LATEST_TAG" | cut -d'.' -f1 | sed 's/v//')
+            MINOR=$(echo "$LATEST_TAG" | cut -d'.' -f2)
             if [[ "$MINOR" -lt 5 ]]; then
               MINOR=$((MINOR + 1))
             else
@@ -61,7 +62,6 @@ jobs:
 
           # Define the next tag
           NEXT_TAG="v${MAJOR}.${MINOR}"
-          echo "Next Docker tag: $NEXT_TAG"
           echo "tag=$NEXT_TAG" >> $GITHUB_ENV
 
       - name: Build Docker image
