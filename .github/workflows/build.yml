@@ -3,7 +3,7 @@ name: Build and Publish to Docker Hub
 on:
   push:
     branches:
-      - main
+      - develop
   pull_request:
     types: [opened, synchronize, reopened]
 
