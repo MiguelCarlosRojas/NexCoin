@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   pipeline-app:
-    image: miguelangelcr/as221s6_t07_nexcoin:latest
+    image: miguelangelcr/as221s6_t07_nexcoin:v1.0  # Cambia `v1.0` a la versión que desees
     container_name: pipeline_app
     ports:
       - "80:80"
