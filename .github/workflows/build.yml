@@ -38,27 +38,28 @@ jobs:
       - name: Determine next version
         id: version
         run: |
-          # Check the latest tag in the Docker repository
-          LATEST_TAG=$(docker images --format "{{.Tag}}" "${{ secrets.DOCKERHUB_USERNAME }}/as221s6_t07_nexcoin" | grep "^v" | sort -V | tail -n1)
+          # List tags from Docker Hub using the Docker CLI
+          TAGS=$(curl -s -H "Authorization: Bearer ${DOCKERHUB_TOKEN}" "https://hub.docker.com/v2/repositories/${DOCKERHUB_USERNAME}/as221s6_t07_nexcoin/tags/?page_size=100" | jq -r '.results[].name' | grep "^v" | sort -V | tail -n1)
 
-          # Extract the major and minor version parts
-          if [[ -z "$LATEST_TAG" ]]; then
-            # If there are no existing tags, start from v1.0
+          # Check if we have a previous tag
+          if [[ -z "$TAGS" ]]; then
+            # Start from v1.0 if no previous tags found
             MAJOR=1
             MINOR=0
           else
-            MAJOR=$(echo "$LATEST_TAG" | cut -d'.' -f1 | sed 's/v//')
-            MINOR=$(echo "$LATEST_TAG" | cut -d'.' -f2)
-            # Increment version: if minor < 5, increase it by 1; otherwise reset minor and increment major
+            # Extract major and minor version numbers
+            MAJOR=$(echo "$TAGS" | cut -d'.' -f1 | sed 's/v//')
+            MINOR=$(echo "$TAGS" | cut -d'.' -f2)
+            # Increment minor version up to 5, then reset and increment major
             if [[ "$MINOR" -lt 5 ]]; then
-              MINOR=$((MINOR+1))
+              MINOR=$((MINOR + 1))
             else
-              MAJOR=$((MAJOR+1))
+              MAJOR=$((MAJOR + 1))
               MINOR=0
             fi
           fi
 
-          # Format the next tag
+          # Define the next tag
           NEXT_TAG="v${MAJOR}.${MINOR}"
           echo "Next Docker tag: $NEXT_TAG"
           echo "tag=$NEXT_TAG" >> $GITHUB_ENV
