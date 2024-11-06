@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+/* Cursor personalizado para todos los elementos */
+* {
+    cursor: url('src/assets/icons/coin.svg'), auto; /* Cambia esta ruta según corresponda */
+}
+
+/* Personalización adicional para el texto seleccionado */
+::selection {
+    background: rgba(255, 215, 0, 0.5); /* Cambia el color de fondo de la selección */
+    color: black; /* Cambia el color del texto seleccionado */
+}
+
+/* Para navegadores que no soportan ::selection */
+::-moz-selection {
+    background: rgba(255, 215, 0, 0.5);
+    color: black;
+}
+
+/* Asegurando que el cursor personalizado se aplique a enlaces y botones */
+a, button, [role="button"], [cursor="pointer"] {
+    cursor: url('src/assets/icons/coin.svg'), auto; /* Cursor personalizado para enlaces y botones */
+}
+
+/* Cursor de texto para campos de entrada */
+input, textarea {
+    cursor: url('src/assets/icons/coin.svg'), text; /* Cursor personalizado para campos de entrada */
+}

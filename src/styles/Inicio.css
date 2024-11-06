@@ -1,0 +1,33 @@
+#objetivos,
+#beneficios,
+#caracteristicas {
+  position: relative;
+}
+
+.floating-objective-animation,
+.floating-benefit-animation,
+.floating-feature-animation {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.floating-content {
+  animation: float 3s ease-in-out infinite;
+  font-size: 10rem;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+
