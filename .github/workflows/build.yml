@@ -3,7 +3,7 @@ name: Build and Publish to Docker Hub
 on:
   push:
     branches:
-      - develop
+      - main
   pull_request:
     types: [opened, synchronize, reopened]
 
@@ -38,13 +38,24 @@ jobs:
       - name: Extract version
         id: version
         run: |
-          TAG_BASE="v$(git tag --sort=-v:refname | head -n 1 | sed 's/v//' | awk -F. '{print $1}')"
-          LATEST_TAG=$(git tag --sort=-v:refname | grep "^$TAG_BASE" | head -n 1)
-          NEXT_TAG=$(echo "$LATEST_TAG" | awk -F. '{print $1"."$2+1}')
+          # Extract the latest tag starting with v
+          LATEST_TAG=$(git tag --sort=-v:refname | grep "^v" | head -n 1)
+          # Get the major and minor parts of the version, e.g., v1.0
+          VERSION_BASE=${LATEST_TAG//v/}
+          MAJOR=$(echo $VERSION_BASE | cut -d'.' -f1)
+          MINOR=$(echo $VERSION_BASE | cut -d'.' -f2)
+          
+          # Increment the minor version if necessary
+          if [[ "$MINOR" -lt 5 ]]; then
+            NEXT_TAG="v${MAJOR}.$((MINOR+1))"
+          else
+            NEXT_TAG="v$((MAJOR+1)).0"
+          fi
+          echo "Next Docker tag: $NEXT_TAG"
           echo "tag=$NEXT_TAG" >> $GITHUB_ENV
 
       - name: Build Docker image
-        run: docker build -t miguelangelcr/as221s6_t07_nexcoin:${{ env.tag }} .
+        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/as221s6_t07_nexcoin:${{ env.tag }} .
 
       - name: Push Docker image to Docker Hub
-        run: docker push miguelangelcr/as221s6_t07_nexcoin:${{ env.tag }}
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/as221s6_t07_nexcoin:${{ env.tag }}
