@@ -39,6 +39,7 @@ const RouteTitleUpdater: React.FC = () => {
       '/proveedores/dashboard': 'Panel de Control | Portal Proveedores',
       '/proveedores/productos': 'Mis Productos & Inventario | Portal Proveedores',
       '/proveedores/preguntas': 'Preguntas de Clientes | Portal Proveedores',
+      '/proveedores/calificaciones': 'Calificaciones & Reseñas | Portal Proveedores',
       '/proveedores/ventas': 'Ventas & Vouchers | Portal Proveedores',
       '/proveedores/perfil': 'Mi Perfil & Configuración | Portal Proveedores',
       '/proveedores/reportes/ventas': 'Reporte de Ventas | Portal Proveedores',
@@ -90,6 +91,7 @@ import { SupplierProtectedRoute } from './components/supplier/SupplierProtectedR
 import { SupplierDashboard } from './components/supplier/SupplierDashboard';
 import { SupplierProducts } from './components/supplier/SupplierProducts';
 import { SupplierQuestions } from './components/supplier/SupplierQuestions';
+import { SupplierReviews } from './components/supplier/SupplierReviews';
 import { SupplierOrders } from './components/supplier/SupplierOrders';
 import { SupplierProfile } from './components/supplier/SupplierProfile';
 import { SupplierSalesReport } from './components/supplier/reports/SupplierSalesReport';
@@ -207,6 +209,14 @@ const App: React.FC = () => {
                 element={
                   <SupplierProtectedRoute>
                     <SupplierQuestions />
+                  </SupplierProtectedRoute>
+                }
+              />
+              <Route
+                path="/proveedores/calificaciones"
+                element={
+                  <SupplierProtectedRoute>
+                    <SupplierReviews />
                   </SupplierProtectedRoute>
                 }
               />

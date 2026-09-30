@@ -341,7 +341,36 @@ export const SupplierInventoryReport: React.FC = () => {
           </div>
 
           {loading ? (
-            <div className="p-16 text-center text-slate-400 animate-pulse font-medium">Cargando inventario...</div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-white/[0.08] bg-white/[0.02] text-slate-400 uppercase tracking-wider font-bold text-[10px]">
+                    <th className="py-3 px-4">SKU / ID</th>
+                    <th className="py-3 px-3">Producto</th>
+                    <th className="py-3 px-3">Categoría</th>
+                    <th className="py-3 px-3 text-center">Estado Stock</th>
+                    <th className="py-3 px-3 text-center">Existencias</th>
+                    <th className="py-3 px-3 text-right">Precio USD</th>
+                    <th className="py-3 px-3 text-right">Valor Total USD</th>
+                    <th className="py-3 px-4 text-right">Gestión</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.04]">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <tr key={i} className="animate-pulse">
+                      <td className="py-3 px-4"><div className="h-3.5 bg-white/[0.06] rounded w-20" /></td>
+                      <td className="py-3 px-3"><div className="h-3.5 bg-white/[0.06] rounded w-44" /></td>
+                      <td className="py-3 px-3"><div className="h-3 bg-white/[0.05] rounded w-24" /></td>
+                      <td className="py-3 px-3 text-center"><div className="h-5 bg-white/[0.06] rounded-full w-20 mx-auto" /></td>
+                      <td className="py-3 px-3 text-center"><div className="h-4 bg-white/[0.06] rounded w-12 mx-auto" /></td>
+                      <td className="py-3 px-3 text-right"><div className="h-4 bg-white/[0.06] rounded w-16 ml-auto" /></td>
+                      <td className="py-3 px-3 text-right"><div className="h-4 bg-white/[0.06] rounded w-20 ml-auto" /></td>
+                      <td className="py-3 px-4 text-right"><div className="h-6 bg-white/[0.06] rounded-lg w-16 ml-auto" /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : filteredProducts.length === 0 ? (
             <div className="p-16 text-center text-slate-500">No se encontraron productos con los filtros seleccionados.</div>
           ) : (

@@ -205,8 +205,23 @@ export const SupplierQuestions: React.FC = () => {
         {/* Questions List */}
         <div className="space-y-4">
           {loading ? (
-            <div className="p-16 text-center text-slate-400 animate-pulse font-medium bg-[#0a0f1d]/90 border border-white/[0.08] rounded-3xl">
-              Cargando preguntas de clientes...
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="p-5 sm:p-6 rounded-3xl bg-[#0a0f1d]/90 border border-white/[0.08] space-y-4 animate-pulse">
+                  <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-white/[0.05]" />
+                      <div className="space-y-1.5">
+                        <div className="h-3.5 bg-white/[0.06] rounded w-48" />
+                        <div className="h-2.5 bg-white/[0.04] rounded w-28" />
+                      </div>
+                    </div>
+                    <div className="h-6 bg-white/[0.06] rounded-full w-24" />
+                  </div>
+                  <div className="h-4 bg-white/[0.05] rounded w-3/4" />
+                  <div className="h-10 bg-white/[0.03] rounded-xl w-full" />
+                </div>
+              ))}
             </div>
           ) : filteredQuestions.length === 0 ? (
             <div className="p-16 text-center text-slate-500 bg-[#0a0f1d]/90 border border-white/[0.08] rounded-3xl">

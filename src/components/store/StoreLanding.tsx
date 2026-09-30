@@ -26,7 +26,7 @@ import {
   X
 } from 'lucide-react';
 
-import { fetchAllStoreProducts, BTC_PRICE_USD } from '../../data/productsData';
+import { fetchAllStoreProducts, BTC_PRICE_USD, isFreeShippingProduct } from '../../data/productsData';
 
 export const StoreLanding: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -43,8 +43,8 @@ export const StoreLanding: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState(urlCategoria);
   const [activeCatalogFilter, setActiveCatalogFilter] = useState<'all' | 'stock' | 'discount' | 'free_shipping' | 'express'>(() => {
     if (urlFiltro === 'stock' || urlFiltro === 'disponibles') return 'stock';
-    if (urlFiltro === 'ofertas' || urlFiltro === 'descuentos') return 'discount';
-    if (urlFiltro === 'envio-gratis' || urlFiltro === 'gratis') return 'free_shipping';
+    if (urlFiltro === 'ofertas' || urlFiltro === 'descuentos' || urlFiltro === 'discount') return 'discount';
+    if (urlFiltro === 'envio-gratis' || urlFiltro === 'gratis' || urlFiltro === 'free' || urlFiltro === 'free_shipping') return 'free_shipping';
     if (urlFiltro === 'express') return 'express';
     return 'all';
   });
@@ -158,7 +158,7 @@ export const StoreLanding: React.FC = () => {
   // Specific filter counts
   const stockCount = useMemo(() => products.filter((p) => p.stock > 0).length, [products]);
   const discountCount = useMemo(() => products.filter((p) => (p.discount_percent || 0) > 0).length, [products]);
-  const freeShippingCount = useMemo(() => products.filter((p) => p.free_shipping || p.shipping_type === 'free').length, [products]);
+  const freeShippingCount = useMemo(() => products.filter(isFreeShippingProduct).length, [products]);
   const expressCount = useMemo(() => products.filter((p) => p.shipping_type === 'express').length, [products]);
 
   // Comprehensive multi-filter engine
@@ -196,7 +196,7 @@ export const StoreLanding: React.FC = () => {
         } else if (activeCatalogFilter === 'discount') {
           matchesFilterMode = Boolean(p.discount_percent && p.discount_percent > 0);
         } else if (activeCatalogFilter === 'free_shipping') {
-          matchesFilterMode = Boolean(p.free_shipping || p.shipping_type === 'free');
+          matchesFilterMode = isFreeShippingProduct(p);
         } else if (activeCatalogFilter === 'express') {
           matchesFilterMode = p.shipping_type === 'express';
         }
@@ -1000,7 +1000,7 @@ export const StoreLanding: React.FC = () => {
                           </span>
                         )}
 
-                        {product.shipping_type === 'free' && (
+                        {isFreeShippingProduct(product) && (
                           <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase bg-emerald-950/80 text-emerald-300 border border-emerald-500/30 backdrop-blur-md flex items-center gap-1">
                             <Truck className="w-2.5 h-2.5" />
                             Envío Gratis

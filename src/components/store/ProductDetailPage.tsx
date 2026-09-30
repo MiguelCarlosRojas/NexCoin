@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Product } from '../../types/store';
-import { getProductById, fetchAllStoreProducts, BTC_PRICE_USD } from '../../data/productsData';
+import { getProductById, fetchAllStoreProducts, BTC_PRICE_USD, isFreeShippingProduct } from '../../data/productsData';
 import { useCart } from '../../context/CartContext';
 import { Blobatar } from '../ui/blobatar';
 import { parseBlobatar } from '../../lib/blobatarHelper';
@@ -238,7 +238,7 @@ export const ProductDetailPage: React.FC = () => {
   }
 
   const inStock = product.stock > 0;
-  const isFreeShipping = product.free_shipping || product.shipping_type === 'free';
+  const isFreeShipping = isFreeShippingProduct(product);
   const supplierName = product.suppliers?.company_name || 'Proveedor Verificado NexCoin';
   const supplierEmail = product.suppliers?.email || 'soporte@nexcoin.com';
   const supplierWallet = product.suppliers?.wallet_address || 'No registrada';
@@ -908,17 +908,17 @@ export const ProductDetailPage: React.FC = () => {
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-4 p-4 rounded-2xl bg-[#060911] border border-white/[0.06]">
-                <span className="text-4xl font-black text-amber-400 font-heading">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <div className="flex items-center gap-3.5 px-4 py-2.5 rounded-2xl bg-[#060911] border border-white/[0.08] shadow-inner">
+                <span className="text-3xl font-black text-amber-400 font-heading leading-none">
                   {averageRating.toFixed(1)}
                 </span>
-                <div>
-                  <div className="flex items-center gap-1 text-amber-400">
+                <div className="flex flex-col justify-center">
+                  <div className="flex items-center gap-0.5 text-amber-400">
                     {[1, 2, 3, 4, 5].map((s) => (
                       <Star
                         key={s}
-                        className={`w-4 h-4 ${
+                        className={`w-3.5 h-3.5 ${
                           s <= Math.round(averageRating)
                             ? 'fill-amber-400 text-amber-400'
                             : 'text-slate-600'
@@ -926,19 +926,19 @@ export const ProductDetailPage: React.FC = () => {
                       />
                     ))}
                   </div>
-                  <p className="text-[11px] text-slate-400 font-mono mt-0.5">
-                    {totalReviewsCount ? `Basado en ${totalReviewsCount} calificaciones` : 'Sé el primero en calificar'}
-                  </p>
+                  <span className="text-[11px] text-slate-400 font-mono mt-0.5">
+                    {totalReviewsCount ? `${totalReviewsCount} calificaciones` : 'Sin opiniones aún'}
+                  </span>
                 </div>
               </div>
 
               <button
                 type="button"
                 onClick={() => setShowReviewModal(true)}
-                className="px-5 py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg shadow-amber-500/20 transition flex items-center gap-2 hover:scale-[1.02] active:scale-95"
+                className="px-5 py-3 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-md shadow-amber-500/20 transition flex items-center justify-center gap-2 hover:shadow-lg active:scale-95 whitespace-nowrap"
               >
-                <Star className="w-4 h-4 fill-black" />
-                <span>Calificar Producto y Proveedor</span>
+                <Star className="w-4 h-4 fill-slate-950" />
+                <span>Calificar Producto</span>
               </button>
             </div>
           </div>

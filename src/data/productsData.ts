@@ -5,6 +5,22 @@ import { parseProductDescription } from '../lib/productMeta';
 export const BTC_PRICE_USD = 65000;
 
 /**
+ * Universal helper to determine if a product has free shipping.
+ * Matches if free_shipping is true, shipping_type is 'free'/'gratis',
+ * price_usd >= 100, or description indicates free shipping.
+ */
+export function isFreeShippingProduct(item: any): boolean {
+  if (!item) return false;
+  if (item.free_shipping === true || item.free_shipping === 'true') return true;
+  const sType = String(item.shipping_type || '').toLowerCase().trim();
+  if (sType === 'free' || sType === 'gratis') return true;
+  if (Number(item.price_usd) >= 100) return true;
+  const desc = String(item.description || '').toLowerCase();
+  if (desc.includes('envio gratis') || desc.includes('envío gratis') || desc.includes('free shipping')) return true;
+  return false;
+}
+
+/**
  * Fetch all active real products directly from Supabase.
  * Enriches each item with structured metadata parsed from description.
  */
@@ -22,6 +38,14 @@ export async function fetchAllStoreProducts(): Promise<Product[]> {
       return data.map((item) => {
         const { cleanDescription, meta } = parseProductDescription(item.description);
         const imagesList = meta.images && meta.images.length > 0 ? meta.images : (item.image_url ? [item.image_url] : []);
+        const rawShippingType = meta.shipping_type || item.shipping_type || 'standard';
+        const freeShippingEligible = isFreeShippingProduct({
+          ...item,
+          ...meta,
+          price_usd: item.price_usd,
+          shipping_type: rawShippingType,
+          free_shipping: meta.free_shipping ?? item.free_shipping
+        });
         
         return {
           ...item,
@@ -29,8 +53,8 @@ export async function fetchAllStoreProducts(): Promise<Product[]> {
           images: imagesList,
           discount_percent: meta.discount_percent ?? (item.discount_percent || 0),
           original_price_usd: meta.original_price_usd ?? (item.original_price_usd || item.price_usd),
-          free_shipping: meta.free_shipping ?? (item.free_shipping || meta.shipping_type === 'free' || item.shipping_type === 'free' || false),
-          shipping_type: meta.shipping_type ?? (item.shipping_type || 'standard'),
+          free_shipping: freeShippingEligible,
+          shipping_type: freeShippingEligible && rawShippingType === 'standard' ? 'free' : rawShippingType,
           rating: meta.rating ?? (item.rating || 5.0),
           reviews_count: meta.reviews_count ?? (item.reviews_count || 0),
           warranty: meta.warranty ?? (item.warranty || 'Garantía del Proveedor'),
@@ -63,14 +87,22 @@ export async function getProductById(id: string): Promise<Product | null> {
     if (!error && data) {
       const { cleanDescription, meta } = parseProductDescription(data.description);
       const imagesList = meta.images && meta.images.length > 0 ? meta.images : (data.image_url ? [data.image_url] : []);
+      const rawShippingType = meta.shipping_type || data.shipping_type || 'standard';
+      const freeShippingEligible = isFreeShippingProduct({
+        ...data,
+        ...meta,
+        price_usd: data.price_usd,
+        shipping_type: rawShippingType,
+        free_shipping: meta.free_shipping ?? data.free_shipping
+      });
       return {
         ...data,
         description: cleanDescription || data.description,
         images: imagesList,
         discount_percent: meta.discount_percent ?? (data.discount_percent || 0),
         original_price_usd: meta.original_price_usd ?? (data.original_price_usd || data.price_usd),
-        free_shipping: meta.free_shipping ?? (data.free_shipping || meta.shipping_type === 'free' || data.shipping_type === 'free' || false),
-        shipping_type: meta.shipping_type ?? (data.shipping_type || 'standard'),
+        free_shipping: freeShippingEligible,
+        shipping_type: freeShippingEligible && rawShippingType === 'standard' ? 'free' : rawShippingType,
         rating: meta.rating ?? (data.rating || 5.0),
         reviews_count: meta.reviews_count ?? (data.reviews_count || 0),
         warranty: meta.warranty ?? (data.warranty || 'Garantía del Proveedor'),
@@ -88,14 +120,22 @@ export async function getProductById(id: string): Promise<Product | null> {
     if (skuData) {
       const { cleanDescription, meta } = parseProductDescription(skuData.description);
       const imagesList = meta.images && meta.images.length > 0 ? meta.images : (skuData.image_url ? [skuData.image_url] : []);
+      const rawShippingType = meta.shipping_type || skuData.shipping_type || 'standard';
+      const freeShippingEligible = isFreeShippingProduct({
+        ...skuData,
+        ...meta,
+        price_usd: skuData.price_usd,
+        shipping_type: rawShippingType,
+        free_shipping: meta.free_shipping ?? skuData.free_shipping
+      });
       return {
         ...skuData,
         description: cleanDescription || skuData.description,
         images: imagesList,
         discount_percent: meta.discount_percent ?? (skuData.discount_percent || 0),
         original_price_usd: meta.original_price_usd ?? (skuData.original_price_usd || skuData.price_usd),
-        free_shipping: meta.free_shipping ?? (skuData.free_shipping || meta.shipping_type === 'free' || skuData.shipping_type === 'free' || false),
-        shipping_type: meta.shipping_type ?? (skuData.shipping_type || 'standard'),
+        free_shipping: freeShippingEligible,
+        shipping_type: freeShippingEligible && rawShippingType === 'standard' ? 'free' : rawShippingType,
         rating: meta.rating ?? (skuData.rating || 5.0),
         reviews_count: meta.reviews_count ?? (skuData.reviews_count || 0),
         warranty: meta.warranty ?? (skuData.warranty || 'Garantía del Proveedor'),

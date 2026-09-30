@@ -12,8 +12,10 @@ import {
   ShoppingBag,
   TrendingUp,
   Receipt,
-  ArrowUpRight
+  ArrowUpRight,
+  Star
 } from 'lucide-react';
+import { fetchSupplierReviews } from '../../lib/qaAndReviewsService';
 
 interface SoldProductSummary {
   productId: string;
@@ -31,6 +33,8 @@ export const SupplierDashboard: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [soldProducts, setSoldProducts] = useState<SoldProductSummary[]>([]);
+  const [supplierRating, setSupplierRating] = useState<number>(5.0);
+  const [supplierReviewsCount, setSupplierReviewsCount] = useState<number>(0);
   const [_loading, setLoading] = useState(true);
 
   // Voucher modal state
@@ -105,6 +109,21 @@ export const SupplierDashboard: React.FC = () => {
 
       setSoldProducts(Object.values(soldMap).sort((a, b) => b.unitsSold - a.unitsSold));
       setOrders(Object.values(orderMap).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+
+      // 3. Fetch real ratings & reviews for this supplier
+      try {
+        const revs = await fetchSupplierReviews(supplier.id);
+        if (revs && revs.length > 0) {
+          const sum = revs.reduce((acc, r) => acc + r.rating, 0);
+          setSupplierRating(Number((sum / revs.length).toFixed(1)));
+          setSupplierReviewsCount(revs.length);
+        } else {
+          setSupplierRating(5.0);
+          setSupplierReviewsCount(0);
+        }
+      } catch (revErr) {
+        console.error('Error fetching supplier reviews in dashboard:', revErr);
+      }
     } catch (err) {
       console.error('Error fetching supplier dashboard data:', err);
     } finally {
@@ -153,95 +172,155 @@ export const SupplierDashboard: React.FC = () => {
       subtitle={`Panel de control comercial y liquidaciones on-chain de ${supplier?.company_name || 'Proveedor'}`}
     >
       <div className="space-y-8 w-full max-w-full">
-        
-        {/* KPI Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-          
-          {/* Revenue USD */}
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-[#0e1628]/90 to-[#0a0f1d]/90 border border-white/[0.08] p-5 shadow-xl hover:border-emerald-500/30 transition group">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition" />
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Ingresos Totales (USD)</span>
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20 group-hover:scale-110 transition shadow-inner">
-                <DollarSign className="w-5 h-5" />
-              </div>
+        {_loading ? (
+          <div className="space-y-8 animate-pulse">
+            {/* KPI Cards Skeleton */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-5">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="h-36 rounded-2xl bg-[#0a0f1d] border border-white/[0.06] p-5 flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <div className="h-3 bg-white/[0.06] rounded w-24" />
+                    <div className="w-10 h-10 rounded-xl bg-white/[0.04]" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-7 bg-white/[0.06] rounded w-32" />
+                    <div className="h-3 bg-white/[0.04] rounded w-20" />
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="mt-4">
-              <p className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                ${totalRevenueUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </p>
-              <div className="flex items-center gap-1.5 mt-2">
-                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
-                  <TrendingUp className="w-3 h-3" />
-                  Liquidado On-Chain
-                </span>
+
+            {/* Performance Section Skeleton */}
+            <div className="bg-[#0a0f1d] border border-white/[0.06] rounded-3xl p-6 space-y-4">
+              <div className="h-5 bg-white/[0.06] rounded w-48" />
+              <div className="h-3 bg-white/[0.04] rounded w-64" />
+              <div className="space-y-3 pt-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="h-14 bg-white/[0.03] rounded-2xl" />
+                ))}
               </div>
             </div>
           </div>
-
-          {/* Revenue BTC */}
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-[#0e1628]/90 to-[#0a0f1d]/90 border border-white/[0.08] p-5 shadow-xl hover:border-amber-500/30 transition group">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl group-hover:bg-amber-500/10 transition" />
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Recaudación Bitcoin</span>
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20 group-hover:scale-110 transition shadow-inner">
-                <Bitcoin className="w-5 h-5" />
+        ) : (
+          <>
+            {/* KPI Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-5">
+              
+              {/* Revenue USD */}
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-[#0e1628]/90 to-[#0a0f1d]/90 border border-white/[0.08] p-5 shadow-xl hover:border-emerald-500/30 transition group">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition" />
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Ingresos Totales (USD)</span>
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20 group-hover:scale-110 transition shadow-inner">
+                    <DollarSign className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <p className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                    ${totalRevenueUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                  <div className="flex items-center gap-1.5 mt-2">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                      <TrendingUp className="w-3 h-3" />
+                      Liquidado On-Chain
+                    </span>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="mt-4">
-              <p className="text-2xl sm:text-3xl font-black font-mono text-amber-400 tracking-tight">
-                {totalRevenueBtc.toFixed(8)} <span className="text-sm font-sans font-bold text-amber-500/80">₿</span>
-              </p>
-              <p className="text-[11px] text-slate-400 mt-2 font-medium">
-                Pagos confirmados en la red
-              </p>
-            </div>
-          </div>
 
-          {/* Total Orders */}
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-[#0e1628]/90 to-[#0a0f1d]/90 border border-white/[0.08] p-5 shadow-xl hover:border-blue-500/30 transition group">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition" />
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Pedidos & Ventas</span>
-              <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20 group-hover:scale-110 transition shadow-inner">
-                <ShoppingBag className="w-5 h-5" />
+              {/* Revenue BTC */}
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-[#0e1628]/90 to-[#0a0f1d]/90 border border-white/[0.08] p-5 shadow-xl hover:border-amber-500/30 transition group">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl group-hover:bg-amber-500/10 transition" />
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Recaudación Bitcoin</span>
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20 group-hover:scale-110 transition shadow-inner">
+                    <Bitcoin className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <p className="text-2xl sm:text-3xl font-black font-mono text-amber-400 tracking-tight">
+                    {totalRevenueBtc.toFixed(8)} <span className="text-sm font-sans font-bold text-amber-500/80">₿</span>
+                  </p>
+                  <p className="text-[11px] text-slate-400 mt-2 font-medium">
+                    Pagos confirmados en la red
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="mt-4">
-              <p className="text-2xl sm:text-3xl font-black text-white tracking-tight">{orders.length}</p>
-              <p className="text-[11px] text-blue-400 mt-2 font-medium">
-                Vouchers emitidos a clientes
-              </p>
-            </div>
-          </div>
 
-          {/* Out of Stock Alert Card */}
-          <div className={`relative overflow-hidden rounded-2xl border p-5 shadow-xl transition group ${
-            outOfStockProducts.length > 0 
-              ? 'bg-gradient-to-b from-red-950/40 to-[#0a0f1d]/90 border-red-500/30 hover:border-red-500/50' 
-              : 'bg-gradient-to-b from-[#0e1628]/90 to-[#0a0f1d]/90 border-white/[0.08] hover:border-emerald-500/30'
-          }`}>
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Productos Sin Stock</span>
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition group-hover:scale-110 ${
+              {/* Total Orders */}
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-[#0e1628]/90 to-[#0a0f1d]/90 border border-white/[0.08] p-5 shadow-xl hover:border-blue-500/30 transition group">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition" />
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Pedidos & Ventas</span>
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20 group-hover:scale-110 transition shadow-inner">
+                    <ShoppingBag className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <p className="text-2xl sm:text-3xl font-black text-white tracking-tight">{orders.length}</p>
+                  <p className="text-[11px] text-blue-400 mt-2 font-medium">
+                    Vouchers emitidos a clientes
+                  </p>
+                </div>
+              </div>
+
+              {/* Supplier Rating KPI Card */}
+              <Link
+                to="/proveedores/calificaciones"
+                className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-[#0e1628]/90 to-[#0a0f1d]/90 border border-white/[0.08] p-5 shadow-xl hover:border-amber-500/40 transition group block"
+              >
+                <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl group-hover:bg-amber-500/10 transition" />
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Calificación Proveedor</span>
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20 group-hover:scale-110 transition shadow-inner">
+                    <Star className="w-5 h-5 fill-amber-400" />
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-2xl sm:text-3xl font-black text-amber-400 tracking-tight font-heading">
+                      {supplierRating.toFixed(1)}
+                    </p>
+                    <span className="text-xs text-amber-400 font-bold">★</span>
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-[11px] text-slate-400 font-medium">
+                      {supplierReviewsCount} {supplierReviewsCount === 1 ? 'reseña real' : 'reseñas reales'}
+                    </span>
+                    <span className="text-[10px] text-amber-400 font-bold group-hover:underline flex items-center gap-0.5">
+                      Ver todas <ArrowUpRight className="w-3 h-3" />
+                    </span>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Out of Stock Alert Card */}
+              <div className={`relative overflow-hidden rounded-2xl border p-5 shadow-xl transition group ${
                 outOfStockProducts.length > 0 
-                  ? 'bg-red-500/20 text-red-400 border-red-500/40 animate-pulse' 
-                  : 'bg-slate-800/60 text-slate-400 border-white/[0.08]'
+                  ? 'bg-gradient-to-b from-red-950/40 to-[#0a0f1d]/90 border-red-500/30 hover:border-red-500/50' 
+                  : 'bg-gradient-to-b from-[#0e1628]/90 to-[#0a0f1d]/90 border-white/[0.08] hover:border-emerald-500/30'
               }`}>
-                <AlertTriangle className="w-5 h-5" />
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Productos Sin Stock</span>
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition group-hover:scale-110 ${
+                    outOfStockProducts.length > 0 
+                      ? 'bg-red-500/20 text-red-400 border-red-500/40 animate-pulse' 
+                      : 'bg-slate-800/60 text-slate-400 border-white/[0.08]'
+                  }`}>
+                    <AlertTriangle className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <p className={`text-2xl sm:text-3xl font-black tracking-tight ${outOfStockProducts.length > 0 ? 'text-red-400' : 'text-white'}`}>
+                    {outOfStockProducts.length}
+                  </p>
+                  <p className="text-[11px] text-slate-400 mt-2 font-medium">
+                    {outOfStockProducts.length > 0 ? 'Requieren reposición inmediata' : 'Catálogo 100% disponible'}
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="mt-4">
-              <p className={`text-2xl sm:text-3xl font-black tracking-tight ${outOfStockProducts.length > 0 ? 'text-red-400' : 'text-white'}`}>
-                {outOfStockProducts.length}
-              </p>
-              <p className="text-[11px] text-slate-400 mt-2 font-medium">
-                {outOfStockProducts.length > 0 ? 'Requieren reposición inmediata' : 'Catálogo 100% disponible'}
-              </p>
-            </div>
-          </div>
 
-        </div>
+            </div>
 
         {/* SECTION 1: CRITICAL ALERT - PRODUCTOS SIN STOCK */}
         {outOfStockProducts.length > 0 && (
@@ -472,6 +551,8 @@ export const SupplierDashboard: React.FC = () => {
             </div>
           )}
         </div>
+          </>
+        )}
 
       </div>
 

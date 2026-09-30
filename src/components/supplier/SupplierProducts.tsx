@@ -114,8 +114,6 @@ export const SupplierProducts: React.FC = () => {
   // Logistics & Status
   const [shippingType, setShippingType] = useState<'free' | 'express' | 'standard'>('free');
   const [formStatus, setFormStatus] = useState<'active' | 'draft' | 'archived'>('active');
-  const [rating, setRating] = useState('4.9');
-  const [reviewsCount, setReviewsCount] = useState('24');
 
   const [formSubmitting, setFormSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
@@ -206,8 +204,6 @@ export const SupplierProducts: React.FC = () => {
     setDiscountPercent('0');
     setOriginalPriceUsd('');
     setShippingType('standard');
-    setRating('5.0');
-    setReviewsCount('0');
     setFormError('');
     setIsModalOpen(true);
   };
@@ -237,8 +233,6 @@ export const SupplierProducts: React.FC = () => {
     setDiscountPercent(String(meta.discount_percent ?? (p.discount_percent ?? 0)));
     setOriginalPriceUsd(meta.original_price_usd ? String(meta.original_price_usd) : String(p.price_usd));
     setShippingType(meta.shipping_type || (p.shipping_type || (p.free_shipping ? 'free' : 'standard')));
-    setRating(String(meta.rating ?? (p.rating ?? 4.9)));
-    setReviewsCount(String(meta.reviews_count ?? (p.reviews_count ?? 24)));
     setFormError('');
     setIsModalOpen(true);
   };
@@ -307,6 +301,10 @@ export const SupplierProducts: React.FC = () => {
         ...additionalImages.filter(Boolean)
       ];
 
+      // Real rating and reviews from verified buyer opinions (never fake/hardcoded)
+      const realRating = editingProduct ? (editingProduct.rating ?? 5.0) : 5.0;
+      const realReviewsCount = editingProduct ? (editingProduct.reviews_count ?? 0) : 0;
+
       // Encode extended metadata into description
       const fullDescription = encodeProductDescription(description, {
         images: allGalleryImages,
@@ -314,8 +312,8 @@ export const SupplierProducts: React.FC = () => {
         original_price_usd: parsedOrigPrice,
         shipping_type: shippingType,
         free_shipping: shippingType === 'free',
-        rating: parseFloat(rating) || 4.9,
-        reviews_count: parseInt(reviewsCount) || 20,
+        rating: realRating,
+        reviews_count: realReviewsCount,
         warranty: warranty.trim(),
         condition: condition.trim()
       });
@@ -338,8 +336,8 @@ export const SupplierProducts: React.FC = () => {
         original_price_usd: parsedOrigPrice,
         shipping_type: shippingType,
         free_shipping: shippingType === 'free',
-        rating: parseFloat(rating) || 4.9,
-        reviews_count: parseInt(reviewsCount) || 20,
+        rating: realRating,
+        reviews_count: realReviewsCount,
         warranty: warranty.trim(),
         condition: condition.trim()
       };
@@ -819,9 +817,60 @@ export const SupplierProducts: React.FC = () => {
         {/* PRODUCTS TABLE CONTAINER */}
         <div className="bg-[#090d18] border border-white/[0.08] rounded-3xl overflow-hidden shadow-2xl">
           {loading ? (
-            <div className="py-20 text-center space-y-3">
-              <div className="w-10 h-10 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto" />
-              <p className="text-xs font-mono text-slate-400">Cargando inventario de la blockchain...</p>
+            <div className="overflow-x-auto lateral-scrollbar">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-white/[0.08] bg-[#0c1222] text-slate-400 uppercase tracking-wider font-semibold font-mono text-[11px]">
+                    <th className="py-4 px-6">Producto & Detalles</th>
+                    <th className="py-4 px-3">SKU & Categoría</th>
+                    <th className="py-4 px-3 text-right">Precio USD</th>
+                    <th className="py-4 px-3 text-right">Precio BTC</th>
+                    <th className="py-4 px-4 text-center">Stock</th>
+                    <th className="py-4 px-3 text-center">Envíos</th>
+                    <th className="py-4 px-3 text-center">Estado</th>
+                    <th className="py-4 px-6 text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.06]">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <tr key={i} className="animate-pulse">
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-3.5 min-w-[240px]">
+                          <div className="w-14 h-14 rounded-xl bg-white/[0.05] shrink-0" />
+                          <div className="space-y-2 flex-1">
+                            <div className="h-3.5 bg-white/[0.06] rounded w-44" />
+                            <div className="h-2.5 bg-white/[0.04] rounded w-28" />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-4 px-3">
+                        <div className="space-y-1.5">
+                          <div className="h-3 bg-white/[0.06] rounded w-20" />
+                          <div className="h-2.5 bg-white/[0.04] rounded w-16" />
+                        </div>
+                      </td>
+                      <td className="py-4 px-3 text-right">
+                        <div className="h-4 bg-white/[0.06] rounded w-16 ml-auto" />
+                      </td>
+                      <td className="py-4 px-3 text-right">
+                        <div className="h-4 bg-white/[0.06] rounded w-20 ml-auto" />
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="h-4 bg-white/[0.06] rounded w-12 mx-auto" />
+                      </td>
+                      <td className="py-4 px-3">
+                        <div className="h-4 bg-white/[0.06] rounded w-16 mx-auto" />
+                      </td>
+                      <td className="py-4 px-3">
+                        <div className="h-4 bg-white/[0.06] rounded w-14 mx-auto" />
+                      </td>
+                      <td className="py-4 px-6 text-right">
+                        <div className="h-7 bg-white/[0.06] rounded-xl w-20 ml-auto" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : filteredProducts.length === 0 ? (
             <div className="py-20 px-6 text-center space-y-4">
@@ -1520,39 +1569,28 @@ export const SupplierProducts: React.FC = () => {
                         </select>
                       </div>
 
-                      {/* Calificación Inicial */}
-                      <div>
-                        <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                          Calificación del Producto (Estrellas)
-                        </label>
-                        <div className="relative">
-                          <Star className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-400" />
-                          <input
-                            type="number"
-                            step="0.1"
-                            min="1"
-                            max="5"
-                            placeholder="4.9"
-                            value={rating}
-                            onChange={(e) => setRating(e.target.value)}
-                            className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
-                          />
+                      {/* Reputación del Producto (Generada por Compradores Reales) */}
+                      <div className="sm:col-span-2 p-4 rounded-2xl bg-[#070a14] border border-white/[0.08] space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                              <Star className="w-5 h-5 fill-amber-400" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-white">Calificación por Compradores Reales</p>
+                              <p className="text-[11px] text-slate-400">
+                                {editingProduct ? (
+                                  <>Promedio actual: <strong className="text-amber-400 font-mono">{editingProduct.rating ? editingProduct.rating.toFixed(1) : '5.0'} ★</strong> ({editingProduct.reviews_count || 0} opiniones de clientes)</>
+                                ) : (
+                                  'Las calificaciones se calcularán automáticamente conforme los compradores califiquen este producto.'
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-mono uppercase px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
+                            On-Chain Verificado
+                          </span>
                         </div>
-                      </div>
-
-                      {/* Reseñas Iniciales */}
-                      <div>
-                        <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                          Cantidad de Opiniones Verificadas
-                        </label>
-                        <input
-                          type="number"
-                          min="0"
-                          placeholder="24"
-                          value={reviewsCount}
-                          onChange={(e) => setReviewsCount(e.target.value)}
-                          className="w-full bg-[#060911] border border-white/[0.1] rounded-xl px-4 py-2.5 text-xs text-white font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
-                        />
                       </div>
 
                     </div>

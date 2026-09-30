@@ -17,6 +17,7 @@ export interface ProductReview {
   id: string;
   product_id: string;
   supplier_id?: string;
+  product_name?: string;
   user_name: string;
   user_email?: string;
   user_wallet?: string;
@@ -320,3 +321,64 @@ async function recalculateProductRating(productId: string) {
     }
   } catch {}
 }
+
+export async function fetchSupplierReviews(supplierId: string): Promise<ProductReview[]> {
+  try {
+    // 1. First get all products belonging to this supplier
+    const { data: prods } = await supabase
+      .from('products')
+      .select('id, name')
+      .eq('supplier_id', supplierId);
+
+    const productIds = (prods || []).map((p) => p.id);
+    const prodNameMap: Record<string, string> = {};
+    (prods || []).forEach((p) => {
+      prodNameMap[p.id] = p.name;
+    });
+
+    if (productIds.length > 0) {
+      const { data, error } = await supabase
+        .from('product_reviews')
+        .select('*')
+        .or(`supplier_id.eq.${supplierId},product_id.in.(${productIds.join(',')})`)
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        return data.map((r) => ({
+          ...r,
+          product_name: prodNameMap[r.product_id] || 'Producto',
+        }));
+      }
+    } else {
+      const { data, error } = await supabase
+        .from('product_reviews')
+        .select('*')
+        .eq('supplier_id', supplierId)
+        .order('created_at', { ascending: false });
+
+      if (!error && data) return data;
+    }
+  } catch (err) {
+    console.warn('Supabase fetchSupplierReviews fallback:', err);
+  }
+
+  // Local storage scan fallback
+  try {
+    const results: ProductReview[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('nexcoin_reviews_')) {
+        const list: ProductReview[] = JSON.parse(localStorage.getItem(key) || '[]');
+        list.forEach((r) => {
+          if (r.supplier_id === supplierId || !r.supplier_id) {
+            results.push(r);
+          }
+        });
+      }
+    }
+    return results.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  } catch {
+    return [];
+  }
+}
+

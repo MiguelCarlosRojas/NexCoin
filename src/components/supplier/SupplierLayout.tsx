@@ -17,7 +17,8 @@ import {
   X,
   Bitcoin,
   ChevronDown,
-  MessageSquare
+  MessageSquare,
+  Star
 } from 'lucide-react';
 
 interface SupplierLayoutProps {
@@ -42,6 +43,7 @@ export const SupplierLayout: React.FC<SupplierLayoutProps> = ({ children, title,
     { name: 'Dashboard', path: '/proveedores/dashboard', icon: LayoutDashboard },
     { name: 'Mis Productos', path: '/proveedores/productos', icon: Package },
     { name: 'Preguntas de Clientes', path: '/proveedores/preguntas', icon: MessageSquare },
+    { name: 'Calificaciones & Reseñas', path: '/proveedores/calificaciones', icon: Star },
     { name: 'Ventas & Vouchers', path: '/proveedores/ventas', icon: ShoppingBag },
     { name: 'Mi Perfil & Icono', path: '/proveedores/perfil', icon: User },
   ];
