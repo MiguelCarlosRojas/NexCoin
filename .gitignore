@@ -31,3 +31,6 @@ dist-ssr
 schema.sql
 seed.sql
 
+# Vercel
+.vercel
+
