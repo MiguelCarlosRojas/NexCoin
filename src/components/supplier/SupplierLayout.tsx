@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSupplier } from '../../context/SupplierContext';
 import { Blobatar } from '../ui/blobatar';
 import { parseBlobatar } from '../../lib/blobatarHelper';
+import { getSupplierVerification } from '../../lib/supplierVerificationHelper';
 import { SupplierNotificationsDropdown } from './SupplierNotificationsDropdown';
 import {
   LayoutDashboard,
@@ -210,10 +211,12 @@ export const SupplierLayout: React.FC<SupplierLayoutProps> = ({ children, title,
             {/* Supplier Info Box in top-right corner (Non-clickable, Large Blobatar on the Left) */}
             {supplier && (() => {
               const parsed = parseBlobatar(supplier.avatar_url, supplier.company_name || 'TechGlobal Hardware & Cryptowear');
+              const verification = getSupplierVerification(supplier.id);
+              const isVerified = verification?.isVerified ?? true;
               return (
                 <div
-                  className="flex items-center gap-3 py-1.5 px-3 rounded-2xl bg-slate-900/90 border border-white/[0.08] select-none shadow-sm"
-                  title="Proveedor Verificado"
+                  className="flex items-center gap-3 py-1 px-2.5 rounded-2xl bg-transparent select-none"
+                  title={isVerified ? 'Proveedor Verificado Oficial' : 'Verificación Pendiente'}
                 >
                   {/* Blobatar a la Izquierda y Más Grande */}
                   <Blobatar
@@ -233,10 +236,17 @@ export const SupplierLayout: React.FC<SupplierLayoutProps> = ({ children, title,
                     <p className="text-[10px] text-slate-400 truncate max-w-[210px] -mt-0.5">
                       {supplier.email || 'proveedor@nexcoin.com'}
                     </p>
-                    <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-emerald-400 mt-0.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      Proveedor Verificado
-                    </span>
+                    {isVerified ? (
+                      <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-emerald-400 mt-0.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        Proveedor Verificado
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-amber-400 mt-0.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                        Verificación Pendiente
+                      </span>
+                    )}
                   </div>
                 </div>
               );

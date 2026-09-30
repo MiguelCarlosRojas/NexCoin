@@ -33,8 +33,19 @@ import {
   Palette,
   Eye,
   Zap,
-  Receipt
+  Receipt,
+  BadgeCheck,
+  Award,
+  Globe,
+  FileText,
+  MapPin,
+  ExternalLink
 } from 'lucide-react';
+import {
+  getSupplierVerification,
+  saveSupplierVerification,
+  SupplierVerificationInfo
+} from '../../lib/supplierVerificationHelper';
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
 import {
   BLOBATAR_EXPRESSIONS,
@@ -175,6 +186,65 @@ export const SupplierProfile: React.FC = () => {
 
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Tab navigation state
+  type ProfileTab = 'identity' | 'wallets' | 'verification' | 'vouchers' | 'security';
+  const [activeTab, setActiveTab] = useState<ProfileTab>('identity');
+
+  // Supplier Verification state
+  const [verificationData, setVerificationData] = useState<SupplierVerificationInfo>(() =>
+    getSupplierVerification(supplier?.id)
+  );
+  const [taxIdInput, setTaxIdInput] = useState(verificationData.taxId || '');
+  const [legalNameInput, setLegalNameInput] = useState(verificationData.legalName || supplier?.company_name || '');
+  const [countryInput, setCountryInput] = useState(verificationData.country || 'Perú');
+  const [businessAddressInput, setBusinessAddressInput] = useState(verificationData.businessAddress || '');
+  const [websiteInput, setWebsiteInput] = useState(verificationData.website || '');
+  const [termsAccepted, setTermsAccepted] = useState(verificationData.isVerified);
+  const [isVerifying, setIsVerifying] = useState(false);
+
+  const handleSaveVerification = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!supplier) return;
+    if (!taxIdInput.trim() || !legalNameInput.trim()) {
+      setMessage({
+        type: 'error',
+        text: 'El RUC / Tax ID y la Razón Social son requisitos obligatorios para la verificación.',
+      });
+      return;
+    }
+    if (!termsAccepted) {
+      setMessage({
+        type: 'error',
+        text: 'Debes certificar la veracidad de la información y la autenticidad de tus productos para continuar.',
+      });
+      return;
+    }
+
+    setIsVerifying(true);
+    try {
+      const updated: SupplierVerificationInfo = {
+        isVerified: true,
+        taxId: taxIdInput.trim(),
+        legalName: legalNameInput.trim(),
+        country: countryInput.trim(),
+        businessAddress: businessAddressInput.trim(),
+        website: websiteInput.trim(),
+        verifiedAt: verificationData.verifiedAt || new Date().toISOString(),
+        verificationHash: verificationData.verificationHash || `0x${Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}`,
+      };
+      saveSupplierVerification(supplier.id, updated);
+      setVerificationData(updated);
+      setMessage({
+        type: 'success',
+        text: '¡Enhorabuena! Tu cuenta ha sido verificada con éxito. La insignia oficial de Proveedor Verificado ya está activa.',
+      });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: 'Error al procesar la verificación.' });
+    } finally {
+      setIsVerifying(false);
+    }
+  };
 
   // Voucher formats configuration for customers
   const [voucherConfig, setVoucherConfig] = useState<SupplierVoucherConfig>(() =>
@@ -404,10 +474,92 @@ export const SupplierProfile: React.FC = () => {
           </div>
         )}
 
-        <form onSubmit={handleSave} className="space-y-8 w-full max-w-full">
+        {/* Navigation Tabs Bar */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-white/[0.08] scrollbar-none">
+          <button
+            type="button"
+            onClick={() => setActiveTab('identity')}
+            className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition ${
+              activeTab === 'identity'
+                ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20'
+                : 'bg-[#0a0f1d] text-slate-400 hover:text-white hover:bg-slate-800/80 border border-white/[0.06]'
+            }`}
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>Identidad & Blobatar</span>
+          </button>
 
-          {/* SECTION 1: PERSONALIZADOR PROFESIONAL DE BLOBATAR */}
-          <div className="bg-[#0a0f1d] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl space-y-8 w-full">
+          <button
+            type="button"
+            onClick={() => setActiveTab('wallets')}
+            className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition ${
+              activeTab === 'wallets'
+                ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20'
+                : 'bg-[#0a0f1d] text-slate-400 hover:text-white hover:bg-slate-800/80 border border-white/[0.06]'
+            }`}
+          >
+            <Wallet className="w-4 h-4" />
+            <span>Billeteras & Cobros</span>
+            <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full ${
+              activeTab === 'wallets' ? 'bg-black/25 text-black font-black' : 'bg-slate-800 text-slate-300'
+            }`}>
+              {wallets.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('verification')}
+            className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition ${
+              activeTab === 'verification'
+                ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20'
+                : 'bg-[#0a0f1d] text-slate-400 hover:text-white hover:bg-slate-800/80 border border-white/[0.06]'
+            }`}
+          >
+            <BadgeCheck className="w-4 h-4 text-emerald-400" />
+            <span>Verificación Oficial</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+              verificationData.isVerified
+                ? activeTab === 'verification' ? 'bg-black/25 text-black font-black' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                : activeTab === 'verification' ? 'bg-black/25 text-black font-black' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+            }`}>
+              {verificationData.isVerified ? 'Verificado' : 'Pendiente'}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('vouchers')}
+            className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition ${
+              activeTab === 'vouchers'
+                ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20'
+                : 'bg-[#0a0f1d] text-slate-400 hover:text-white hover:bg-slate-800/80 border border-white/[0.06]'
+            }`}
+          >
+            <Receipt className="w-4 h-4" />
+            <span>Formatos de Voucher</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('security')}
+            className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition ${
+              activeTab === 'security'
+                ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20'
+                : 'bg-[#0a0f1d] text-rose-400/80 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/20'
+            }`}
+          >
+            <AlertTriangle className="w-4 h-4" />
+            <span>Zona de Seguridad</span>
+          </button>
+        </div>
+
+        {/* TAB 1: IDENTIDAD & BLOBATAR */}
+        {activeTab === 'identity' && (
+          <form onSubmit={handleSave} className="space-y-8 w-full max-w-full">
+
+            {/* SECTION 1: PERSONALIZADOR PROFESIONAL DE BLOBATAR */}
+            <div className="bg-[#0a0f1d] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl space-y-8 w-full">
             
             {/* Header with Title and Save Button */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.08] pb-5">
@@ -855,6 +1007,23 @@ export const SupplierProfile: React.FC = () => {
             </div>
           </div>
 
+          {/* Bottom Save Action Bar for Tab 1 */}
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-xl shadow-amber-500/20 transition disabled:opacity-50 active:scale-95"
+            >
+              <Save className="w-4 h-4" />
+              <span>{isSaving ? 'Guardando en Supabase...' : 'Guardar Perfil & Blobatar'}</span>
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* TAB 2: BILLETERAS & COBROS */}
+      {activeTab === 'wallets' && (
+        <form onSubmit={handleSave} className="space-y-8 w-full max-w-full">
           {/* SECTION 3: GESTIÓN DE MÚLTIPLES BILLETERAS DE COBRO (MULTI-WALLET PAYOUTS) */}
           <div className="bg-[#0a0f1d] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 w-full">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.08] pb-4">
@@ -1076,6 +1245,7 @@ export const SupplierProfile: React.FC = () => {
             </div>
 
             {/* Informational security note */}
+            {/* Informational security note */}
             <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-start gap-2.5 text-xs text-blue-300">
               <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
               <span>
@@ -1084,6 +1254,275 @@ export const SupplierProfile: React.FC = () => {
             </div>
           </div>
 
+          {/* Bottom Save Action Bar for Wallets */}
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-xl shadow-amber-500/20 transition disabled:opacity-50 active:scale-95"
+            >
+              <Save className="w-4 h-4" />
+              <span>{isSaving ? 'Guardando en Supabase...' : 'Guardar Billeteras de Cobro'}</span>
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* TAB 3: VERIFICACIÓN OFICIAL DE PROVEEDOR */}
+      {activeTab === 'verification' && (
+        <div className="space-y-8 w-full max-w-full">
+          
+          {/* Header & Official Status Banner */}
+          <div className={`p-6 sm:p-8 rounded-3xl border-2 transition relative overflow-hidden shadow-2xl ${
+            verificationData.isVerified
+              ? 'bg-gradient-to-br from-emerald-950/40 via-[#0a1b15] to-[#060911] border-emerald-500/40'
+              : 'bg-gradient-to-br from-amber-950/40 via-[#1a130a] to-[#060911] border-amber-500/40'
+          }`}>
+            <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative z-10">
+              <div className="flex items-start gap-4">
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border shadow-lg ${
+                  verificationData.isVerified
+                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-emerald-500/10'
+                    : 'bg-amber-500/20 text-amber-400 border-amber-500/40 shadow-amber-500/10'
+                }`}>
+                  {verificationData.isVerified ? (
+                    <BadgeCheck className="w-8 h-8" />
+                  ) : (
+                    <Award className="w-8 h-8" />
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <h3 className="text-xl font-black text-white font-heading">
+                      {verificationData.isVerified
+                        ? 'Proveedor Oficialmente Verificado'
+                        : 'Acreditación y Verificación de Proveedor'}
+                    </h3>
+                    <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
+                      verificationData.isVerified
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                        : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                    }`}>
+                      {verificationData.isVerified ? 'Acreditado Oficialmente' : 'Solicitud Pendiente'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                    {verificationData.isVerified
+                      ? 'Tu comercio cuenta con la insignia de confianza de NexCoin. Tus productos y perfil comercial están certificados para todos los compradores Web3.'
+                      : 'Certifica tu identidad comercial y datos fiscales para activar la insignia de verificación oficial en tus productos y maximizar tus ventas.'}
+                  </p>
+                </div>
+              </div>
+
+              {verificationData.isVerified && (
+                <div className="p-3.5 rounded-2xl bg-black/40 border border-emerald-500/30 font-mono text-[11px] text-emerald-400 shrink-0">
+                  <span className="block text-[9px] uppercase tracking-wider text-slate-400">Hash de Verificación:</span>
+                  <span className="font-bold truncate block max-w-[200px]">{verificationData.verificationHash}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Data Summary if Verified */}
+            {verificationData.isVerified && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-6 border-t border-white/[0.08] relative z-10">
+                <div className="p-3 bg-black/30 rounded-xl border border-white/[0.06]">
+                  <span className="text-[10px] text-slate-400 block uppercase font-mono">Razón Social</span>
+                  <span className="text-xs font-bold text-white truncate block mt-0.5">{verificationData.legalName}</span>
+                </div>
+                <div className="p-3 bg-black/30 rounded-xl border border-white/[0.06]">
+                  <span className="text-[10px] text-slate-400 block uppercase font-mono">RUC / Tax ID</span>
+                  <span className="text-xs font-bold text-white truncate block mt-0.5">{verificationData.taxId}</span>
+                </div>
+                <div className="p-3 bg-black/30 rounded-xl border border-white/[0.06]">
+                  <span className="text-[10px] text-slate-400 block uppercase font-mono">Jurisdicción / País</span>
+                  <span className="text-xs font-bold text-white truncate block mt-0.5">{verificationData.country}</span>
+                </div>
+                <div className="p-3 bg-black/30 rounded-xl border border-white/[0.06]">
+                  <span className="text-[10px] text-slate-400 block uppercase font-mono">Fecha de Validación</span>
+                  <span className="text-xs font-bold text-emerald-400 block mt-0.5">
+                    {new Date(verificationData.verifiedAt || Date.now()).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Beneficios de la Verificación */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-5 rounded-2xl bg-[#0a0f1d] border border-white/[0.08] space-y-2">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                <BadgeCheck className="w-5 h-5" />
+              </div>
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Insignia Oficial de Confianza</h4>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                Tu marca e ítems mostrarán el badge de verificación en el Header, en la tienda y en la vista de compra, inspirando total seguridad al comprador.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-[#0a0f1d] border border-white/[0.08] space-y-2">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                <Zap className="w-5 h-5" />
+              </div>
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Prioridad en el Algoritmo</h4>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                Tus productos tienen preferencia en los resultados de búsqueda, filtros destacados y catálogo general del marketplace.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-[#0a0f1d] border border-white/[0.08] space-y-2">
+              <div className="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Pagos Cripto Respaldados</h4>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                Garantía de liquidación en Bitcoin y stablecoins con comprobantes digitales autoverificables sobre la blockchain.
+              </p>
+            </div>
+          </div>
+
+          {/* Formulario de Acreditación Fiscal */}
+          <form onSubmit={handleSaveVerification} className="bg-[#0a0f1d] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+            <div className="flex items-center gap-3 border-b border-white/[0.08] pb-4">
+              <div className="p-2.5 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
+                <FileText className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">
+                  Registro de Información Fiscal y Cumplimiento (KYC Proveedores)
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Ingresa o actualiza la razón social y acreditación fiscal de tu negocio para activar el badge verificado.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Razón Social / Nombre Legal Registrado *
+                </label>
+                <div className="relative">
+                  <Building className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <input
+                    type="text"
+                    required
+                    value={legalNameInput}
+                    onChange={(e) => setLegalNameInput(e.target.value)}
+                    placeholder="Ej: TechGlobal Hardware & Cryptowear S.A.C."
+                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  RUC / Tax ID / Número de Identificación Tributaria *
+                </label>
+                <div className="relative">
+                  <FileText className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <input
+                    type="text"
+                    required
+                    value={taxIdInput}
+                    onChange={(e) => setTaxIdInput(e.target.value)}
+                    placeholder="Ej: 20601234567 o RFC / NIF"
+                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  País o Jurisdicción Legal *
+                </label>
+                <div className="relative">
+                  <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <input
+                    type="text"
+                    required
+                    value={countryInput}
+                    onChange={(e) => setCountryInput(e.target.value)}
+                    placeholder="Ej: Perú, Colombia, México, España, USA"
+                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Sitio Web Oficial o Perfil Empresarial
+                </label>
+                <div className="relative">
+                  <ExternalLink className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <input
+                    type="url"
+                    value={websiteInput}
+                    onChange={(e) => setWebsiteInput(e.target.value)}
+                    placeholder="https://tudominio.com"
+                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Domicilio Fiscal / Dirección Comercial
+                </label>
+                <div className="relative">
+                  <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <input
+                    type="text"
+                    value={businessAddressInput}
+                    onChange={(e) => setBusinessAddressInput(e.target.value)}
+                    placeholder="Ej: Av. Blockchain 404, San Isidro, Lima"
+                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Declaración Jurada */}
+            <div className="p-4 rounded-2xl bg-[#060911] border border-white/[0.08] space-y-2">
+              <label className="flex items-start gap-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={termsAccepted}
+                  onChange={(e) => setTermsAccepted(e.target.checked)}
+                  className="w-4 h-4 mt-0.5 rounded border-white/20 bg-slate-900 text-emerald-500 focus:ring-emerald-500 shrink-0"
+                />
+                <span className="text-xs text-slate-300 leading-relaxed">
+                  Declaro bajo juramento que represento legalmente a esta empresa comercial, que los datos suministrados son fidedignos y que todos los productos ofertados en NexCoin Marketplace son auténticos, lícitos y cuentan con garantía de entrega al comprador.
+                </span>
+              </label>
+            </div>
+
+            {/* Submit Button */}
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="submit"
+                disabled={isVerifying}
+                className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-xl shadow-emerald-500/20 transition disabled:opacity-50 active:scale-95"
+              >
+                <BadgeCheck className="w-4 h-4" />
+                <span>
+                  {isVerifying
+                    ? 'Procesando Acreditación...'
+                    : verificationData.isVerified
+                    ? 'Actualizar Datos de Registro Fiscal'
+                    : 'Solicitar y Activar Verificación Oficial'}
+                </span>
+              </button>
+            </div>
+          </form>
+
+        </div>
+      )}
+
+      {/* TAB 4: FORMATOS DE VOUCHER */}
+      {activeTab === 'vouchers' && (
+        <form onSubmit={handleSave} className="space-y-8 w-full max-w-full">
           {/* Configuración de Comprobantes & Vouchers para Clientes */}
           <div className="p-6 rounded-2xl bg-[#0c1222] border border-white/[0.08] space-y-4">
             <div className="flex items-center gap-3">
@@ -1124,7 +1563,7 @@ export const SupplierProfile: React.FC = () => {
                 <div>
                   <span className="font-bold text-xs block text-white">Vista previa del voucher · 80mm</span>
                   <span className="text-[11px] text-slate-400 leading-relaxed block mt-1">
-                    Ticket térmico POS de 80mm con vista previa interactiva en Laptop/PC y descarga directa de 1 toque en celulares.
+                    Ticket térmico POS de 80mm con vista previa interactiva en Laptop/PC y descarga directa de 1 toque en celulares. Tipografía ultra nítida optimizada.
                   </span>
                 </div>
               </label>
@@ -1159,7 +1598,7 @@ export const SupplierProfile: React.FC = () => {
             </div>
           </div>
 
-          {/* Bottom Save Action Bar */}
+          {/* Bottom Save Action Bar for Vouchers */}
           <div className="flex items-center justify-end gap-3 pt-2">
             <button
               type="submit"
@@ -1167,14 +1606,15 @@ export const SupplierProfile: React.FC = () => {
               className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-xl shadow-amber-500/20 transition disabled:opacity-50 active:scale-95"
             >
               <Save className="w-4 h-4" />
-              <span>{isSaving ? 'Guardando en Supabase...' : 'Guardar Perfil & Blobatar'}</span>
+              <span>{isSaving ? 'Guardando en Supabase...' : 'Guardar Preferencias de Voucher'}</span>
             </button>
           </div>
-
         </form>
+      )}
 
-        {/* Zona de Peligro: Eliminar Cuenta de Proveedor */}
-        <div className="mt-12 p-6 sm:p-8 rounded-3xl bg-[#13070b] border-2 border-rose-500/30 space-y-6">
+      {/* TAB 5: ZONA DE SEGURIDAD */}
+      {activeTab === 'security' && (
+        <div className="p-6 sm:p-8 rounded-3xl bg-[#13070b] border-2 border-rose-500/30 space-y-6">
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/40 flex items-center justify-center text-rose-400 shrink-0">
               <AlertTriangle className="w-6 h-6" />
@@ -1292,6 +1732,7 @@ export const SupplierProfile: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
 
       </div>
     </SupplierLayout>

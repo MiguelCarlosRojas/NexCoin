@@ -71,10 +71,10 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Generate 80mm PDF for preview or download
+  // Generate 80mm PDF for preview or download (Crisp Modern Helvetica Layout)
   const generate80mmPdfDoc = (currentOrder: Order) => {
     const itemsCount = currentOrder.items?.length || 1;
-    const calculatedHeight = Math.max(170, 115 + itemsCount * 11);
+    const calculatedHeight = Math.max(185, 130 + itemsCount * 14);
     
     // 80mm width ticket
     const doc = new jsPDF({
@@ -82,96 +82,178 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
       format: [80, calculatedHeight],
     });
 
-    doc.setFont('courier', 'normal');
+    // Background header accent
+    doc.setFillColor(15, 23, 42); // slate-900
+    doc.rect(0, 0, 80, 24, 'F');
 
     // Header NexCoin
-    doc.setFontSize(12);
-    doc.setFont('courier', 'bold');
-    doc.text('NEXCOIN MARKETPLACE', 40, 10, { align: 'center' });
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(255, 255, 255);
+    doc.text('NexCoin Marketplace', 40, 10, { align: 'center' });
 
-    doc.setFontSize(7.5);
-    doc.setFont('courier', 'normal');
-    doc.text('Comercio Web3 & Pagos Bitcoin', 40, 15, { align: 'center' });
-    doc.text('https://nex-coin-rho.vercel.app', 40, 19, { align: 'center' });
-
-    doc.text('------------------------------------------', 40, 23, { align: 'center' });
-
-    doc.setFontSize(9);
-    doc.setFont('courier', 'bold');
-    doc.text('VOUCHER ELECTRÓNICO (80MM)', 40, 27, { align: 'center' });
-
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
-    doc.setFont('courier', 'normal');
-    doc.text(`VOUCHER: ${currentOrder.voucher_code}`, 4, 34);
-    doc.text(`ORDEN  : #${currentOrder.order_number}`, 4, 39);
-    doc.text(`FECHA  : ${new Date(currentOrder.created_at).toLocaleString()}`, 4, 44);
-    doc.text(`CLIENTE: ${currentOrder.customer_name.substring(0, 28)}`, 4, 49);
-    doc.text(`EMAIL  : ${currentOrder.customer_email.substring(0, 28)}`, 4, 54);
+    doc.setTextColor(251, 191, 36); // amber-400
+    doc.text('Comercio Web3 & Pagos Bitcoin', 40, 15, { align: 'center' });
+    doc.setTextColor(203, 213, 225); // slate-300
+    doc.setFontSize(7);
+    doc.text('https://nex-coin-rho.vercel.app', 40, 20, { align: 'center' });
+
+    // Ticket Title
+    let y = 30;
+    doc.setTextColor(15, 23, 42);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text('VOUCHER ELECTRÓNICO (80MM)', 40, y, { align: 'center' });
+    y += 5;
+
+    // Divider
+    doc.setDrawColor(203, 213, 225);
+    doc.setLineWidth(0.3);
+    doc.line(4, y, 76, y);
+    y += 5;
+
+    // Details Grid
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(71, 85, 105);
+
+    doc.text('Voucher:', 4, y);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text(currentOrder.voucher_code, 76, y, { align: 'right' });
+    y += 4.5;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    doc.text('Orden:', 4, y);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text(`#${currentOrder.order_number}`, 76, y, { align: 'right' });
+    y += 4.5;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    doc.text('Fecha:', 4, y);
+    doc.setTextColor(30, 41, 59);
+    doc.text(new Date(currentOrder.created_at).toLocaleDateString(), 76, y, { align: 'right' });
+    y += 4.5;
+
+    doc.setTextColor(71, 85, 105);
+    doc.text('Cliente:', 4, y);
+    doc.setTextColor(30, 41, 59);
+    doc.text(currentOrder.customer_name.substring(0, 24), 76, y, { align: 'right' });
+    y += 4.5;
 
     const walletSnippet = currentOrder.customer_wallet 
-      ? `${currentOrder.customer_wallet.substring(0, 12)}...${currentOrder.customer_wallet.substring(currentOrder.customer_wallet.length - 6)}`
+      ? `${currentOrder.customer_wallet.substring(0, 8)}...${currentOrder.customer_wallet.substring(currentOrder.customer_wallet.length - 6)}`
       : 'N/A';
-    doc.text(`WALLET : ${walletSnippet}`, 4, 59);
-
-    doc.text('------------------------------------------', 40, 63, { align: 'center' });
+    doc.setTextColor(71, 85, 105);
+    doc.text('Wallet:', 4, y);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(217, 119, 6);
+    doc.text(walletSnippet, 76, y, { align: 'right' });
+    y += 6;
 
     // Table Header
-    doc.setFont('courier', 'bold');
-    doc.text('DESCRIPCION        CANT  PRECIO   TOTAL', 4, 67);
-    doc.text('------------------------------------------', 40, 70, { align: 'center' });
+    doc.setFillColor(241, 245, 249);
+    doc.rect(4, y - 4, 72, 7, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(30, 41, 59);
+    doc.text('PRODUCTO', 6, y);
+    doc.text('CANT', 44, y);
+    doc.text('TOTAL', 74, y, { align: 'right' });
+    y += 5;
 
-    let y = 74;
-    doc.setFont('courier', 'normal');
+    // Items
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
     if (currentOrder.items && currentOrder.items.length > 0) {
       currentOrder.items.forEach((item) => {
-        const prodName = item.product_name.length > 17 
-          ? item.product_name.substring(0, 15) + '..' 
-          : item.product_name.padEnd(17, ' ');
-        const qty = String(item.quantity).padStart(3, ' ');
-        const unit = `$${Number(item.unit_price_usd).toFixed(2)}`.padStart(8, ' ');
-        const total = `$${Number(item.total_usd).toFixed(2)}`.padStart(8, ' ');
-
-        doc.text(`${prodName} ${qty} ${unit} ${total}`, 4, y);
-        y += 5;
+        doc.setTextColor(15, 23, 42);
+        const nameLines = doc.splitTextToSize(item.product_name, 36);
+        doc.text(nameLines, 6, y);
+        doc.text(String(item.quantity), 47, y);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`$${Number(item.total_usd).toFixed(2)}`, 74, y, { align: 'right' });
+        doc.setFont('helvetica', 'normal');
+        
+        const blockHeight = Math.max(nameLines.length * 3.8, 5);
+        y += blockHeight;
       });
     }
 
-    doc.text('------------------------------------------', 40, y, { align: 'center' });
+    y += 2;
+    doc.setDrawColor(203, 213, 225);
+    doc.line(4, y, 76, y);
     y += 5;
 
     // Totals
-    doc.setFont('courier', 'bold');
-    doc.setFontSize(10);
-    doc.text(`TOTAL USD: $${Number(currentOrder.total_usd).toFixed(2)}`, 76, y, { align: 'right' });
-    y += 5;
-    doc.setFontSize(8.5);
-    doc.text(`TOTAL BTC: ${Number(currentOrder.total_btc).toFixed(8)} ₿`, 76, y, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(71, 85, 105);
+    doc.text('TOTAL USD:', 4, y);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(15, 23, 42);
+    doc.text(`$${Number(currentOrder.total_usd).toFixed(2)}`, 76, y, { align: 'right' });
+    y += 5.5;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(71, 85, 105);
+    doc.text('TOTAL BITCOIN:', 4, y);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(217, 119, 6); // amber-600
+    doc.text(`${Number(currentOrder.total_btc).toFixed(8)} BTC`, 76, y, { align: 'right' });
     y += 6;
 
+    // Status Banner
+    doc.setFillColor(236, 253, 245);
+    doc.rect(4, y - 4, 72, 7, 'F');
+    doc.setTextColor(5, 150, 105);
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(7.5);
-    doc.setFont('courier', 'normal');
-    doc.text('ESTADO: PAGO CONFIRMADO ON-CHAIN', 40, y, { align: 'center' });
-    y += 5;
-    doc.text('------------------------------------------', 40, y, { align: 'center' });
+    doc.text('PAGO CONFIRMADO ON-CHAIN', 40, y, { align: 'center' });
+    y += 6;
+
+    // Blockchain Security Block
+    doc.setDrawColor(226, 232, 240);
+    doc.line(4, y, 76, y);
     y += 4;
 
-    // Blockchain & Crypto Info
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(6.5);
-    doc.text('VALIDACION CRIPTOGRAFICA BLOCKCHAIN', 40, y, { align: 'center' });
-    y += 4;
-    doc.text(`TX HASH: ${(currentOrder.payment_tx_hash || '0x...').substring(0, 36)}...`, 4, y);
-    y += 3.5;
-    doc.text(`CONTRATO: ${(currentOrder.contract_address || NEXCOIN_CONTRACT_ADDRESS).substring(0, 34)}...`, 4, y);
-    y += 3.5;
-    doc.text(`FIRMA: ${(currentOrder.signature_nexcoin || '0x3a4b9c8d...').substring(0, 38)}...`, 4, y);
+    doc.setTextColor(100, 116, 139);
+    doc.text('FIRMA CRIPTOGRAFICA & CONTRATO SMART', 40, y, { align: 'center' });
+    y += 3.8;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`TX: ${(currentOrder.payment_tx_hash || '0x...').substring(0, 36)}...`, 40, y, { align: 'center' });
+    y += 3.2;
+    doc.text(`CONTRATO: ${(currentOrder.contract_address || NEXCOIN_CONTRACT_ADDRESS).substring(0, 34)}...`, 40, y, { align: 'center' });
+    y += 3.2;
+    doc.text(`ECDSA: ${(currentOrder.signature_nexcoin || '0x3a4b9c8d...').substring(0, 36)}...`, 40, y, { align: 'center' });
     y += 5;
 
-    doc.text('==========================================', 40, y, { align: 'center' });
-    y += 4;
-    doc.setFontSize(7);
-    doc.text('¡GRACIAS POR COMPRAR EN NEXCOIN!', 40, y, { align: 'center' });
+    doc.setDrawColor(203, 213, 225);
+    doc.line(4, y, 76, y);
+    y += 4.5;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(15, 23, 42);
+    doc.text('¡GRACIAS POR SU COMPRA EN NEXCOIN!', 40, y, { align: 'center' });
     y += 3.5;
-    doc.text('Comprobante inmutable respaldado por smart contract', 40, y, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.5);
+    doc.setTextColor(148, 163, 184);
+    doc.text('Comprobante inmutable emitido bajo protocolo Web3', 40, y, { align: 'center' });
 
     return doc;
   };

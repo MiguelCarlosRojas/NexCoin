@@ -7,6 +7,10 @@ export interface Supplier {
   phone?: string;
   wallet_address?: string;
   avatar_url?: string;
+  is_verified?: boolean;
+  tax_id?: string;
+  legal_name?: string;
+  voucher_formats?: ('80mm' | 'digital')[];
   created_at?: string;
 }
 
