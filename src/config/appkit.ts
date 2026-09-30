@@ -3,7 +3,7 @@ import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
 import { mainnet, arbitrum, polygon, base, optimism, sepolia } from '@reown/appkit/networks';
 
 // 1. Get projectId from environment variables (https://cloud.reown.com)
-export const projectId = import.meta.env.VITE_REOWN_PROJECT_ID || import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || '';
+export const projectId = import.meta.env.VITE_REOWN_PROJECT_ID || import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || 'missing-reown-project-id';
 
 if (!projectId) {
   console.warn('⚠️ Variable VITE_REOWN_PROJECT_ID no configurada en el archivo .env');
