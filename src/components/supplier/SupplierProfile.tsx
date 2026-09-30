@@ -32,7 +32,8 @@ import {
   Layers,
   Palette,
   Eye,
-  Zap
+  Zap,
+  Receipt
 } from 'lucide-react';
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
 import {
@@ -43,6 +44,11 @@ import {
   serializeBlobatar,
   getBlobatarAnimate
 } from '../../lib/blobatarHelper';
+import {
+  getSupplierVoucherConfig,
+  setSupplierVoucherConfig,
+  SupplierVoucherConfig
+} from '../../lib/voucherConfigHelper';
 
 export interface PayoutWalletItem {
   id: string;
@@ -169,6 +175,11 @@ export const SupplierProfile: React.FC = () => {
 
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Voucher formats configuration for customers
+  const [voucherConfig, setVoucherConfig] = useState<SupplierVoucherConfig>(() =>
+    getSupplierVoucherConfig(supplier?.id)
+  );
 
   // Reown AppKit connection
   const { open } = useAppKit();
@@ -352,10 +363,11 @@ export const SupplierProfile: React.FC = () => {
       if (error) throw error;
 
       persistWallets(wallets);
+      setSupplierVoucherConfig(supplier.id, voucherConfig);
       await refreshSupplier();
       setMessage({
         type: 'success',
-        text: '¡Perfil, icono Blobatar personalizado y configuración de billeteras guardados con éxito!',
+        text: '¡Perfil, icono Blobatar personalizado, billeteras y permisos de voucher guardados con éxito!',
       });
     } catch (err: any) {
       setMessage({
@@ -1069,6 +1081,81 @@ export const SupplierProfile: React.FC = () => {
               <span>
                 Los pagos de los compradores en la tienda se liquidarán de forma no custodial y transparente directo a tu billetera principal activa.
               </span>
+            </div>
+          </div>
+
+          {/* Configuración de Comprobantes & Vouchers para Clientes */}
+          <div className="p-6 rounded-2xl bg-[#0c1222] border border-white/[0.08] space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                <Receipt className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white font-heading">
+                  Formatos de Comprobante / Voucher Disponibles para Clientes
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Selecciona si tus compradores tendrán acceso a ambos formatos o únicamente a uno de ellos:
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+              {/* Opción 1: Vista previa del voucher · 80mm */}
+              <label className={`p-4 rounded-xl border flex items-start gap-3.5 cursor-pointer transition select-none ${
+                voucherConfig.allow80mm 
+                  ? 'bg-amber-500/10 border-amber-500/40 text-white' 
+                  : 'bg-white/[0.02] border-white/[0.08] text-slate-400 opacity-60'
+              }`}>
+                <input
+                  type="checkbox"
+                  checked={voucherConfig.allow80mm}
+                  onChange={(e) => {
+                    if (!e.target.checked && !voucherConfig.allowDigital) {
+                      setMessage({ type: 'error', text: 'Debes mantener habilitado al menos un formato de voucher para tus clientes.' });
+                      return;
+                    }
+                    const next = { ...voucherConfig, allow80mm: e.target.checked };
+                    setVoucherConfig(next);
+                    if (supplier?.id) setSupplierVoucherConfig(supplier.id, next);
+                  }}
+                  className="w-4 h-4 mt-0.5 rounded border-white/20 bg-slate-900 text-amber-500 focus:ring-amber-500"
+                />
+                <div>
+                  <span className="font-bold text-xs block text-white">Vista previa del voucher · 80mm</span>
+                  <span className="text-[11px] text-slate-400 leading-relaxed block mt-1">
+                    Ticket térmico POS de 80mm con vista previa interactiva en Laptop/PC y descarga directa de 1 toque en celulares.
+                  </span>
+                </div>
+              </label>
+
+              {/* Opción 2: Comprobante Digital Detallado */}
+              <label className={`p-4 rounded-xl border flex items-start gap-3.5 cursor-pointer transition select-none ${
+                voucherConfig.allowDigital 
+                  ? 'bg-blue-500/10 border-blue-500/40 text-white' 
+                  : 'bg-white/[0.02] border-white/[0.08] text-slate-400 opacity-60'
+              }`}>
+                <input
+                  type="checkbox"
+                  checked={voucherConfig.allowDigital}
+                  onChange={(e) => {
+                    if (!e.target.checked && !voucherConfig.allow80mm) {
+                      setMessage({ type: 'error', text: 'Debes mantener habilitado al menos un formato de voucher para tus clientes.' });
+                      return;
+                    }
+                    const next = { ...voucherConfig, allowDigital: e.target.checked };
+                    setVoucherConfig(next);
+                    if (supplier?.id) setSupplierVoucherConfig(supplier.id, next);
+                  }}
+                  className="w-4 h-4 mt-0.5 rounded border-white/20 bg-slate-900 text-blue-500 focus:ring-blue-500"
+                />
+                <div>
+                  <span className="font-bold text-xs block text-white">Comprobante Digital Detallado</span>
+                  <span className="text-[11px] text-slate-400 leading-relaxed block mt-1">
+                    Comprobante digital completo en pantalla con verificación de contrato NexCoin.sol, firma ECDSA y envío a Gmail.
+                  </span>
+                </div>
+              </label>
             </div>
           </div>
 

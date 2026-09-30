@@ -16,6 +16,7 @@ import {
   Smartphone
 } from 'lucide-react';
 import { NEXCOIN_CONTRACT_ADDRESS } from '../../utils/nexCoinSignature';
+import { getSupplierVoucherConfig } from '../../lib/voucherConfigHelper';
 
 interface VoucherModalProps {
   order: Order | null;
@@ -33,7 +34,25 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
   isSupplierView: _isSupplierView = false,
 }) => {
   const [copied, setCopied] = useState(false);
-  const [viewMode, setViewMode] = useState<'preview80mm' | 'standard'>('preview80mm');
+
+  // Supplier permissions config for vouchers
+  const supplierId = order?.items?.[0]?.supplier_id;
+  const voucherConfig = getSupplierVoucherConfig(supplierId);
+
+  const [viewMode, setViewMode] = useState<'preview80mm' | 'standard'>(() => {
+    if (!voucherConfig.allow80mm && voucherConfig.allowDigital) return 'standard';
+    return 'preview80mm';
+  });
+
+  // Keep viewMode synchronized with active supplier configuration
+  useEffect(() => {
+    if (!voucherConfig.allow80mm && voucherConfig.allowDigital) {
+      setViewMode('standard');
+    } else if (!voucherConfig.allowDigital && voucherConfig.allow80mm) {
+      setViewMode('preview80mm');
+    }
+  }, [voucherConfig.allow80mm, voucherConfig.allowDigital]);
+
   const [pdf80mmUrl, setPdf80mmUrl] = useState<string | null>(null);
   const [isMobileDevice, setIsMobileDevice] = useState(false);
   const voucherRef = useRef<HTMLDivElement>(null);
@@ -380,33 +399,35 @@ https://nex-coin-rho.vercel.app`;
             </div>
           </div>
 
-          {/* Tab Selector: Vista previa 80mm vs Comprobante Web */}
-          <div className="mt-4 flex items-center gap-2 p-1 bg-black/40 rounded-xl border border-white/10 max-w-fit">
-            <button
-              type="button"
-              onClick={() => setViewMode('preview80mm')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
-                viewMode === 'preview80mm'
-                  ? 'bg-amber-500 text-slate-950 shadow-md'
-                  : 'text-slate-300 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <Receipt className="w-3.5 h-3.5" />
-              <span>Vista previa del voucher · 80mm</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('standard')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
-                viewMode === 'standard'
-                  ? 'bg-white/20 text-white shadow-md'
-                  : 'text-slate-300 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <FileText className="w-3.5 h-3.5" />
-              <span>Comprobante Digital Detallado</span>
-            </button>
-          </div>
+          {/* Tab Selector: Solo se muestra si el proveedor habilitó AMBOS formatos */}
+          {voucherConfig.allow80mm && voucherConfig.allowDigital && (
+            <div className="mt-4 flex items-center gap-2 p-1 bg-black/40 rounded-xl border border-white/10 max-w-fit">
+              <button
+                type="button"
+                onClick={() => setViewMode('preview80mm')}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
+                  viewMode === 'preview80mm'
+                    ? 'bg-amber-500 text-slate-950 shadow-md'
+                    : 'text-slate-300 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <Receipt className="w-3.5 h-3.5" />
+                <span>Vista previa del voucher · 80mm</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('standard')}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
+                  viewMode === 'standard'
+                    ? 'bg-white/20 text-white shadow-md'
+                    : 'text-slate-300 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Comprobante Digital Detallado</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Modal Body */}
@@ -487,30 +508,36 @@ https://nex-coin-rho.vercel.app`;
             {/* Bottom Actions for 80mm mode */}
             <div className="pt-2 flex flex-wrap gap-2.5 items-center justify-between border-t border-gray-100 dark:border-gray-800">
               <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={handleDownload80mmPdf}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-bold rounded-xl text-xs shadow-md hover:from-amber-400 hover:to-orange-400 transition"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Descargar Ticket 80mm</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDownloadStandardPdf}
-                  className="flex items-center gap-2 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold transition"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Descargar A4</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleOpenGmail}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition"
-                >
-                  <Mail className="w-3.5 h-3.5" />
-                  <span>Gmail</span>
-                </button>
+                {voucherConfig.allow80mm && (
+                  <button
+                    type="button"
+                    onClick={handleDownload80mmPdf}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-bold rounded-xl text-xs shadow-md hover:from-amber-400 hover:to-orange-400 transition"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Descargar Ticket 80mm</span>
+                  </button>
+                )}
+                {voucherConfig.allowDigital && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleDownloadStandardPdf}
+                      className="flex items-center gap-2 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold transition"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Descargar A4</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleOpenGmail}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition"
+                    >
+                      <Mail className="w-3.5 h-3.5" />
+                      <span>Gmail</span>
+                    </button>
+                  </>
+                )}
               </div>
 
               <button
@@ -642,42 +669,50 @@ https://nex-coin-rho.vercel.app`;
             {/* Action Buttons */}
             <div className="pt-2 flex flex-wrap gap-2.5 items-center justify-between border-t border-gray-100 dark:border-gray-800">
               <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => setViewMode('preview80mm')}
-                  className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-bold rounded-xl text-xs shadow transition"
-                >
-                  <Receipt className="w-3.5 h-3.5" />
-                  <span>Vista 80mm</span>
-                </button>
+                {voucherConfig.allow80mm && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('preview80mm')}
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-bold rounded-xl text-xs shadow transition"
+                    >
+                      <Receipt className="w-3.5 h-3.5" />
+                      <span>Vista 80mm</span>
+                    </button>
 
-                <button
-                  type="button"
-                  onClick={handleDownload80mmPdf}
-                  className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-semibold transition"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Descargar 80mm</span>
-                </button>
+                    <button
+                      type="button"
+                      onClick={handleDownload80mmPdf}
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-semibold transition"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Descargar 80mm</span>
+                    </button>
+                  </>
+                )}
 
-                <button
-                  type="button"
-                  onClick={handleOpenGmail}
-                  className="flex items-center gap-1.5 px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition"
-                  title="Abrir en Gmail para enviar o respaldar este comprobante"
-                >
-                  <Mail className="w-3.5 h-3.5" />
-                  <span>Gmail</span>
-                </button>
+                {voucherConfig.allowDigital && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleOpenGmail}
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition"
+                      title="Abrir en Gmail para enviar o respaldar este comprobante"
+                    >
+                      <Mail className="w-3.5 h-3.5" />
+                      <span>Gmail</span>
+                    </button>
 
-                <button
-                  type="button"
-                  onClick={handleDownloadStandardPdf}
-                  className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold transition"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>PDF A4</span>
-                </button>
+                    <button
+                      type="button"
+                      onClick={handleDownloadStandardPdf}
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold transition"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>PDF A4</span>
+                    </button>
+                  </>
+                )}
 
                 <button
                   type="button"

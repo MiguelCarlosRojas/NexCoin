@@ -207,37 +207,38 @@ export const SupplierLayout: React.FC<SupplierLayoutProps> = ({ children, title,
             {/* Notificaciones Aisladas por Proveedor */}
             <SupplierNotificationsDropdown supplierId={supplier?.id || ''} />
 
-            {/* Supplier Info Box in top-right corner (Compact & Sleek) */}
+            {/* Supplier Info Box in top-right corner (Non-clickable, Large Blobatar on the Left) */}
             {supplier && (() => {
               const parsed = parseBlobatar(supplier.avatar_url, supplier.company_name || 'TechGlobal Hardware & Cryptowear');
               return (
-                <Link
-                  to="/proveedores/perfil"
-                  className="flex items-center gap-2.5 p-1 sm:px-2.5 sm:py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-850 border border-white/[0.08] hover:border-amber-500/40 transition group"
-                  title="Mi Perfil de Proveedor Verificado"
+                <div
+                  className="flex items-center gap-3 py-1.5 px-3 rounded-2xl bg-slate-900/90 border border-white/[0.08] select-none shadow-sm"
+                  title="Proveedor Verificado"
                 >
-                  <div className="text-right hidden md:block">
-                    <p className="text-[11px] font-bold text-white group-hover:text-amber-400 transition truncate max-w-[190px]">
-                      {supplier.company_name || 'TechGlobal Hardware & Cryptowear'}
-                    </p>
-                    <p className="text-[9.5px] text-slate-400 truncate max-w-[190px] -mt-0.5">
-                      {supplier.email || 'proveedor@nexcoin.com'}
-                    </p>
-                    <span className="inline-flex items-center gap-1 text-[8.5px] font-bold uppercase tracking-wider text-emerald-400 mt-0.5">
-                      <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
-                      Proveedor Verificado
-                    </span>
-                  </div>
-
+                  {/* Blobatar a la Izquierda y Más Grande */}
                   <Blobatar
                     name={parsed.seed}
                     blobatar={{
                       expression: parsed.expression,
                       animate: parsed.animProp,
                     }}
-                    className={`w-7 h-7 sm:w-8 sm:h-8 ${parsed.shapeClass} border ${parsed.borderClass} ${parsed.glowClass} group-hover:scale-105 transition shrink-0`}
+                    className={`w-11 h-11 sm:w-12 sm:h-12 ${parsed.shapeClass} border ${parsed.borderClass} ${parsed.glowClass} shrink-0`}
                   />
-                </Link>
+
+                  {/* Información a la Derecha (Alineada a la Izquierda, No Clickeable) */}
+                  <div className="text-left hidden md:block">
+                    <p className="text-xs font-bold text-white truncate max-w-[210px]">
+                      {supplier.company_name || 'TechGlobal Hardware & Cryptowear'}
+                    </p>
+                    <p className="text-[10px] text-slate-400 truncate max-w-[210px] -mt-0.5">
+                      {supplier.email || 'proveedor@nexcoin.com'}
+                    </p>
+                    <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-emerald-400 mt-0.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      Proveedor Verificado
+                    </span>
+                  </div>
+                </div>
               );
             })()}
           </div>

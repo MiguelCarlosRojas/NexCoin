@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { SupplierProvider } from './context/SupplierContext';
+import { SupplierNotificationsProvider } from './context/SupplierNotificationsContext';
 import { WalletProvider } from './context/WalletContext';
 import { CartProvider } from './context/CartContext';
 
@@ -115,11 +116,12 @@ const App: React.FC = () => {
   return (
     <Web3AppKitProvider>
       <SupplierProvider>
-        <WalletProvider>
-          <CartProvider>
-            <Router>
-              <RouteTitleUpdater />
-              <Routes>
+        <SupplierNotificationsProvider>
+          <WalletProvider>
+            <CartProvider>
+              <Router>
+                <RouteTitleUpdater />
+                <Routes>
               {/* Store Landing Page (Default Home) */}
               <Route path="/" element={<StoreLanding />} />
               <Route path="/tienda" element={<StoreLanding />} />
@@ -264,8 +266,9 @@ const App: React.FC = () => {
           </Router>
         </CartProvider>
       </WalletProvider>
-    </SupplierProvider>
-  </Web3AppKitProvider>
+    </SupplierNotificationsProvider>
+  </SupplierProvider>
+</Web3AppKitProvider>
   );
 };
 
