@@ -22,3 +22,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+*.tsbuildinfo
+.env
+.env*.local
+.env.example
+
+# Database schemas & seed scripts
+schema.sql
+seed.sql
+

@@ -1,107 +1,171 @@
-import React, { useEffect, useState } from "react";
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-import Menu from "./components/shared/Menu";
-import Configuracion from "./components/routes/Configuracion";
-import Inicio from "./components/routes/Inicio";
-import Estadisticas from "./components/routes/Estadisticas";
-import Reportes from "./components/routes/Reportes";
-import HistorialTransacciones from "./components/routes/HistorialTransacciones";
-import RealizarTransaccion from "./components/routes/RealizarTransaccion";
-import AuthLogin from "./auth/AuthLogin";
-import ThemeProvider from "./components/context/ThemeProvider";
-import { useTheme } from "./components/context/useTheme";
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { SupplierProvider } from './context/SupplierContext';
+import { WalletProvider } from './context/WalletContext';
+import { CartProvider } from './context/CartContext';
 
-interface Transaccion {
-  recipient: string;
-  amount: string;
-  date: string;
-  hash: string;
-}
+// Store Components
+import { StoreLanding } from './components/store/StoreLanding';
+import { ProductDetailPage } from './components/store/ProductDetailPage';
+
+// Dedicated Separate Pages (Each in its own page, completely separate)
+import { TrabajaConNosotrosPage } from './components/store/pages/TrabajaConNosotrosPage';
+import { SobreNosotrosPage } from './components/store/pages/SobreNosotrosPage';
+import { NuestroPropositoPage } from './components/store/pages/NuestroPropositoPage';
+import { PromocionesPage } from './components/store/pages/PromocionesPage';
+import { AyudaPage } from './components/store/pages/AyudaPage';
+import { ServicioClientePage } from './components/store/pages/ServicioClientePage';
+import { ReclamosPage } from './components/store/pages/ReclamosPage';
+import { LibroReclamacionesPage } from './components/store/pages/LibroReclamacionesPage';
+import { TerminosCondicionesPage } from './components/store/pages/TerminosCondicionesPage';
+import { PrivacidadPage } from './components/store/pages/PrivacidadPage';
+import { AccesibilidadPage } from './components/store/pages/AccesibilidadPage';
+import { LegalesCampanasPage } from './components/store/pages/LegalesCampanasPage';
+import { PoliticasGeneralesPage } from './components/store/pages/PoliticasGeneralesPage';
+import { PoliticaCookiesPage } from './components/store/pages/PoliticaCookiesPage';
+import { ProteccionDatosPage } from './components/store/pages/ProteccionDatosPage';
+
+// Supplier Portal Components
+import { SupplierLogin } from './components/supplier/SupplierLogin';
+import { SupplierLogout } from './components/supplier/SupplierLogout';
+import { SupplierProtectedRoute } from './components/supplier/SupplierProtectedRoute';
+import { SupplierDashboard } from './components/supplier/SupplierDashboard';
+import { SupplierProducts } from './components/supplier/SupplierProducts';
+import { SupplierOrders } from './components/supplier/SupplierOrders';
+import { SupplierProfile } from './components/supplier/SupplierProfile';
+import { SupplierSalesReport } from './components/supplier/reports/SupplierSalesReport';
+import { SupplierInventoryReport } from './components/supplier/reports/SupplierInventoryReport';
+import { SupplierCustomersReport } from './components/supplier/reports/SupplierCustomersReport';
+import { Web3AppKitProvider } from './context/Web3AppKitProvider';
 
 const App: React.FC = () => {
-  const [isConnected, setIsConnected] = useState<boolean>(false);
-  const [account, setAccount] = useState<string>("");
-  const [transactions, setTransactions] = useState<Transaccion[]>([]);
-  const { theme } = useTheme();
-
-  useEffect(() => {
-    const connected = localStorage.getItem("isConnected") === "true";
-    const storedAccount = localStorage.getItem("account");
-    setIsConnected(connected);
-    if (storedAccount) {
-      setAccount(storedAccount);
-    }
-
-    const storedTransactions = localStorage.getItem("transactions");
-    if (storedTransactions) {
-      setTransactions(JSON.parse(storedTransactions));
-    }
-  }, []);
-
-  const handleConnect = (account: string) => {
-    setIsConnected(true);
-    setAccount(account);
-    localStorage.setItem("isConnected", "true");
-    localStorage.setItem("account", account);
-  };
-
-  const handleDisconnect = () => {
-    setIsConnected(false);
-    setAccount("");
-    localStorage.removeItem("isConnected");
-    localStorage.removeItem("account");
-  };
-
-  const handleNewTransaction = (newTransaction: Transaccion) => {
-    const updatedTransactions = [...transactions, newTransaction];
-    setTransactions(updatedTransactions);
-    localStorage.setItem("transactions", JSON.stringify(updatedTransactions));
-  };
-
   return (
-    <div
-      className={`min-h-screen ${
-        theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-50 text-black"
-      }`}
-    >
-      <Router>
-        {isConnected ? (
-          <>
-            <Menu onDisconnect={handleDisconnect} account={account} />
+    <Web3AppKitProvider>
+      <SupplierProvider>
+        <WalletProvider>
+          <CartProvider>
+            <Router>
             <Routes>
-              <Route path="/" element={<Inicio />} />
-              <Route path="/configuracion" element={<Configuracion />} />
-              <Route path="/informes/estadisticas" element={<Estadisticas />} />
-              <Route path="/informes/reportes" element={<Reportes />} />
+              {/* Store Landing Page (Default Home) */}
+              <Route path="/" element={<StoreLanding />} />
+              <Route path="/tienda" element={<StoreLanding />} />
+
+              {/* Dedicated Product Detail Page with URL */}
+              <Route path="/producto/:id" element={<ProductDetailPage />} />
+
+              {/* Dedicated Separate Pages: Nosotros */}
+              <Route path="/trabaja-con-nosotros" element={<TrabajaConNosotrosPage />} />
+              <Route path="/nosotros" element={<SobreNosotrosPage />} />
+              <Route path="/sobre-nosotros" element={<SobreNosotrosPage />} />
+              <Route path="/nuestro-proposito" element={<NuestroPropositoPage />} />
+              <Route path="/promociones" element={<PromocionesPage />} />
+
+              {/* Dedicated Separate Pages: Servicio al cliente & Ayuda */}
+              <Route path="/ayuda" element={<AyudaPage />} />
+              <Route path="/servicio-al-cliente" element={<ServicioClientePage />} />
+              <Route path="/reclamos" element={<ReclamosPage />} />
+              <Route path="/libro-de-reclamaciones" element={<LibroReclamacionesPage />} />
+
+              {/* Dedicated Separate Pages: Legales y Políticas */}
+              <Route path="/terminos-y-condiciones" element={<TerminosCondicionesPage />} />
+              <Route path="/como-cuidamos-tu-privacidad" element={<PrivacidadPage />} />
+              <Route path="/privacidad" element={<PrivacidadPage />} />
+              <Route path="/accesibilidad" element={<AccesibilidadPage />} />
+              <Route path="/legales-campanas" element={<LegalesCampanasPage />} />
+              <Route path="/politicas-generales" element={<PoliticasGeneralesPage />} />
+              <Route path="/politica-cookies" element={<PoliticaCookiesPage />} />
+              <Route path="/proteccion-de-datos" element={<ProteccionDatosPage />} />
+
+              {/* Supplier Auth & Logout */}
+              <Route path="/proveedores/login" element={<SupplierLogin />} />
+              <Route path="/proveedores/logout" element={<SupplierLogout />} />
+              <Route path="/proveedores/sesion-cerrada" element={<SupplierLogout />} />
+
+              {/* Supplier Portal Protected Routes */}
               <Route
-                path="/transacciones/historial"
-                element={<HistorialTransacciones transactions={transactions} />}
-              />
-              <Route
-                path="/transacciones/realizar"
+                path="/proveedores"
                 element={
-                  <RealizarTransaccion
-                    account={account}
-                    onNewTransaction={handleNewTransaction}
-                  />
+                  <SupplierProtectedRoute>
+                    <SupplierDashboard />
+                  </SupplierProtectedRoute>
                 }
               />
+              <Route
+                path="/proveedores/dashboard"
+                element={
+                  <SupplierProtectedRoute>
+                    <SupplierDashboard />
+                  </SupplierProtectedRoute>
+                }
+              />
+              <Route
+                path="/proveedores/productos"
+                element={
+                  <SupplierProtectedRoute>
+                    <SupplierProducts />
+                  </SupplierProtectedRoute>
+                }
+              />
+              <Route
+                path="/proveedores/productos/nuevo"
+                element={<Navigate to="/proveedores/productos" replace />}
+              />
+              <Route
+                path="/proveedores/productos/editar/:id"
+                element={<Navigate to="/proveedores/productos" replace />}
+              />
+              <Route
+                path="/proveedores/ventas"
+                element={
+                  <SupplierProtectedRoute>
+                    <SupplierOrders />
+                  </SupplierProtectedRoute>
+                }
+              />
+              <Route
+                path="/proveedores/perfil"
+                element={
+                  <SupplierProtectedRoute>
+                    <SupplierProfile />
+                  </SupplierProtectedRoute>
+                }
+              />
+
+              {/* Supplier Reports in Separate Pages */}
+              <Route
+                path="/proveedores/reportes/ventas"
+                element={
+                  <SupplierProtectedRoute>
+                    <SupplierSalesReport />
+                  </SupplierProtectedRoute>
+                }
+              />
+              <Route
+                path="/proveedores/reportes/inventario"
+                element={
+                  <SupplierProtectedRoute>
+                    <SupplierInventoryReport />
+                  </SupplierProtectedRoute>
+                }
+              />
+              <Route
+                path="/proveedores/reportes/clientes"
+                element={
+                  <SupplierProtectedRoute>
+                    <SupplierCustomersReport />
+                  </SupplierProtectedRoute>
+                }
+              />
+
+              {/* Fallback */}
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-          </>
-        ) : (
-          <AuthLogin onConnect={handleConnect} />
-        )}
-      </Router>
-    </div>
+          </Router>
+        </CartProvider>
+      </WalletProvider>
+    </SupplierProvider>
+  </Web3AppKitProvider>
   );
 };
 
-const AppWrapper: React.FC = () => {
-  return (
-    <ThemeProvider>
-      <App />
-    </ThemeProvider>
-  );
-};
-
-export default AppWrapper;
+export default App;
