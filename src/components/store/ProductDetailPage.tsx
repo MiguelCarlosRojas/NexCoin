@@ -48,23 +48,7 @@ export const ProductDetailPage: React.FC = () => {
 
   // Q&A state
   const [userQuestion, setUserQuestion] = useState('');
-  const [questionsList, setQuestionsList] = useState([
-    {
-      q: '¿El producto viene con el sello y precinto criptográfico de fábrica intacto?',
-      a: 'Sí, todos los dispositivos y artículos son enviados con sello holográfico de seguridad y verificación anti-manipulación.',
-      date: 'Hace 3 días'
-    },
-    {
-      q: '¿Cómo funciona la garantía respaldada en el contrato inteligente NexCoin.sol?',
-      a: 'Al pagar con Bitcoin, se genera un hash inmutable. Si el producto presenta fallas dentro de los 12 meses, presentas tu voucher y el proveedor cubre cambio inmediato.',
-      date: 'Hace 1 semana'
-    },
-    {
-      q: '¿Hacen envíos a todas las regiones y provincias?',
-      a: 'Sí, despachamos a todo el país mediante courier de alta seguridad con tracking on-chain en tiempo real.',
-      date: 'Hace 2 semanas'
-    }
-  ]);
+  const [questionsList, setQuestionsList] = useState<{ q: string; a: string; date: string }[]>([]);
 
   useEffect(() => {
     async function loadData() {
@@ -78,6 +62,9 @@ export const ProductDetailPage: React.FC = () => {
       ]);
 
       setProduct(foundProduct);
+      if (foundProduct?.name) {
+        document.title = `${foundProduct.name} | NexCoin Marketplace`;
+      }
       setAllProducts(catalog);
       setActiveImageIndex(0);
       setQuantity(1);
@@ -89,13 +76,8 @@ export const ProductDetailPage: React.FC = () => {
   const galleryImages = useMemo(() => {
     if (!product) return [];
     if (product.images && product.images.length > 0) return product.images;
-    const main = product.image_url || 'https://images.unsplash.com/photo-1526738549149-8e07eca6c147?auto=format&fit=crop&q=80&w=800';
-    return [
-      main,
-      'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1563770660941-20978e870e26?auto=format&fit=crop&q=80&w=800'
-    ];
+    if (product.image_url) return [product.image_url];
+    return [];
   }, [product]);
 
   // Recommendations
@@ -709,21 +691,28 @@ export const ProductDetailPage: React.FC = () => {
               Últimas preguntas realizadas
             </h4>
 
-            {questionsList.map((item, idx) => (
-              <div key={idx} className="p-4 rounded-2xl bg-[#060911] border border-white/[0.06] space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
-                    <span className="text-amber-400 font-mono">P:</span>
-                    {item.q}
-                  </p>
-                  <span className="text-[10px] text-slate-500 font-mono shrink-0">{item.date}</span>
-                </div>
-                <p className="text-xs text-slate-300 pl-4 border-l-2 border-amber-500/40 leading-relaxed">
-                  <span className="text-emerald-400 font-mono font-bold mr-1.5">R:</span>
-                  {item.a}
-                </p>
+            {questionsList.length === 0 ? (
+              <div className="p-6 rounded-2xl bg-[#060911] border border-white/[0.06] text-center space-y-1">
+                <p className="text-xs text-slate-400">Aún no hay preguntas para este producto.</p>
+                <p className="text-[11px] text-slate-500">¿Tienes dudas sobre el envío, garantía o especificaciones? ¡Escribe tu pregunta arriba!</p>
               </div>
-            ))}
+            ) : (
+              questionsList.map((item, idx) => (
+                <div key={idx} className="p-4 rounded-2xl bg-[#060911] border border-white/[0.06] space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
+                      <span className="text-amber-400 font-mono">P:</span>
+                      {item.q}
+                    </p>
+                    <span className="text-[10px] text-slate-500 font-mono shrink-0">{item.date}</span>
+                  </div>
+                  <p className="text-xs text-slate-300 pl-4 border-l-2 border-amber-500/40 leading-relaxed">
+                    <span className="text-emerald-400 font-mono font-bold mr-1.5">R:</span>
+                    {item.a}
+                  </p>
+                </div>
+              ))
+            )}
           </div>
         </section>
 
@@ -739,7 +728,7 @@ export const ProductDetailPage: React.FC = () => {
 
             <div className="flex items-center gap-4 p-4 rounded-2xl bg-[#060911] border border-white/[0.06]">
               <span className="text-4xl font-black text-amber-400 font-heading">
-                {product.rating ? product.rating.toFixed(1) : '4.9'}
+                {product.rating ? product.rating.toFixed(1) : '5.0'}
               </span>
               <div>
                 <div className="flex items-center gap-1 text-amber-400">
@@ -748,55 +737,16 @@ export const ProductDetailPage: React.FC = () => {
                   ))}
                 </div>
                 <p className="text-[11px] text-slate-400 font-mono mt-0.5">
-                  Basado en {product.reviews_count || 120} calificaciones
+                  {product.reviews_count ? `Basado en ${product.reviews_count} calificaciones` : 'Sin calificaciones registradas'}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Sample Reviews */}
-          <div className="space-y-4">
-            <div className="p-5 rounded-2xl bg-[#060911] border border-white/[0.06] space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center text-amber-400">
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <Star key={s} className="w-3.5 h-3.5 fill-amber-400" />
-                    ))}
-                  </div>
-                  <span className="text-xs font-bold text-white">Excelente calidad y empaque blindado</span>
-                </div>
-                <span className="text-[10px] text-slate-500 font-mono">18 Sep 2026</span>
-              </div>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                Llegó en 24 horas a Lima. Pagué directamente desde mi wallet con WalletConnect y la firma se verificó al instante. Totalmente recomendado.
-              </p>
-              <div className="flex items-center gap-2 text-[10px] text-emerald-400 font-mono">
-                <Check className="w-3 h-3" />
-                <span>Compra verificada on-chain</span>
-              </div>
-            </div>
-
-            <div className="p-5 rounded-2xl bg-[#060911] border border-white/[0.06] space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center text-amber-400">
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <Star key={s} className="w-3.5 h-3.5 fill-amber-400" />
-                    ))}
-                  </div>
-                  <span className="text-xs font-bold text-white">100% original, proveedor muy atento</span>
-                </div>
-                <span className="text-[10px] text-slate-500 font-mono">05 Sep 2026</span>
-              </div>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                El comprobante en PDF con el código de voucher me llegó también al Gmail. El producto está impecable y funcionando a la perfección.
-              </p>
-              <div className="flex items-center gap-2 text-[10px] text-emerald-400 font-mono">
-                <Check className="w-3 h-3" />
-                <span>Compra verificada on-chain</span>
-              </div>
-            </div>
+          {/* Genuine Reviews Section */}
+          <div className="p-6 rounded-2xl bg-[#060911] border border-white/[0.06] text-center space-y-1">
+            <p className="text-xs text-slate-400 font-medium">Las opiniones se registran de compras verificadas on-chain con voucher.</p>
+            <p className="text-[11px] text-slate-500">Al completar tu pago en Bitcoin y recibir tu voucher, podrás calificar este producto.</p>
           </div>
         </section>
 

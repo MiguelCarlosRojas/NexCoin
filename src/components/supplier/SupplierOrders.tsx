@@ -4,19 +4,65 @@ import { useSupplier } from '../../context/SupplierContext';
 import { supabase } from '../../lib/supabaseClient';
 import { Order } from '../../types/store';
 import { VoucherModal } from '../shared/VoucherModal';
+import { useSearchParams } from 'react-router-dom';
+import * as XLSX from 'xlsx';
+import { exportLandscapePdfTable } from '../../lib/pdfReportGenerator';
 import {
   Receipt,
-  Search
+  Search,
+  FileText,
+  FileSpreadsheet,
+  Filter
 } from 'lucide-react';
 
 export const SupplierOrders: React.FC = () => {
   const { supplier } = useSupplier();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const urlQ = searchParams.get('q') || searchParams.get('search') || '';
+  const urlFiltro = (searchParams.get('filtro') || searchParams.get('filter') || 'todos').toLowerCase();
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(urlQ);
+  const [dateFilter, setDateFilter] = useState<'todos' | 'hoy' | 'semana' | 'mes'>(() => {
+    if (urlFiltro === 'hoy' || urlFiltro === 'today') return 'hoy';
+    if (urlFiltro === 'semana' || urlFiltro === '7d') return 'semana';
+    if (urlFiltro === 'mes' || urlFiltro === '30d') return 'mes';
+    return 'todos';
+  });
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showVoucher, setShowVoucher] = useState(false);
+
+  // Sync state with URL params changes
+  useEffect(() => {
+    const qParam = searchParams.get('q') || searchParams.get('search') || '';
+    const fParam = (searchParams.get('filtro') || searchParams.get('filter') || 'todos').toLowerCase();
+
+    if (qParam !== search) setSearch(qParam);
+    if (fParam === 'hoy' || fParam === 'today') setDateFilter('hoy');
+    else if (fParam === 'semana' || fParam === '7d') setDateFilter('semana');
+    else if (fParam === 'mes' || fParam === '30d') setDateFilter('mes');
+    else setDateFilter('todos');
+  }, [searchParams]);
+
+  const syncUrl = (newSearch: string, newFiltro: string) => {
+    const params: Record<string, string> = {};
+    if (newSearch.trim()) params.q = newSearch.trim();
+    if (newFiltro && newFiltro !== 'todos') params.filtro = newFiltro;
+    setSearchParams(params, { replace: true });
+  };
+
+  const handleSearchChange = (val: string) => {
+    setSearch(val);
+    syncUrl(val, dateFilter);
+  };
+
+  const handleFilterChange = (filter: 'todos' | 'hoy' | 'semana' | 'mes') => {
+    setDateFilter(filter);
+    syncUrl(search, filter);
+  };
 
   const fetchOrders = async () => {
     if (!supplier) return;
@@ -67,18 +113,129 @@ export const SupplierOrders: React.FC = () => {
   };
 
   const filteredOrders = orders.filter((o) => {
-    const term = search.toLowerCase();
-    return (
+    const term = search.toLowerCase().trim();
+    const matchesSearch =
+      !term ||
       o.order_number.toLowerCase().includes(term) ||
       o.voucher_code.toLowerCase().includes(term) ||
       o.customer_name.toLowerCase().includes(term) ||
       o.customer_email.toLowerCase().includes(term) ||
-      o.payment_tx_hash?.toLowerCase().includes(term)
-    );
+      (o.payment_tx_hash && o.payment_tx_hash.toLowerCase().includes(term));
+
+    if (!matchesSearch) return false;
+
+    if (dateFilter === 'todos') return true;
+
+    const orderTime = new Date(o.created_at).getTime();
+    const now = Date.now();
+    if (dateFilter === 'hoy') {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return orderTime >= today.getTime();
+    }
+    if (dateFilter === 'semana') {
+      return now - orderTime <= 7 * 24 * 60 * 60 * 1000;
+    }
+    if (dateFilter === 'mes') {
+      return now - orderTime <= 30 * 24 * 60 * 60 * 1000;
+    }
+
+    return true;
   });
 
   const totalUsd = filteredOrders.reduce((sum, o) => sum + Number(o.total_usd), 0);
   const totalBtc = filteredOrders.reduce((sum, o) => sum + Number(o.total_btc), 0);
+  const averageTicket = filteredOrders.length > 0 ? totalUsd / filteredOrders.length : 0;
+
+  // Export to Horizontal Landscape PDF with autoTable
+  const handleExportPdf = () => {
+    const headers = [
+      'N° ORDEN',
+      'CÓD. VOUCHER',
+      'CLIENTE',
+      'EMAIL',
+      'PRODUCTOS / ARTÍCULOS',
+      'TOTAL USD',
+      'TOTAL BTC',
+      'FECHA / HORA'
+    ];
+
+    const rows = filteredOrders.map((o) => {
+      const itemsStr = (o.items || [])
+        .map((it) => `${it.quantity}x ${it.product_name}`)
+        .join(', ');
+
+      return [
+        o.order_number,
+        o.voucher_code,
+        o.customer_name,
+        o.customer_email,
+        itemsStr || '—',
+        `$${Number(o.total_usd).toFixed(2)}`,
+        `${Number(o.total_btc).toFixed(8)} BTC`,
+        new Date(o.created_at).toLocaleString()
+      ];
+    });
+
+    const footers = [
+      [
+        'TOTALES',
+        `${filteredOrders.length} Órdenes`,
+        '—',
+        '—',
+        '—',
+        `$${totalUsd.toFixed(2)} USD`,
+        `${totalBtc.toFixed(8)} BTC`,
+        '—'
+      ]
+    ];
+
+    exportLandscapePdfTable({
+      title: 'Reporte Oficial de Ventas & Vouchers Bitcoin',
+      supplierName: supplier?.company_name || 'NexCoin Partner',
+      stats: [
+        { label: 'Total Órdenes', value: `${filteredOrders.length}` },
+        { label: 'Total Recaudado (USD)', value: `$${totalUsd.toFixed(2)}` },
+        { label: 'Total Recaudado (BTC)', value: `${totalBtc.toFixed(8)} BTC` },
+        { label: 'Ticket Promedio', value: `$${averageTicket.toFixed(2)} USD` },
+      ],
+      headers,
+      rows,
+      footers,
+      fileName: `Reporte_Ventas_Vouchers_${new Date().toISOString().slice(0, 10)}.pdf`,
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 26 },
+        1: { textColor: [217, 119, 6], cellWidth: 28 },
+        2: { fontStyle: 'bold', cellWidth: 32 },
+        3: { cellWidth: 42 },
+        4: { cellWidth: 'auto' },
+        5: { halign: 'right', fontStyle: 'bold', textColor: [16, 185, 129], cellWidth: 24 },
+        6: { halign: 'right', textColor: [217, 119, 6], cellWidth: 30 },
+        7: { halign: 'center', cellWidth: 32 },
+      }
+    });
+  };
+
+  // Export to Excel
+  const handleExportExcel = () => {
+    const exportData = filteredOrders.map((o) => ({
+      'N° Orden': o.order_number,
+      'Código Voucher': o.voucher_code,
+      'Cliente': o.customer_name,
+      'Email Cliente': o.customer_email,
+      'Wallet Cliente': o.customer_wallet,
+      'Artículos': (o.items || []).map((i) => `${i.quantity}x ${i.product_name}`).join(' | '),
+      'Total USD': Number(o.total_usd).toFixed(2),
+      'Total BTC': Number(o.total_btc).toFixed(8),
+      'Tx Hash': o.payment_tx_hash || 'N/A',
+      'Fecha': new Date(o.created_at).toLocaleString(),
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Ventas & Vouchers');
+    XLSX.writeFile(workbook, `Ventas_Vouchers_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
 
   return (
     <SupplierLayout
@@ -87,29 +244,95 @@ export const SupplierOrders: React.FC = () => {
     >
       <div className="space-y-6 w-full max-w-full">
         
-        {/* Stats and Search Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#0a0f1d]/90 border border-white/[0.08] p-4 sm:p-5 rounded-2xl backdrop-blur-xl shadow-lg">
+        {/* Stats, Filter Pills and Search Bar */}
+        <div className="bg-[#0a0f1d]/90 border border-white/[0.08] p-4 sm:p-5 rounded-2xl backdrop-blur-xl shadow-lg space-y-4">
           
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Buscar por orden, voucher, cliente o email..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
-            />
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            
+            {/* Search Input */}
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Buscar por orden, voucher, cliente o email..."
+                value={search}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
+              />
+              {search && (
+                <button
+                  onClick={() => handleSearchChange('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-white"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* Action Buttons: Horizontal PDF & Excel */}
+            <div className="flex items-center gap-2.5">
+              <button
+                onClick={handleExportPdf}
+                disabled={filteredOrders.length === 0}
+                className="px-4 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 disabled:opacity-40 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-lg shadow-red-600/20 active:scale-95"
+              >
+                <FileText className="w-4 h-4" />
+                <span>Exportar PDF (Horizontal)</span>
+              </button>
+
+              <button
+                onClick={handleExportExcel}
+                disabled={filteredOrders.length === 0}
+                className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-40 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-lg shadow-emerald-600/20 active:scale-95"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                <span>Exportar Excel</span>
+              </button>
+            </div>
+
           </div>
 
-          <div className="flex items-center gap-3 text-xs font-semibold flex-wrap">
-            <div className="bg-[#060911] px-3.5 py-2 rounded-xl border border-white/[0.08] flex items-center gap-2">
-              <span className="text-[11px] uppercase tracking-wider text-slate-400 font-bold">Total USD:</span>
-              <span className="text-emerald-400 font-bold">${totalUsd.toFixed(2)}</span>
+          {/* Filter Pills and Summary Chips */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-white/[0.06]">
+            
+            {/* Filter mode pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+              <span className="text-[11px] font-mono text-slate-400 uppercase font-bold mr-1 flex items-center gap-1">
+                <Filter className="w-3 h-3 text-amber-500" />
+                Período:
+              </span>
+              {[
+                { id: 'todos', label: 'Todos' },
+                { id: 'hoy', label: 'Hoy' },
+                { id: 'semana', label: 'Últimos 7 días' },
+                { id: 'mes', label: 'Últimos 30 días' },
+              ].map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => handleFilterChange(f.id as any)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                    dateFilter === f.id
+                      ? 'bg-amber-500 text-black shadow-md shadow-amber-500/20'
+                      : 'bg-[#060911] text-slate-300 border border-white/[0.08] hover:border-amber-500/40'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
             </div>
-            <div className="bg-[#060911] px-3.5 py-2 rounded-xl border border-white/[0.08] flex items-center gap-2">
-              <span className="text-[11px] uppercase tracking-wider text-slate-400 font-bold">Total BTC:</span>
-              <span className="text-amber-400 font-mono font-bold">{totalBtc.toFixed(8)} ₿</span>
+
+            {/* Quick Totals */}
+            <div className="flex items-center gap-2 text-xs font-semibold flex-wrap">
+              <div className="bg-[#060911] px-3 py-1.5 rounded-xl border border-white/[0.08] flex items-center gap-1.5">
+                <span className="text-[10px] uppercase font-bold text-slate-400">Total USD:</span>
+                <span className="text-emerald-400 font-bold font-mono">${totalUsd.toFixed(2)}</span>
+              </div>
+              <div className="bg-[#060911] px-3 py-1.5 rounded-xl border border-white/[0.08] flex items-center gap-1.5">
+                <span className="text-[10px] uppercase font-bold text-slate-400">Total BTC:</span>
+                <span className="text-amber-400 font-mono font-bold">{totalBtc.toFixed(8)} ₿</span>
+              </div>
             </div>
+
           </div>
 
         </div>
@@ -123,9 +346,9 @@ export const SupplierOrders: React.FC = () => {
               <div className="w-12 h-12 rounded-2xl bg-white/[0.02] border border-white/[0.05] flex items-center justify-center mx-auto mb-3 text-slate-600">
                 <Receipt className="w-6 h-6" />
               </div>
-              <p className="text-base font-bold text-slate-300">No se encontraron ventas</p>
+              <p className="text-base font-bold text-slate-300">No se encontraron ventas con los filtros actuales</p>
               <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                Las órdenes de clientes con comprobante oficial aparecerán aquí automáticamente una vez confirmadas.
+                Prueba cambiando los términos de búsqueda o el rango de fecha.
               </p>
             </div>
           ) : (
@@ -179,7 +402,7 @@ export const SupplierOrders: React.FC = () => {
                       </td>
 
                       {/* Total USD */}
-                      <td className="py-3.5 px-3 text-right font-bold text-emerald-400">
+                      <td className="py-3.5 px-3 text-right font-bold text-emerald-400 font-mono">
                         ${Number(order.total_usd).toFixed(2)}
                       </td>
 

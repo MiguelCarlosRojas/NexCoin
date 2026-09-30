@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@blobatar/react": "^2.7.0",
-    "@radix-ui/react-avatar": "^1.2.6",
     "@reown/appkit": "^1.8.24",
     "@reown/appkit-adapter-wagmi": "^1.8.24",
     "@supabase/supabase-js": "^2.117.2",
@@ -24,6 +23,7 @@
     "clsx": "^2.1.1",
     "ethers": "^6.13.4",
     "jspdf": "^2.5.2",
+    "jspdf-autotable": "^5.0.8",
     "lucide-react": "^1.48.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

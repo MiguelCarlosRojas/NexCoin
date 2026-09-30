@@ -30,6 +30,7 @@ import {
   Layers,
   FileText
 } from 'lucide-react';
+import { exportLandscapePdfTable } from '../../lib/pdfReportGenerator';
 
 const BTC_PRICE_USD = 65000;
 
@@ -188,26 +189,23 @@ export const SupplierProducts: React.FC = () => {
     setEditingProduct(null);
     setModalTab('general');
     setName('');
-    setDescription('Producto verificado de alta calidad con garantía criptográfica respaldada en NexCoin.sol v2.0.');
-    setCategory('Hardware Wallets');
+    setDescription('');
+    setCategory('General');
     setPriceUsd('');
     setPriceBtc('');
-    setStock('10');
-    setImageUrl('https://images.unsplash.com/photo-1622979135225-d2ba269bc1df?w=800&auto=format&fit=crop');
-    setAdditionalImages([
-      'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&auto=format&fit=crop'
-    ]);
+    setStock('0');
+    setImageUrl('');
+    setAdditionalImages([]);
     setNewImageUrlInput('');
     setSku(`NEX-${Math.floor(1000 + Math.random() * 9000)}`);
-    setCondition('Nuevo en Caja Sellada');
-    setWarranty('12 Meses con NexCoin.sol');
+    setCondition('Nuevo');
+    setWarranty('Garantía del Proveedor');
     setFormStatus('active');
     setDiscountPercent('0');
     setOriginalPriceUsd('');
-    setShippingType('free');
-    setRating('4.9');
-    setReviewsCount('18');
+    setShippingType('standard');
+    setRating('5.0');
+    setReviewsCount('0');
     setFormError('');
     setIsModalOpen(true);
   };
@@ -504,6 +502,79 @@ export const SupplierProducts: React.FC = () => {
   const totalInventoryUsd = products.reduce((sum, p) => sum + (p.price_usd || 0) * (p.stock || 0), 0);
   const totalInventoryBtc = totalInventoryUsd / BTC_PRICE_USD;
 
+  // Export to Horizontal Landscape PDF with autoTable
+  const handleExportPdf = () => {
+    const headers = [
+      'SKU',
+      'PRODUCTO / ARTÍCULO',
+      'CATEGORÍA',
+      'ESTADO',
+      'STOCK',
+      'PRECIO USD',
+      'PRECIO BTC',
+      'DESCUENTO %',
+      'ENVÍO'
+    ];
+
+    const rows = filteredProducts.map((p) => {
+      const { meta } = parseProductDescription(p.description);
+      const isFree = p.free_shipping || meta.shipping_type === 'free' || p.shipping_type === 'free';
+      const disc = meta.discount_percent ?? (p.discount_percent || 0);
+
+      return [
+        p.sku || 'N/A',
+        p.name,
+        p.category || 'General',
+        p.status === 'active' ? 'ACTIVO' : 'ARCHIVADO',
+        p.stock,
+        `$${Number(p.price_usd).toFixed(2)}`,
+        `${Number(p.price_btc).toFixed(8)} BTC`,
+        disc > 0 ? `${disc}%` : '0%',
+        isFree ? 'Gratis' : 'Estándar'
+      ];
+    });
+
+    const footers = [
+      [
+        'TOTALES',
+        `${filteredProducts.length} Productos`,
+        '—',
+        `${activeCount} Activos`,
+        `${totalStockUnits} uds`,
+        `$${totalInventoryUsd.toFixed(2)} USD`,
+        `${totalInventoryBtc.toFixed(8)} BTC`,
+        '—',
+        '—'
+      ]
+    ];
+
+    exportLandscapePdfTable({
+      title: 'Catálogo Oficial de Productos & Inventario',
+      supplierName: supplier?.company_name || 'NexCoin Partner',
+      stats: [
+        { label: 'Total Productos', value: `${filteredProducts.length}` },
+        { label: 'Productos Activos', value: `${activeCount}` },
+        { label: 'Unidades Físicas', value: `${totalStockUnits} uds.` },
+        { label: 'Valor Inventario USD', value: `$${totalInventoryUsd.toFixed(2)}` },
+      ],
+      headers,
+      rows,
+      footers,
+      fileName: `Catalogo_Productos_${new Date().toISOString().slice(0, 10)}.pdf`,
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 26 },
+        1: { cellWidth: 'auto' },
+        2: { cellWidth: 28 },
+        3: { halign: 'center', fontStyle: 'bold', cellWidth: 22 },
+        4: { halign: 'center', fontStyle: 'bold', cellWidth: 16 },
+        5: { halign: 'right', fontStyle: 'bold', textColor: [16, 185, 129], cellWidth: 24 },
+        6: { halign: 'right', textColor: [217, 119, 6], cellWidth: 28 },
+        7: { halign: 'center', cellWidth: 22 },
+        8: { halign: 'center', cellWidth: 20 },
+      }
+    });
+  };
+
   return (
     <SupplierLayout
       title="Mis Productos & Catálogo"
@@ -598,8 +669,18 @@ export const SupplierProducts: React.FC = () => {
               />
             </div>
 
-            {/* Top Right: Primary Create Button */}
-            <div className="flex items-center gap-3">
+            {/* Top Right: Export & Create Buttons */}
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={handleExportPdf}
+                disabled={filteredProducts.length === 0}
+                className="px-4 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 disabled:opacity-40 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-lg shadow-red-600/20 active:scale-95"
+              >
+                <FileText className="w-4 h-4" />
+                <span>Exportar PDF (Horizontal)</span>
+              </button>
+
               <button
                 type="button"
                 onClick={handleOpenAddModal}

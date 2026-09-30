@@ -19,7 +19,8 @@ import {
   Zap,
   Tag,
   Star,
-  RotateCcw
+  RotateCcw,
+  CheckCircle2
 } from 'lucide-react';
 
 import { fetchAllStoreProducts, BTC_PRICE_USD } from '../../data/productsData';
@@ -34,33 +35,33 @@ export const StoreLanding: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Filters State initialized from URL
+  // Active filter modes
   const [searchQuery, setSearchQuery] = useState(urlQ);
   const [selectedCategory, setSelectedCategory] = useState(urlCategoria);
+  const [activeCatalogFilter, setActiveCatalogFilter] = useState<'all' | 'active' | 'stock' | 'discount' | 'free_shipping' | 'express'>(() => {
+    if (urlFiltro === 'activos' || urlFiltro === 'active') return 'active';
+    if (urlFiltro === 'stock' || urlFiltro === 'disponibles') return 'stock';
+    if (urlFiltro === 'ofertas' || urlFiltro === 'descuentos') return 'discount';
+    if (urlFiltro === 'envio-gratis' || urlFiltro === 'gratis') return 'free_shipping';
+    if (urlFiltro === 'express') return 'express';
+    return 'all';
+  });
+
   const [priceRange, setPriceRange] = useState<'all' | 'under-50' | '50-150' | '150-500' | 'over-500'>('all');
-  const [onlyDiscount, setOnlyDiscount] = useState(
-    urlFiltro === 'ofertas' || urlFiltro === 'descuentos'
-  );
-  const [shippingFilter, setShippingFilter] = useState<'all' | 'free' | 'express'>(
-    urlFiltro === 'envio-gratis' ? 'free' : 'all'
-  );
-  const [filterInStockOnly, setFilterInStockOnly] = useState(
-    urlFiltro === 'activos' || urlFiltro === 'disponibles' || urlFiltro === 'stock'
-  );
   const [sortBy, setSortBy] = useState<'featured' | 'discount' | 'price-asc' | 'price-desc' | 'rating'>('featured');
 
   // Sync URL search params
   const syncStoreUrlParams = (
     qStr: string,
     catStr: string,
-    inStock: boolean,
-    discount: boolean,
-    shipping: string
+    filterMode: string
   ) => {
     const params: Record<string, string> = {};
-    if (inStock) params.filtro = 'activos';
-    else if (discount) params.filtro = 'ofertas';
-    else if (shipping === 'free') params.filtro = 'envio-gratis';
+    if (filterMode === 'active') params.filtro = 'activos';
+    else if (filterMode === 'stock') params.filtro = 'stock';
+    else if (filterMode === 'discount') params.filtro = 'ofertas';
+    else if (filterMode === 'free_shipping') params.filtro = 'envio-gratis';
+    else if (filterMode === 'express') params.filtro = 'express';
 
     if (qStr.trim()) params.q = qStr.trim();
     if (catStr && catStr !== 'Todas') params.categoria = catStr;
@@ -76,18 +77,38 @@ export const StoreLanding: React.FC = () => {
 
     if (qParam !== searchQuery) setSearchQuery(qParam);
     if (catParam !== selectedCategory) setSelectedCategory(catParam);
-    if (filtroParam === 'activos' || filtroParam === 'disponibles' || filtroParam === 'stock') {
-      setFilterInStockOnly(true);
-    } else if (filtroParam === 'todos' || filtroParam === 'all') {
-      setFilterInStockOnly(false);
-      setOnlyDiscount(false);
-      setShippingFilter('all');
+
+    if (filtroParam === 'activos' || filtroParam === 'active') {
+      setActiveCatalogFilter('active');
+    } else if (filtroParam === 'stock' || filtroParam === 'disponibles') {
+      setActiveCatalogFilter('stock');
     } else if (filtroParam === 'ofertas' || filtroParam === 'descuentos') {
-      setOnlyDiscount(true);
-    } else if (filtroParam === 'envio-gratis') {
-      setShippingFilter('free');
+      setActiveCatalogFilter('discount');
+    } else if (filtroParam === 'envio-gratis' || filtroParam === 'gratis') {
+      setActiveCatalogFilter('free_shipping');
+    } else if (filtroParam === 'express') {
+      setActiveCatalogFilter('express');
+    } else if (filtroParam === 'todos' || filtroParam === 'all') {
+      setActiveCatalogFilter('all');
     }
   }, [searchParams]);
+
+  // Auto-scroll to catalog if URL contains query or filter
+  useEffect(() => {
+    const qParam = searchParams.get('q') || searchParams.get('search') || '';
+    const fParam = searchParams.get('filtro') || searchParams.get('filter') || '';
+    const cParam = searchParams.get('categoria') || searchParams.get('category') || '';
+
+    if (!loading && (qParam.trim() || fParam.trim() || (cParam && cParam !== 'Todas'))) {
+      const timer = setTimeout(() => {
+        const el = document.getElementById('catalogo');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, searchParams]);
 
   // Voucher lookup
   const [lookupVoucherCode, setLookupVoucherCode] = useState('');
@@ -121,30 +142,45 @@ export const StoreLanding: React.FC = () => {
 
   // Comprehensive multi-filter engine
   const filteredProducts = useMemo(() => {
+    const cleanQ = searchQuery
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+
     return products
       .filter((p) => {
-        // Search query
+        // Search query matching
+        const normName = (p.name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        const normDesc = (p.description || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        const normSku = (p.sku || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        const normCat = (p.category || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        const normSupplier = (p.suppliers?.company_name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
         const matchesSearch =
-          p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.suppliers?.company_name?.toLowerCase().includes(searchQuery.toLowerCase());
+          !cleanQ ||
+          normName.includes(cleanQ) ||
+          normDesc.includes(cleanQ) ||
+          normSku.includes(cleanQ) ||
+          normCat.includes(cleanQ) ||
+          normSupplier.includes(cleanQ);
         
         // Category
         const matchesCategory = selectedCategory === 'Todas' || p.category === selectedCategory;
 
-        // Stock
-        const matchesStock = !filterInStockOnly || p.stock > 0;
-
-        // Discount
-        const matchesDiscount = !onlyDiscount || Boolean(p.discount_percent && p.discount_percent > 0);
-
-        // Shipping
-        const matchesShipping =
-          shippingFilter === 'all'
-            ? true
-            : shippingFilter === 'free'
-            ? Boolean(p.free_shipping || p.shipping_type === 'free')
-            : p.shipping_type === 'express';
+        // Catalog Filter Mode
+        let matchesFilterMode = true;
+        if (activeCatalogFilter === 'active') {
+          matchesFilterMode = p.status === 'active';
+        } else if (activeCatalogFilter === 'stock') {
+          matchesFilterMode = p.stock > 0;
+        } else if (activeCatalogFilter === 'discount') {
+          matchesFilterMode = Boolean(p.discount_percent && p.discount_percent > 0);
+        } else if (activeCatalogFilter === 'free_shipping') {
+          matchesFilterMode = Boolean(p.free_shipping || p.shipping_type === 'free');
+        } else if (activeCatalogFilter === 'express') {
+          matchesFilterMode = p.shipping_type === 'express';
+        }
 
         // Price range
         let matchesPrice = true;
@@ -153,7 +189,7 @@ export const StoreLanding: React.FC = () => {
         else if (priceRange === '150-500') matchesPrice = p.price_usd > 150 && p.price_usd <= 500;
         else if (priceRange === 'over-500') matchesPrice = p.price_usd > 500;
 
-        return matchesSearch && matchesCategory && matchesStock && matchesDiscount && matchesShipping && matchesPrice;
+        return matchesSearch && matchesCategory && matchesFilterMode && matchesPrice;
       })
       .sort((a, b) => {
         if (sortBy === 'price-asc') return a.price_usd - b.price_usd;
@@ -162,49 +198,36 @@ export const StoreLanding: React.FC = () => {
         if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
         return 0; // featured default
       });
-  }, [products, searchQuery, selectedCategory, filterInStockOnly, onlyDiscount, shippingFilter, priceRange, sortBy]);
+  }, [products, searchQuery, selectedCategory, activeCatalogFilter, priceRange, sortBy]);
 
-  const activeFiltersCount = (selectedCategory !== 'Todas' ? 1 : 0) +
-    (onlyDiscount ? 1 : 0) +
-    (shippingFilter !== 'all' ? 1 : 0) +
+  const activeFiltersCount =
+    (selectedCategory !== 'Todas' ? 1 : 0) +
+    (activeCatalogFilter !== 'all' ? 1 : 0) +
     (priceRange !== 'all' ? 1 : 0) +
-    (filterInStockOnly ? 1 : 0);
+    (searchQuery.trim() ? 1 : 0);
 
   const resetAllFilters = () => {
     setSearchQuery('');
     setSelectedCategory('Todas');
+    setActiveCatalogFilter('all');
     setPriceRange('all');
-    setOnlyDiscount(false);
-    setShippingFilter('all');
-    setFilterInStockOnly(false);
     setSortBy('featured');
     setSearchParams({}, { replace: true });
   };
 
   const handleSearchChange = (newQ: string) => {
     setSearchQuery(newQ);
-    syncStoreUrlParams(newQ, selectedCategory, filterInStockOnly, onlyDiscount, shippingFilter);
+    syncStoreUrlParams(newQ, selectedCategory, activeCatalogFilter);
   };
 
   const handleCategorySelect = (newCat: string) => {
     setSelectedCategory(newCat);
-    syncStoreUrlParams(searchQuery, newCat, filterInStockOnly, onlyDiscount, shippingFilter);
+    syncStoreUrlParams(searchQuery, newCat, activeCatalogFilter);
   };
 
-  const handleToggleDiscount = () => {
-    const next = !onlyDiscount;
-    setOnlyDiscount(next);
-    syncStoreUrlParams(searchQuery, selectedCategory, filterInStockOnly, next, shippingFilter);
-  };
-
-  const handleShippingChange = (newShip: 'all' | 'free' | 'express') => {
-    setShippingFilter(newShip);
-    syncStoreUrlParams(searchQuery, selectedCategory, filterInStockOnly, onlyDiscount, newShip);
-  };
-
-  const handleToggleInStock = (checked: boolean) => {
-    setFilterInStockOnly(checked);
-    syncStoreUrlParams(searchQuery, selectedCategory, checked, onlyDiscount, shippingFilter);
+  const handleCatalogFilterSelect = (mode: 'all' | 'active' | 'stock' | 'discount' | 'free_shipping' | 'express') => {
+    setActiveCatalogFilter(mode);
+    syncStoreUrlParams(searchQuery, selectedCategory, mode);
   };
 
   const handleLookupVoucher = async (e: React.FormEvent) => {
@@ -427,54 +450,88 @@ export const StoreLanding: React.FC = () => {
             ))}
           </div>
 
-          {/* ADVANCED MULTI-FILTER BAR (Prices, Discounts, Shipping, Sort) */}
+          {/* ADVANCED MULTI-FILTER BAR (Catalog Filters, Prices, Sort) */}
           <div className="p-4 rounded-2xl bg-[#0a0f1e]/80 border border-white/[0.06] flex flex-wrap items-center justify-between gap-4">
             
             {/* Filter Pills Group */}
-            <div className="flex flex-wrap items-center gap-2.5 text-xs">
+            <div className="flex flex-wrap items-center gap-2 text-xs">
               
-              {/* Discount Filter Button */}
+              {/* All */}
               <button
-                onClick={handleToggleDiscount}
-                className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition ${
-                  onlyDiscount
-                    ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20 border border-rose-400'
-                    : 'bg-[#060911] text-slate-300 border border-white/[0.08] hover:border-rose-500/50'
+                onClick={() => handleCatalogFilterSelect('all')}
+                className={`px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 ${
+                  activeCatalogFilter === 'all'
+                    ? 'bg-amber-500 text-black shadow-md shadow-amber-500/20'
+                    : 'bg-[#060911] text-slate-300 border border-white/[0.08] hover:border-amber-500/40'
+                }`}
+              >
+                <span>Todos</span>
+              </button>
+
+              {/* Activos */}
+              <button
+                onClick={() => handleCatalogFilterSelect('active')}
+                className={`px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 ${
+                  activeCatalogFilter === 'active'
+                    ? 'bg-emerald-500 text-black shadow-md shadow-emerald-500/20'
+                    : 'bg-[#060911] text-slate-300 border border-white/[0.08] hover:border-emerald-500/40'
+                }`}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Activos</span>
+              </button>
+
+              {/* En Stock */}
+              <button
+                onClick={() => handleCatalogFilterSelect('stock')}
+                className={`px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 ${
+                  activeCatalogFilter === 'stock'
+                    ? 'bg-cyan-500 text-black shadow-md shadow-cyan-500/20'
+                    : 'bg-[#060911] text-slate-300 border border-white/[0.08] hover:border-cyan-500/40'
+                }`}
+              >
+                <Package className="w-3.5 h-3.5" />
+                <span>En Stock</span>
+              </button>
+
+              {/* En Descuento */}
+              <button
+                onClick={() => handleCatalogFilterSelect('discount')}
+                className={`px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 ${
+                  activeCatalogFilter === 'discount'
+                    ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20'
+                    : 'bg-[#060911] text-slate-300 border border-white/[0.08] hover:border-rose-500/40'
                 }`}
               >
                 <Tag className="w-3.5 h-3.5" />
                 <span>En Descuento</span>
               </button>
 
-              {/* Free Shipping Filter */}
-              <div className="inline-flex rounded-xl bg-[#060911] p-0.5 border border-white/[0.08]">
-                <button
-                  onClick={() => handleShippingChange('all')}
-                  className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition ${
-                    shippingFilter === 'all' ? 'bg-amber-500 text-black' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Todos Envíos
-                </button>
-                <button
-                  onClick={() => handleShippingChange('free')}
-                  className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition flex items-center gap-1 ${
-                    shippingFilter === 'free' ? 'bg-amber-500 text-black' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Truck className="w-3 h-3" />
-                  <span>Gratis</span>
-                </button>
-                <button
-                  onClick={() => handleShippingChange('express')}
-                  className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition flex items-center gap-1 ${
-                    shippingFilter === 'express' ? 'bg-amber-500 text-black' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Zap className="w-3 h-3" />
-                  <span>Express</span>
-                </button>
-              </div>
+              {/* Envio Gratis */}
+              <button
+                onClick={() => handleCatalogFilterSelect('free_shipping')}
+                className={`px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 ${
+                  activeCatalogFilter === 'free_shipping'
+                    ? 'bg-amber-500 text-black shadow-md shadow-amber-500/20'
+                    : 'bg-[#060911] text-slate-300 border border-white/[0.08] hover:border-amber-500/40'
+                }`}
+              >
+                <Truck className="w-3.5 h-3.5" />
+                <span>Envío Gratis</span>
+              </button>
+
+              {/* Envio Express */}
+              <button
+                onClick={() => handleCatalogFilterSelect('express')}
+                className={`px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 ${
+                  activeCatalogFilter === 'express'
+                    ? 'bg-amber-500 text-black shadow-md shadow-amber-500/20'
+                    : 'bg-[#060911] text-slate-300 border border-white/[0.08] hover:border-amber-500/40'
+                }`}
+              >
+                <Zap className="w-3.5 h-3.5" />
+                <span>Express</span>
+              </button>
 
               {/* Price Range Dropdown */}
               <select
@@ -489,22 +546,11 @@ export const StoreLanding: React.FC = () => {
                 <option value="over-500">Más de $500 USD</option>
               </select>
 
-              {/* In Stock Only Toggle */}
-              <label className="flex items-center gap-1.5 cursor-pointer text-slate-300 select-none bg-[#060911] px-3 py-1.5 rounded-xl border border-white/[0.08] hover:border-amber-500/40 transition">
-                <input
-                  type="checkbox"
-                  checked={filterInStockOnly}
-                  onChange={(e) => handleToggleInStock(e.target.checked)}
-                  className="accent-amber-500 rounded w-3.5 h-3.5"
-                />
-                <span className="text-[11px] font-bold">Activos / En Stock</span>
-              </label>
-
               {/* Reset Filters button if any active */}
               {activeFiltersCount > 0 && (
                 <button
                   onClick={resetAllFilters}
-                  className="px-2.5 py-1.5 text-[11px] text-amber-400 hover:text-amber-300 transition flex items-center gap-1 underline"
+                  className="px-2.5 py-1.5 text-[11px] text-amber-400 hover:text-amber-300 transition flex items-center gap-1 underline font-medium"
                 >
                   <RotateCcw className="w-3 h-3" />
                   <span>Limpiar ({activeFiltersCount})</span>

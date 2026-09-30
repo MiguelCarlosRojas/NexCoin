@@ -1,8 +1,65 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { SupplierProvider } from './context/SupplierContext';
 import { WalletProvider } from './context/WalletContext';
 import { CartProvider } from './context/CartContext';
+
+// Dynamic Route Title Updater Component
+const RouteTitleUpdater: React.FC = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    const path = location.pathname;
+
+    const titleMap: Record<string, string> = {
+      '/': 'NexCoin | Marketplace Web3 & Pagos Bitcoin',
+      '/tienda': 'Catálogo de Productos | NexCoin Store',
+      '/trabaja-con-nosotros': 'Trabaja con Nosotros | NexCoin Marketplace',
+      '/nosotros': 'Sobre Nosotros | NexCoin Ecosistema',
+      '/sobre-nosotros': 'Sobre Nosotros | NexCoin Ecosistema',
+      '/nuestro-proposito': 'Nuestro Propósito | NexCoin',
+      '/promociones': 'Promociones & Ofertas | NexCoin',
+      '/ayuda': 'Centro de Ayuda | NexCoin',
+      '/servicio-al-cliente': 'Servicio al Cliente | NexCoin',
+      '/reclamos': 'Libro de Reclamaciones | NexCoin',
+      '/libro-de-reclamaciones': 'Libro de Reclamaciones | NexCoin',
+      '/terminos-y-condiciones': 'Términos y Condiciones | NexCoin',
+      '/como-cuidamos-tu-privacidad': 'Aviso de Privacidad | NexCoin',
+      '/privacidad': 'Política de Privacidad | NexCoin',
+      '/accesibilidad': 'Declaración de Accesibilidad | NexCoin',
+      '/legales-campanas': 'Legales de Campañas | NexCoin',
+      '/politicas-generales': 'Políticas Generales | NexCoin',
+      '/politica-cookies': 'Política de Cookies | NexCoin',
+      '/proteccion-de-datos': 'Protección de Datos | NexCoin',
+      '/proveedores/login': 'Iniciar Sesión | Portal Proveedores',
+      '/login': 'Iniciar Sesión | Portal Proveedores',
+      '/proveedores/logout': 'Sesión Finalizada | NexCoin',
+      '/proveedores/sesion-cerrada': 'Sesión Finalizada | NexCoin',
+      '/proveedores': 'Panel Principal | Portal Proveedores',
+      '/proveedores/dashboard': 'Panel de Control | Portal Proveedores',
+      '/proveedores/productos': 'Mis Productos & Inventario | Portal Proveedores',
+      '/proveedores/ventas': 'Ventas & Vouchers | Portal Proveedores',
+      '/proveedores/perfil': 'Mi Perfil & Configuración | Portal Proveedores',
+      '/proveedores/reportes/ventas': 'Reporte de Ventas | Portal Proveedores',
+      '/proveedores/reportes/inventario': 'Reporte de Inventario | Portal Proveedores',
+      '/proveedores/reportes/clientes': 'Reporte de Clientes | Portal Proveedores',
+    };
+
+    if (titleMap[path]) {
+      document.title = titleMap[path];
+    } else if (path.startsWith('/producto/')) {
+      if (!document.title.includes(' | NexCoin Marketplace')) {
+        document.title = 'Detalle de Producto | NexCoin';
+      }
+    } else if (path.startsWith('/proveedores/')) {
+      document.title = 'Portal Proveedores | NexCoin';
+    } else {
+      document.title = 'NexCoin | Marketplace Web3 & Pagos Bitcoin';
+    }
+  }, [location]);
+
+  return null;
+};
 
 // Store Components
 import { StoreLanding } from './components/store/StoreLanding';
@@ -55,7 +112,8 @@ const App: React.FC = () => {
         <WalletProvider>
           <CartProvider>
             <Router>
-            <Routes>
+              <RouteTitleUpdater />
+              <Routes>
               {/* Store Landing Page (Default Home) */}
               <Route path="/" element={<StoreLanding />} />
               <Route path="/tienda" element={<StoreLanding />} />
