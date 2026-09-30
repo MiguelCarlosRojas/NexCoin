@@ -10,14 +10,16 @@ import {
   RotateCcw
 } from 'lucide-react';
 
+import { clearSupplierSession } from '../../lib/cookieSession';
+import { useSupplier } from '../../context/SupplierContext';
+
 export const SupplierLogout: React.FC = () => {
+  const { logout } = useSupplier();
+
   useEffect(() => {
     // Ensure clean state upon reaching logout page
-    try {
-      localStorage.removeItem('supabase_supplier_session');
-    } catch {
-      // ignore
-    }
+    logout();
+    clearSupplierSession();
   }, []);
 
   return (
@@ -49,7 +51,7 @@ export const SupplierLogout: React.FC = () => {
       </header>
 
       {/* Main Content Card (Full height centered) */}
-      <main className="flex-1 flex items-center justify-center p-6 sm:p-12 relative overflow-hidden">
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-8 lg:p-12 relative overflow-hidden">
         {/* Glow ambient background */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] bg-amber-500/10 rounded-full blur-[120px] pointer-events-none" />
         

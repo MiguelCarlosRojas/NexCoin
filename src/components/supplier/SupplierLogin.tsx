@@ -37,8 +37,26 @@ export const SupplierLogin: React.FC = () => {
 
   const { open } = useAppKit();
   const { address: appKitAddress, isConnected: isAppKitConnected } = useAppKitAccount();
-  const { login, register } = useSupplier();
+  const { supplier, login, register } = useSupplier();
   const navigate = useNavigate();
+
+  // If already authenticated via cookies, redirect straight to dashboard
+  React.useEffect(() => {
+    if (supplier) {
+      navigate('/proveedores/dashboard', { replace: true });
+    }
+  }, [supplier, navigate]);
+
+  if (supplier) {
+    return (
+      <div className="min-h-screen bg-[#060911] flex items-center justify-center text-amber-500">
+        <div className="flex flex-col items-center gap-3">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500" />
+          <span className="text-xs text-slate-400 font-mono">Redirigiendo a Portal Proveedores...</span>
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,7 +111,7 @@ export const SupplierLogin: React.FC = () => {
     <div className="min-h-screen w-full bg-[#060911] text-slate-100 flex flex-col lg:flex-row font-sans selection:bg-amber-500 selection:text-black overflow-x-hidden">
       
       {/* LEFT COLUMN: Hero & Visual Showcase (Occupies full left side on desktop) */}
-      <div className="lg:w-1/2 xl:w-7/12 relative bg-[#090d18] border-b lg:border-b-0 lg:border-r border-white/[0.08] p-8 sm:p-12 lg:p-16 flex flex-col justify-between overflow-hidden">
+      <div className="lg:w-1/2 xl:w-7/12 relative bg-[#090d18] border-b lg:border-b-0 lg:border-r border-white/[0.08] p-5 sm:p-10 lg:p-16 flex flex-col justify-between overflow-hidden">
         {/* Ambient glow effects */}
         <div className="absolute -top-32 -left-32 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
@@ -204,7 +222,7 @@ export const SupplierLogin: React.FC = () => {
       </div>
 
       {/* RIGHT COLUMN: Full Height Interactive Form (Occupies full right side) */}
-      <div className="lg:w-1/2 xl:w-5/12 bg-[#060911] p-6 sm:p-10 lg:p-14 flex flex-col justify-center min-h-screen">
+      <div className="lg:w-1/2 xl:w-5/12 bg-[#060911] p-4 sm:p-8 lg:p-12 flex flex-col justify-center min-h-screen">
         
         <div className="w-full max-w-xl mx-auto space-y-6">
           
@@ -229,7 +247,7 @@ export const SupplierLogin: React.FC = () => {
           </div>
 
           {/* Form Box */}
-          <div className="bg-[#0b1020] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl relative">
+          <div className="bg-[#0b1020] border border-white/[0.08] rounded-3xl p-5 sm:p-8 shadow-2xl relative">
             
             {/* Tabs */}
             <div className="grid grid-cols-2 p-1 bg-black/40 border border-white/[0.06] rounded-xl mb-6">

@@ -37,6 +37,16 @@ import { SupplierSalesReport } from './components/supplier/reports/SupplierSales
 import { SupplierInventoryReport } from './components/supplier/reports/SupplierInventoryReport';
 import { SupplierCustomersReport } from './components/supplier/reports/SupplierCustomersReport';
 import { Web3AppKitProvider } from './context/Web3AppKitProvider';
+import { useSupplier } from './context/SupplierContext';
+
+// Guest-only Route (Redirects authenticated suppliers away from login to dashboard)
+const SupplierGuestRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { supplier } = useSupplier();
+  if (supplier) {
+    return <Navigate to="/proveedores/dashboard" replace />;
+  }
+  return <>{children}</>;
+};
 
 const App: React.FC = () => {
   return (
@@ -76,8 +86,18 @@ const App: React.FC = () => {
               <Route path="/politica-cookies" element={<PoliticaCookiesPage />} />
               <Route path="/proteccion-de-datos" element={<ProteccionDatosPage />} />
 
+
               {/* Supplier Auth & Logout */}
-              <Route path="/proveedores/login" element={<SupplierLogin />} />
+              <Route
+                path="/proveedores/login"
+                element={
+                  <SupplierGuestRoute>
+                    <SupplierLogin />
+                  </SupplierGuestRoute>
+                }
+              />
+              <Route path="/login" element={<Navigate to="/proveedores/login" replace />} />
+              <Route path="/logout" element={<Navigate to="/proveedores/logout" replace />} />
               <Route path="/proveedores/logout" element={<SupplierLogout />} />
               <Route path="/proveedores/sesion-cerrada" element={<SupplierLogout />} />
 

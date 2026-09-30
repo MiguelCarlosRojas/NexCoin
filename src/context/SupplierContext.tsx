@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Supplier } from '../types/store';
 import { supabase } from '../lib/supabaseClient';
+import { getSupplierSession, setSupplierSession, clearSupplierSession } from '../lib/cookieSession';
 
 interface SupplierContextType {
   supplier: Supplier | null;
@@ -14,21 +15,14 @@ interface SupplierContextType {
 const SupplierContext = createContext<SupplierContextType | undefined>(undefined);
 
 export const SupplierProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [supplier, setSupplier] = useState<Supplier | null>(() => {
-    try {
-      const saved = localStorage.getItem('nexcoin_supplier');
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [supplier, setSupplier] = useState<Supplier | null>(() => getSupplierSession());
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (supplier) {
-      localStorage.setItem('nexcoin_supplier', JSON.stringify(supplier));
+      setSupplierSession(supplier);
     } else {
-      localStorage.removeItem('nexcoin_supplier');
+      clearSupplierSession();
     }
   }, [supplier]);
 
@@ -97,7 +91,7 @@ export const SupplierProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const logout = () => {
     setSupplier(null);
-    localStorage.removeItem('nexcoin_supplier');
+    clearSupplierSession();
   };
 
   const refreshSupplier = async () => {

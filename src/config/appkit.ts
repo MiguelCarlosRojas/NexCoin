@@ -33,8 +33,14 @@ createAppKit({
   networks: [mainnet, polygon, arbitrum, base, optimism, sepolia],
   projectId,
   metadata,
+  enableCoinbase: false, // Disables standalone Coinbase SDK telemetry (cca-lite.coinbase.com)
+  enableBaseAccount: false,
+  enableInjected: true,
+  enableWalletConnect: true,
   features: {
-    analytics: false // Disabled to avoid ERR_BLOCKED_BY_CLIENT with browser adblockers
+    analytics: false, // Disabled to prevent pulse.walletconnect.org ERR_BLOCKED_BY_CLIENT
+    email: false,
+    socials: []
   },
   themeMode: 'dark',
   themeVariables: {
@@ -44,3 +50,17 @@ createAppKit({
     '--w3m-color-mix-strength': 20
   }
 });
+
+// Suppress unhandled telemetry rejections from ad-blockers / Brave shields
+if (typeof window !== 'undefined') {
+  window.addEventListener('unhandledrejection', (event) => {
+    const str = String(event.reason?.message || event.reason || '');
+    if (
+      str.includes('Failed to fetch') ||
+      str.includes('ERR_BLOCKED_BY_CLIENT') ||
+      event.reason?.context === 'AnalyticsSDKApiError'
+    ) {
+      event.preventDefault();
+    }
+  });
+}

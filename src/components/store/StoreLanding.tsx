@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { Product, Order } from '../../types/store';
 import { useCart } from '../../context/CartContext';
+import { useSupplier } from '../../context/SupplierContext';
 import { CartDrawer } from '../shared/CartDrawer';
 import { VoucherModal } from '../shared/VoucherModal';
 import { Blobatar } from '../ui/blobatar';
@@ -19,7 +20,9 @@ import {
   Zap,
   Tag,
   Star,
-  RotateCcw
+  RotateCcw,
+  User,
+  LayoutDashboard
 } from 'lucide-react';
 
 import { fetchAllStoreProducts, BTC_PRICE_USD } from '../../data/productsData';
@@ -45,6 +48,7 @@ export const StoreLanding: React.FC = () => {
   const [showLookupModal, setShowLookupModal] = useState(false);
 
   const { addToCart, itemCount, setIsCartOpen } = useCart();
+  const { supplier } = useSupplier();
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -211,14 +215,35 @@ export const StoreLanding: React.FC = () => {
         </div>
 
         {/* Minimal Right Header Info */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
           <a
             href="#catalogo"
-            className="text-xs font-semibold text-slate-300 hover:text-amber-400 transition flex items-center gap-1.5"
+            className="hidden sm:flex text-xs font-semibold text-slate-300 hover:text-amber-400 transition items-center gap-1.5"
           >
             <Tag className="w-3.5 h-3.5 text-amber-400" />
-            <span>Catálogo Completo ({products.length})</span>
+            <span>Catálogo ({products.length})</span>
           </a>
+
+          {supplier ? (
+            <Link
+              to="/proveedores/dashboard"
+              className="px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-400 text-xs font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95"
+              title={`Ir al portal de ${supplier.company_name}`}
+            >
+              <LayoutDashboard className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden md:inline">Portal Proveedores:</span>
+              <span className="font-mono text-white max-w-[100px] sm:max-w-[140px] truncate">{supplier.company_name}</span>
+            </Link>
+          ) : (
+            <Link
+              to="/proveedores/login"
+              className="px-3 py-1.5 rounded-xl bg-[#0e1424] hover:bg-[#161f38] border border-white/[0.08] hover:border-amber-500/30 text-slate-300 hover:text-white text-xs font-bold transition flex items-center gap-1.5 active:scale-95"
+            >
+              <User className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">Acceso</span>
+              <span>Proveedores</span>
+            </Link>
+          )}
         </div>
       </header>
 

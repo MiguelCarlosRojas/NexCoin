@@ -210,21 +210,22 @@ export const SupplierLayout: React.FC<SupplierLayoutProps> = ({ children, title,
       <div className="flex-1 flex flex-col min-w-0 bg-[#060911] w-full">
         
         {/* Top Navbar */}
-        <header className="h-20 bg-[#0a0f1d]/85 backdrop-blur-xl border-b border-white/[0.08] px-6 sm:px-10 lg:px-12 flex items-center justify-between sticky top-0 z-30">
-          <div className="flex items-center gap-4">
+        <header className="h-16 sm:h-20 bg-[#0a0f1d]/85 backdrop-blur-xl border-b border-white/[0.08] px-4 sm:px-10 lg:px-12 flex items-center justify-between sticky top-0 z-30">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
             <button
               onClick={() => setIsMobileMenuOpen(true)}
-              className="lg:hidden p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800"
+              className="lg:hidden p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 shrink-0"
+              aria-label="Abrir menú"
             >
               <MenuIcon className="w-5 h-5" />
             </button>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight font-heading">{title}</h1>
-              {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-2xl font-black text-white tracking-tight font-heading truncate">{title}</h1>
+              {subtitle && <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 truncate hidden sm:block">{subtitle}</p>}
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <Link
               to="/proveedores/productos"
               className="hidden sm:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-amber-500/15 transition"
@@ -235,16 +236,17 @@ export const SupplierLayout: React.FC<SupplierLayoutProps> = ({ children, title,
             
             <Link
               to="/"
-              className="flex items-center gap-2 px-4 py-2 bg-[#0e1424] hover:bg-[#161f38] text-slate-200 text-xs font-bold rounded-xl border border-white/[0.08] hover:border-amber-500/30 transition shadow-sm"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-[#0e1424] hover:bg-[#161f38] text-slate-200 text-xs font-bold rounded-xl border border-white/[0.08] hover:border-amber-500/30 transition shadow-sm"
             >
               <Store className="w-4 h-4 text-amber-400" />
               <span className="hidden sm:inline">Ver Tienda</span>
+              <span className="sm:hidden text-[11px]">Tienda</span>
             </Link>
           </div>
         </header>
 
         {/* Content (Full-width edge-to-edge container) */}
-        <main className="p-6 sm:p-10 lg:p-12 flex-1 w-full max-w-full">
+        <main className="p-3.5 sm:p-8 lg:p-12 flex-1 w-full max-w-full">
           {children}
         </main>
 
