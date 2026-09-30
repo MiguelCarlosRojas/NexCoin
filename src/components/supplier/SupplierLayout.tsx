@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSupplier } from '../../context/SupplierContext';
 import { Blobatar } from '../ui/blobatar';
 import { parseBlobatar } from '../../lib/blobatarHelper';
+import { SupplierNotificationsDropdown } from './SupplierNotificationsDropdown';
 import {
   LayoutDashboard,
   Package,
@@ -41,7 +42,7 @@ export const SupplierLayout: React.FC<SupplierLayoutProps> = ({ children, title,
 
   const navItems = [
     { name: 'Dashboard', path: '/proveedores/dashboard', icon: LayoutDashboard },
-    { name: 'Mis Productos', path: '/proveedores/productos', icon: Package },
+    { name: 'Mis Productos', path: '/proveedores/productos?filtro=activos', icon: Package },
     { name: 'Preguntas de Clientes', path: '/proveedores/preguntas', icon: MessageSquare },
     { name: 'Calificaciones & Reseñas', path: '/proveedores/calificaciones', icon: Star },
     { name: 'Ventas & Vouchers', path: '/proveedores/ventas', icon: ShoppingBag },
@@ -54,7 +55,7 @@ export const SupplierLayout: React.FC<SupplierLayoutProps> = ({ children, title,
     { name: 'Reporte de Clientes', path: '/proveedores/reportes/clientes', icon: Users },
   ];
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => location.pathname === path.split('?')[0];
 
   return (
     <div className="min-h-screen bg-[#060911] text-slate-100 flex font-sans w-full relative">
@@ -215,7 +216,7 @@ export const SupplierLayout: React.FC<SupplierLayoutProps> = ({ children, title,
         
         {/* Top Navbar */}
         <header className="h-16 sm:h-20 bg-[#0a0f1d]/85 backdrop-blur-xl border-b border-white/[0.08] px-4 sm:px-10 lg:px-12 flex items-center justify-between sticky top-0 z-30">
-          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0 pr-4">
             <button
               onClick={() => setIsMobileMenuOpen(true)}
               className="lg:hidden p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 shrink-0"
@@ -227,6 +228,46 @@ export const SupplierLayout: React.FC<SupplierLayoutProps> = ({ children, title,
               <h1 className="text-base sm:text-2xl font-black text-white tracking-tight font-heading truncate">{title}</h1>
               {subtitle && <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 truncate hidden sm:block">{subtitle}</p>}
             </div>
+          </div>
+
+          {/* Top-Right Corner: Notifications & Supplier Info Box */}
+          <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+            {/* Notificaciones Aisladas por Proveedor */}
+            <SupplierNotificationsDropdown supplierId={supplier?.id || ''} />
+
+            {/* Supplier Info Box in top-right corner */}
+            {supplier && (() => {
+              const parsed = parseBlobatar(supplier.avatar_url, supplier.company_name || 'TechGlobal Hardware & Cryptowear');
+              return (
+                <Link
+                  to="/proveedores/perfil"
+                  className="flex items-center gap-3 p-1.5 sm:px-3 sm:py-2 rounded-2xl bg-slate-900/80 hover:bg-slate-800 border border-white/[0.08] hover:border-amber-500/40 transition group"
+                  title="Mi Perfil de Proveedor Verificado"
+                >
+                  <div className="text-right hidden md:block">
+                    <p className="text-xs font-bold text-white group-hover:text-amber-400 transition truncate max-w-[220px]">
+                      {supplier.company_name || 'TechGlobal Hardware & Cryptowear'}
+                    </p>
+                    <p className="text-[10px] text-slate-400 truncate max-w-[220px]">
+                      {supplier.email || 'proveedor@nexcoin.com'}
+                    </p>
+                    <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-emerald-400">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      Proveedor Verificado
+                    </span>
+                  </div>
+
+                  <Blobatar
+                    name={parsed.seed}
+                    blobatar={{
+                      expression: parsed.expression,
+                      animate: parsed.animProp,
+                    }}
+                    className={`w-9 h-9 sm:w-10 sm:h-10 ${parsed.shapeClass} border ${parsed.borderClass} ${parsed.glowClass} group-hover:scale-105 transition shrink-0`}
+                  />
+                </Link>
+              );
+            })()}
           </div>
         </header>
 

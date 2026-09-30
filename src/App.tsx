@@ -35,6 +35,7 @@ const RouteTitleUpdater: React.FC = () => {
       '/login': 'Iniciar Sesión | Portal Proveedores',
       '/proveedores/logout': 'Sesión Finalizada | NexCoin',
       '/proveedores/sesion-cerrada': 'Sesión Finalizada | NexCoin',
+      '/proveedores/cuenta-eliminada': 'Cuenta Eliminada con Éxito | NexCoin',
       '/proveedores': 'Panel Principal | Portal Proveedores',
       '/proveedores/dashboard': 'Panel de Control | Portal Proveedores',
       '/proveedores/productos': 'Mis Productos & Inventario | Portal Proveedores',
@@ -97,6 +98,7 @@ import { SupplierProfile } from './components/supplier/SupplierProfile';
 import { SupplierSalesReport } from './components/supplier/reports/SupplierSalesReport';
 import { SupplierInventoryReport } from './components/supplier/reports/SupplierInventoryReport';
 import { SupplierCustomersReport } from './components/supplier/reports/SupplierCustomersReport';
+import { SupplierAccountDeletedPage } from './components/supplier/SupplierAccountDeletedPage';
 import { Web3AppKitProvider } from './context/Web3AppKitProvider';
 import { useSupplier } from './context/SupplierContext';
 
@@ -162,6 +164,7 @@ const App: React.FC = () => {
               <Route path="/logout" element={<Navigate to="/proveedores/logout" replace />} />
               <Route path="/proveedores/logout" element={<SupplierLogout />} />
               <Route path="/proveedores/sesion-cerrada" element={<SupplierLogout />} />
+              <Route path="/proveedores/cuenta-eliminada" element={<SupplierAccountDeletedPage />} />
 
               {/* Supplier Portal Protected Routes */}
               <Route

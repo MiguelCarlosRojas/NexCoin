@@ -3,6 +3,8 @@ import { SupplierLayout } from './SupplierLayout';
 import { useSupplier } from '../../context/SupplierContext';
 import { supabase } from '../../lib/supabaseClient';
 import { Blobatar } from '../ui/blobatar';
+import { useNavigate } from 'react-router-dom';
+import * as XLSX from 'xlsx';
 import {
   User,
   Building,
@@ -13,6 +15,11 @@ import {
   Save,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
+  AlertOctagon,
+  FileSpreadsheet,
+  Lock,
+  Unlock,
   Shuffle,
   Smile,
   Plus,
@@ -47,7 +54,105 @@ export interface PayoutWalletItem {
 }
 
 export const SupplierProfile: React.FC = () => {
-  const { supplier, refreshSupplier } = useSupplier();
+  const navigate = useNavigate();
+  const { supplier, refreshSupplier, logout } = useSupplier();
+
+  // Danger zone: Delete Account states
+  const [hasExportedBackup, setHasExportedBackup] = useState(false);
+  const [isExportingBackup, setIsExportingBackup] = useState(false);
+  const [confirmDeleteInput, setConfirmDeleteInput] = useState('');
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleExportInventoryBackup = async () => {
+    if (!supplier) return;
+    setIsExportingBackup(true);
+    setDeleteError(null);
+    try {
+      const { data: prods, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('supplier_id', supplier.id);
+
+      if (error) throw error;
+
+      const rows = (prods || []).map((p: any) => ({
+        SKU: p.sku || 'N/A',
+        Nombre: p.name,
+        Descripción: p.description || '',
+        Categoría: p.category,
+        'Precio USD': p.price_usd,
+        'Precio BTC': p.price_btc || 0,
+        'Precio Original USD': p.original_price_usd || p.price_usd,
+        'Descuento %': p.discount_percent || 0,
+        Stock: p.stock,
+        Estado: p.status,
+        'Envío Gratis': p.free_shipping ? 'Sí' : 'No',
+        'Tipo de Envío': p.shipping_type || 'standard',
+        Destacado: p.is_featured ? 'Sí' : 'No',
+        Tags: Array.isArray(p.tags) ? p.tags.join(', ') : '',
+        'Fecha Creación': new Date(p.created_at).toLocaleString(),
+      }));
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(rows.length > 0 ? rows : [{ Mensaje: 'Sin productos registrados' }]);
+      XLSX.utils.book_append_sheet(wb, ws, 'Inventario');
+      
+      const safeCompanyName = (supplier.company_name || 'Proveedor').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const filename = `Copia_Seguridad_Inventario_NexCoin_${safeCompanyName}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(wb, filename);
+
+      setHasExportedBackup(true);
+    } catch (err: any) {
+      console.error('Error exporting backup:', err);
+      setDeleteError('No se pudo generar la copia de seguridad. Por favor, reintenta.');
+    } finally {
+      setIsExportingBackup(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!supplier) return;
+    if (!hasExportedBackup) {
+      setDeleteError('Primero debes generar y descargar la copia de seguridad de tu inventario en Excel.');
+      return;
+    }
+    if (confirmDeleteInput.trim() !== 'ELIMINAR CUENTA') {
+      setDeleteError('Debes escribir exactamente "ELIMINAR CUENTA" para confirmar.');
+      return;
+    }
+
+    setIsDeletingAccount(true);
+    setDeleteError(null);
+
+    try {
+      // 1. Delete all products of this supplier
+      await supabase
+        .from('products')
+        .delete()
+        .eq('supplier_id', supplier.id);
+
+      // 2. Delete supplier account
+      await supabase
+        .from('suppliers')
+        .delete()
+        .eq('id', supplier.id);
+
+      // 3. Clear local storage records for this supplier
+      localStorage.removeItem(`nexcoin_read_notifs_${supplier.id}`);
+      localStorage.removeItem(`supplier_payout_wallets_${supplier.id}`);
+
+      // 4. Logout session
+      logout();
+
+      // 5. Navigate to the farewell page
+      navigate('/proveedores/cuenta-eliminada');
+    } catch (err: any) {
+      console.error('Error deleting account:', err);
+      setDeleteError(err.message || 'Error al procesar la eliminación de la cuenta. Inténtalo nuevamente.');
+      setIsDeletingAccount(false);
+    }
+  };
 
   const [companyName, setCompanyName] = useState(supplier?.company_name || '');
   const [contactName, setContactName] = useState(supplier?.contact_name || '');
@@ -980,6 +1085,126 @@ export const SupplierProfile: React.FC = () => {
           </div>
 
         </form>
+
+        {/* Zona de Peligro: Eliminar Cuenta de Proveedor */}
+        <div className="mt-12 p-6 sm:p-8 rounded-3xl bg-[#13070b] border-2 border-rose-500/30 space-y-6">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/40 flex items-center justify-center text-rose-400 shrink-0">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-white font-heading">
+                Zona de Peligro: Eliminar Cuenta de Proveedor
+              </h3>
+              <p className="text-xs text-rose-200/80 mt-1 leading-relaxed">
+                Esta acción es destructiva e irreversible. Si eliminas tu cuenta, todos tus productos activos y archivados se eliminarán inmediatamente del catálogo de NexCoin Marketplace.
+              </p>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-rose-950/40 border border-rose-500/20 text-xs text-rose-300 space-y-2">
+            <div className="flex items-center gap-2 font-bold text-rose-200">
+              <AlertOctagon className="w-4 h-4 shrink-0 text-rose-400" />
+              <span>Requisito Obligatorio de Seguridad</span>
+            </div>
+            <p className="leading-relaxed">
+              Para no perder el inventario de tus productos ni las referencias de tus precios y SKUs, el sistema exige que hagas una copia de seguridad en Excel antes de habilitar el botón de eliminación.
+            </p>
+          </div>
+
+          {deleteError && (
+            <div className="p-4 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-200 text-xs font-semibold flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>{deleteError}</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+            {/* Paso 1: Generar Copia de Seguridad */}
+            <div className={`p-5 rounded-2xl border transition ${
+              hasExportedBackup 
+                ? 'bg-emerald-950/30 border-emerald-500/40' 
+                : 'bg-white/[0.02] border-white/[0.08]'
+            }`}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-mono uppercase tracking-wider font-bold text-slate-400">
+                  Paso 1: Copia de Respaldo
+                </span>
+                {hasExportedBackup && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Copia Generada
+                  </span>
+                )}
+              </div>
+              <h4 className="text-sm font-bold text-white mb-1.5">
+                Generar Inventario de Productos
+              </h4>
+              <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+                Descarga una hoja de cálculo Excel completa con todos tus productos, precios, stocks y detalles antes de continuar.
+              </p>
+              <button
+                type="button"
+                onClick={handleExportInventoryBackup}
+                disabled={isExportingBackup}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition active:scale-95 disabled:opacity-50"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                <span>
+                  {isExportingBackup 
+                    ? 'Generando Archivo Excel...' 
+                    : hasExportedBackup 
+                    ? 'Descargar Copia Nuevamente (Excel)' 
+                    : 'Generar Inventario (Excel)'}
+                </span>
+              </button>
+            </div>
+
+            {/* Paso 2: Confirmación y Eliminación */}
+            <div className={`p-5 rounded-2xl border transition ${
+              !hasExportedBackup
+                ? 'opacity-40 pointer-events-none bg-white/[0.01] border-white/[0.05]'
+                : 'bg-white/[0.02] border-rose-500/30'
+            }`}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-mono uppercase tracking-wider font-bold text-slate-400">
+                  Paso 2: Confirmación Final
+                </span>
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-400">
+                  {hasExportedBackup ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+                  {hasExportedBackup ? 'Desbloqueado' : 'Bloqueado'}
+                </span>
+              </div>
+              <h4 className="text-sm font-bold text-white mb-1.5">
+                Escribe "ELIMINAR CUENTA"
+              </h4>
+              <p className="text-xs text-slate-400 mb-3 leading-relaxed">
+                Para confirmar la eliminación definitiva e irreversible de la cuenta y los productos:
+              </p>
+              
+              <input
+                type="text"
+                disabled={!hasExportedBackup || isDeletingAccount}
+                value={confirmDeleteInput}
+                onChange={(e) => setConfirmDeleteInput(e.target.value)}
+                placeholder="Escribe ELIMINAR CUENTA"
+                className="w-full bg-[#060911] border border-rose-500/40 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-600 font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-rose-500 mb-3"
+              />
+
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={!hasExportedBackup || confirmDeleteInput.trim() !== 'ELIMINAR CUENTA' || isDeletingAccount}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-rose-600/30 transition disabled:opacity-30 disabled:cursor-not-allowed active:scale-95"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>
+                  {isDeletingAccount ? 'Eliminando Cuenta y Catálogo...' : 'Eliminar Cuenta Definitivamente'}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
 
       </div>
     </SupplierLayout>

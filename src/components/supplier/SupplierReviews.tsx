@@ -10,14 +10,49 @@ import {
   Calendar,
   ExternalLink
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 export const SupplierReviews: React.FC = () => {
   const { supplier } = useSupplier();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const urlFiltro = (searchParams.get('filtro') || searchParams.get('filter') || '').toLowerCase();
+  const urlQ = searchParams.get('q') || searchParams.get('search') || '';
+
+  const getInitialRatingFilter = (f: string): 'all' | '5' | '4' | '3' | 'verified' => {
+    if (f === '5' || f === '5-estrellas') return '5';
+    if (f === '4' || f === '4-estrellas') return '4';
+    if (f === '3' || f === '3-estrellas') return '3';
+    if (f === 'verificadas' || f === 'verified' || f === 'compras-verificadas') return 'verified';
+    return 'all';
+  };
+
   const [reviews, setReviews] = useState<ProductReview[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [ratingFilter, setRatingFilter] = useState<'all' | '5' | '4' | '3' | 'verified'>('all');
+  const [search, setSearch] = useState(urlQ);
+  const [ratingFilter, setRatingFilter] = useState<'all' | '5' | '4' | '3' | 'verified'>(getInitialRatingFilter(urlFiltro));
+
+  const syncUrlParams = (fVal: string, qVal: string) => {
+    const params: Record<string, string> = {};
+    if (fVal === '5') params.filtro = '5';
+    else if (fVal === '4') params.filtro = '4';
+    else if (fVal === '3') params.filtro = '3';
+    else if (fVal === 'verified') params.filtro = 'verificadas';
+    else params.filtro = 'todas';
+
+    if (qVal.trim()) params.q = qVal.trim();
+    setSearchParams(params, { replace: true });
+  };
+
+  const handleRatingFilterChange = (newFilter: 'all' | '5' | '4' | '3' | 'verified') => {
+    setRatingFilter(newFilter);
+    syncUrlParams(newFilter, search);
+  };
+
+  const handleSearchChange = (newSearch: string) => {
+    setSearch(newSearch);
+    syncUrlParams(ratingFilter, newSearch);
+  };
 
   const loadReviews = async () => {
     if (!supplier) return;
@@ -36,13 +71,13 @@ export const SupplierReviews: React.FC = () => {
     loadReviews();
   }, [supplier]);
 
-  // Overall statistics
+  // Overall statistics (defaults to 0.0 if no reviews exist)
   const stats = useMemo(() => {
     if (reviews.length === 0) {
       return {
-        avgRating: 5.0,
+        avgRating: 0.0,
         totalReviews: 0,
-        positivePercent: 100,
+        positivePercent: 0,
         verifiedCount: 0,
         counts: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } as Record<number, number>,
       };
@@ -223,12 +258,12 @@ export const SupplierReviews: React.FC = () => {
                   type="text"
                   placeholder="Buscar por comprador, producto o voucher..."
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-8 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
                 />
                 {search && (
                   <button
-                    onClick={() => setSearch('')}
+                    onClick={() => handleSearchChange('')}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-white"
                   >
                     ✕
@@ -239,7 +274,7 @@ export const SupplierReviews: React.FC = () => {
               {/* Filter Tabs */}
               <div className="flex flex-wrap items-center gap-2 text-xs">
                 <button
-                  onClick={() => setRatingFilter('all')}
+                  onClick={() => handleRatingFilterChange('all')}
                   className={`px-3 py-1.5 rounded-xl font-bold transition ${
                     ratingFilter === 'all'
                       ? 'bg-amber-500 text-black shadow-md shadow-amber-500/20'
@@ -250,7 +285,7 @@ export const SupplierReviews: React.FC = () => {
                 </button>
 
                 <button
-                  onClick={() => setRatingFilter('5')}
+                  onClick={() => handleRatingFilterChange('5')}
                   className={`px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1 ${
                     ratingFilter === '5'
                       ? 'bg-amber-500 text-black shadow-md shadow-amber-500/20'
@@ -262,7 +297,7 @@ export const SupplierReviews: React.FC = () => {
                 </button>
 
                 <button
-                  onClick={() => setRatingFilter('4')}
+                  onClick={() => handleRatingFilterChange('4')}
                   className={`px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1 ${
                     ratingFilter === '4'
                       ? 'bg-amber-500 text-black shadow-md shadow-amber-500/20'
@@ -274,7 +309,19 @@ export const SupplierReviews: React.FC = () => {
                 </button>
 
                 <button
-                  onClick={() => setRatingFilter('verified')}
+                  onClick={() => handleRatingFilterChange('3')}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1 ${
+                    ratingFilter === '3'
+                      ? 'bg-amber-500 text-black shadow-md shadow-amber-500/20'
+                      : 'bg-[#060911] text-slate-300 border border-white/[0.08] hover:border-amber-500/40'
+                  }`}
+                >
+                  <Star className="w-3.5 h-3.5 fill-current" />
+                  <span>3 Estrellas ({stats.counts[3] || 0})</span>
+                </button>
+
+                <button
+                  onClick={() => handleRatingFilterChange('verified')}
                   className={`px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1 ${
                     ratingFilter === 'verified'
                       ? 'bg-emerald-500 text-black shadow-md shadow-emerald-500/20'

@@ -14,14 +14,45 @@ import {
   Send,
   ExternalLink
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 export const SupplierQuestions: React.FC = () => {
   const { supplier } = useSupplier();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const urlFiltro = (searchParams.get('filtro') || searchParams.get('filter') || '').toLowerCase();
+  const urlQ = searchParams.get('q') || searchParams.get('search') || '';
+
+  const getInitialFilterTab = (f: string): 'all' | 'pending' | 'answered' => {
+    if (f === 'pendientes' || f === 'pending') return 'pending';
+    if (f === 'respondidas' || f === 'answered') return 'answered';
+    return 'all';
+  };
+
   const [questions, setQuestions] = useState<ProductQuestion[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [filterTab, setFilterTab] = useState<'all' | 'pending' | 'answered'>('all');
+  const [search, setSearch] = useState(urlQ);
+  const [filterTab, setFilterTab] = useState<'all' | 'pending' | 'answered'>(getInitialFilterTab(urlFiltro));
+
+  const syncUrlParams = (fVal: string, qVal: string) => {
+    const params: Record<string, string> = {};
+    if (fVal === 'pending') params.filtro = 'pendientes';
+    else if (fVal === 'answered') params.filtro = 'respondidas';
+    else params.filtro = 'todas';
+
+    if (qVal.trim()) params.q = qVal.trim();
+    setSearchParams(params, { replace: true });
+  };
+
+  const handleFilterTabChange = (newTab: 'all' | 'pending' | 'answered') => {
+    setFilterTab(newTab);
+    syncUrlParams(newTab, search);
+  };
+
+  const handleSearchChange = (newSearch: string) => {
+    setSearch(newSearch);
+    syncUrlParams(filterTab, newSearch);
+  };
 
   // Answer draft state per question ID
   const [answerDrafts, setAnswerDrafts] = useState<Record<string, string>>({});
@@ -150,12 +181,12 @@ export const SupplierQuestions: React.FC = () => {
                 type="text"
                 placeholder="Buscar por pregunta, respuesta, producto o cliente..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
               />
               {search && (
                 <button
-                  onClick={() => setSearch('')}
+                  onClick={() => handleSearchChange('')}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-white"
                 >
                   ✕
@@ -166,7 +197,7 @@ export const SupplierQuestions: React.FC = () => {
             {/* Filter Tabs */}
             <div className="flex items-center gap-1.5 p-1 bg-black/40 border border-white/[0.06] rounded-xl text-xs overflow-x-auto">
               <button
-                onClick={() => setFilterTab('all')}
+                onClick={() => handleFilterTabChange('all')}
                 className={`px-3 py-1.5 rounded-lg font-bold transition whitespace-nowrap ${
                   filterTab === 'all'
                     ? 'bg-amber-500 text-black shadow-sm'
@@ -176,7 +207,7 @@ export const SupplierQuestions: React.FC = () => {
                 Todas ({questions.length})
               </button>
               <button
-                onClick={() => setFilterTab('pending')}
+                onClick={() => handleFilterTabChange('pending')}
                 className={`px-3 py-1.5 rounded-lg font-bold transition whitespace-nowrap flex items-center gap-1.5 ${
                   filterTab === 'pending'
                     ? 'bg-amber-500 text-black shadow-sm'
@@ -187,7 +218,7 @@ export const SupplierQuestions: React.FC = () => {
                 <span>Pendientes ({pendingCount})</span>
               </button>
               <button
-                onClick={() => setFilterTab('answered')}
+                onClick={() => handleFilterTabChange('answered')}
                 className={`px-3 py-1.5 rounded-lg font-bold transition whitespace-nowrap flex items-center gap-1.5 ${
                   filterTab === 'answered'
                     ? 'bg-amber-500 text-black shadow-sm'

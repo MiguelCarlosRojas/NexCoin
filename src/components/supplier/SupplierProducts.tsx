@@ -26,7 +26,6 @@ import {
   Tag,
   Star,
   Plus,
-  Minus,
   Layers,
   FileText,
   FileSpreadsheet
@@ -41,12 +40,13 @@ export const SupplierProducts: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const getInitialFilterTab = (f: string | null): 'all' | 'active' | 'low_stock' | 'archived' => {
-    if (!f) return 'all';
+    if (!f) return 'active';
     const lower = f.toLowerCase();
     if (lower === 'activos' || lower === 'active' || lower === 'activo') return 'active';
     if (lower === 'bajo_stock' || lower === 'agotados' || lower === 'low_stock') return 'low_stock';
     if (lower === 'archivados' || lower === 'archived' || lower === 'archivado') return 'archived';
-    return 'all';
+    if (lower === 'todos' || lower === 'all') return 'all';
+    return 'active';
   };
 
   const urlFiltro = searchParams.get('filtro') || searchParams.get('filter');
@@ -65,6 +65,7 @@ export const SupplierProducts: React.FC = () => {
     if (tab === 'active') params.filtro = 'activos';
     else if (tab === 'low_stock') params.filtro = 'bajo_stock';
     else if (tab === 'archived') params.filtro = 'archivados';
+    else if (tab === 'all') params.filtro = 'todos';
 
     if (qStr.trim()) params.q = qStr.trim();
     if (catStr && catStr !== 'all' && catStr !== 'Todas') params.categoria = catStr;
@@ -81,10 +82,12 @@ export const SupplierProducts: React.FC = () => {
     const mapped = getInitialFilterTab(filtroParam);
     if (mapped !== filterTab) setFilterTab(mapped);
     if (catParam !== selectedCategory) setSelectedCategory(catParam);
-  }, [searchParams]);
 
-  // Quick stock edit inline
-  const [updatingStockId, setUpdatingStockId] = useState<string | null>(null);
+    // Ensure URL has ?filtro=activos if empty
+    if (!filtroParam) {
+      syncUrlParams('active', qParam, catParam);
+    }
+  }, [searchParams]);
 
   // Modal State for Add / Update
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -397,29 +400,6 @@ export const SupplierProducts: React.FC = () => {
       setFormError(err.message || 'Error al guardar el producto.');
     } finally {
       setFormSubmitting(false);
-    }
-  };
-
-  // Quick inline stock updater (+1, -1, or direct edit)
-  const handleQuickStockUpdate = async (productId: string, currentStock: number, delta: number) => {
-    const nextStock = Math.max(0, currentStock + delta);
-    setUpdatingStockId(productId);
-
-    try {
-      const { error } = await supabase
-        .from('products')
-        .update({ stock: nextStock, updated_at: new Date().toISOString() })
-        .eq('id', productId);
-
-      if (error) throw error;
-      setProducts((prev) =>
-        prev.map((p) => (p.id === productId ? { ...p, stock: nextStock } : p))
-      );
-    } catch (err) {
-      console.error('Error updating stock inline:', err);
-      showToast('error', 'No se pudo actualizar el stock');
-    } finally {
-      setUpdatingStockId(null);
     }
   };
 
@@ -827,7 +807,6 @@ export const SupplierProducts: React.FC = () => {
                     <th className="py-4 px-3 text-right">Precio BTC</th>
                     <th className="py-4 px-4 text-center">Stock</th>
                     <th className="py-4 px-3 text-center">Envíos</th>
-                    <th className="py-4 px-3 text-center">Estado</th>
                     <th className="py-4 px-6 text-right">Acciones</th>
                   </tr>
                 </thead>
@@ -860,9 +839,6 @@ export const SupplierProducts: React.FC = () => {
                       </td>
                       <td className="py-4 px-3">
                         <div className="h-4 bg-white/[0.06] rounded w-16 mx-auto" />
-                      </td>
-                      <td className="py-4 px-3">
-                        <div className="h-4 bg-white/[0.06] rounded w-14 mx-auto" />
                       </td>
                       <td className="py-4 px-6 text-right">
                         <div className="h-7 bg-white/[0.06] rounded-xl w-20 ml-auto" />
@@ -903,7 +879,6 @@ export const SupplierProducts: React.FC = () => {
                     <th className="py-4 px-3 text-right">Precio BTC</th>
                     <th className="py-4 px-4 text-center">Stock</th>
                     <th className="py-4 px-3 text-center">Envíos</th>
-                    <th className="py-4 px-3 text-center">Estado</th>
                     <th className="py-4 px-6 text-right">Acciones</th>
                   </tr>
                 </thead>
@@ -976,41 +951,19 @@ export const SupplierProducts: React.FC = () => {
                           {p.price_btc ? `${p.price_btc.toFixed(6)} ₿` : `${(p.price_usd / BTC_PRICE_USD).toFixed(6)} ₿`}
                         </td>
 
-                        {/* Quick Stock Controls */}
-                        <td className="py-4 px-4 text-center min-w-[130px]">
-                          <div className="inline-flex items-center gap-1.5 p-1 rounded-xl bg-[#060911] border border-white/[0.08]">
-                            <button
-                              type="button"
-                              onClick={() => handleQuickStockUpdate(p.id, p.stock, -1)}
-                              disabled={updatingStockId === p.id || p.stock <= 0}
-                              className="w-6 h-6 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-slate-300 flex items-center justify-center disabled:opacity-30 transition"
-                              title="Restar 1 unidad"
-                            >
-                              <Minus className="w-3 h-3" />
-                            </button>
-
-                            <span
-                              className={`font-mono text-xs font-bold px-2 ${
-                                p.stock > 10
-                                  ? 'text-emerald-400'
-                                  : p.stock > 0
-                                  ? 'text-amber-400'
-                                  : 'text-rose-400'
-                              }`}
-                            >
-                              {p.stock}
-                            </span>
-
-                            <button
-                              type="button"
-                              onClick={() => handleQuickStockUpdate(p.id, p.stock, 1)}
-                              disabled={updatingStockId === p.id}
-                              className="w-6 h-6 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-slate-300 flex items-center justify-center disabled:opacity-30 transition"
-                              title="Sumar 1 unidad"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          </div>
+                        {/* Stock */}
+                        <td className="py-4 px-4 text-center min-w-[100px]">
+                          <span
+                            className={`inline-block font-mono text-xs font-bold px-2.5 py-1 rounded-lg border ${
+                              p.stock > 10
+                                ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                                : p.stock > 0
+                                ? 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+                                : 'text-rose-400 bg-rose-500/10 border-rose-500/20'
+                            }`}
+                          >
+                            {p.stock} {p.stock === 1 ? 'unidad' : 'uds.'}
+                          </span>
                         </td>
 
                         {/* Envíos */}
@@ -1025,24 +978,6 @@ export const SupplierProducts: React.FC = () => {
                               {p.shipping_type === 'express' ? 'Express' : 'Estándar'}
                             </span>
                           )}
-                        </td>
-
-                        {/* Estado */}
-                        <td className="py-4 px-3 text-center min-w-[90px]">
-                          <span
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                              p.status === 'active'
-                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                                : 'bg-slate-800 text-slate-400 border border-white/[0.08]'
-                            }`}
-                          >
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                p.status === 'active' ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'
-                              }`}
-                            />
-                            {p.status === 'active' ? 'Activo' : 'Archivado'}
-                          </span>
                         </td>
 
                         {/* Acciones */}

@@ -33,7 +33,7 @@ export const SupplierDashboard: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [soldProducts, setSoldProducts] = useState<SoldProductSummary[]>([]);
-  const [supplierRating, setSupplierRating] = useState<number>(5.0);
+  const [supplierRating, setSupplierRating] = useState<number>(0.0);
   const [supplierReviewsCount, setSupplierReviewsCount] = useState<number>(0);
   const [_loading, setLoading] = useState(true);
 
@@ -118,7 +118,7 @@ export const SupplierDashboard: React.FC = () => {
           setSupplierRating(Number((sum / revs.length).toFixed(1)));
           setSupplierReviewsCount(revs.length);
         } else {
-          setSupplierRating(5.0);
+          setSupplierRating(0.0);
           setSupplierReviewsCount(0);
         }
       } catch (revErr) {
