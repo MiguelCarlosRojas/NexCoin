@@ -37,3 +37,4 @@ seed.sql
 # Local deployment scripts
 scripts/
 
+.env*
