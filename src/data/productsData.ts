@@ -32,7 +32,9 @@ export async function fetchAllStoreProducts(): Promise<Product[]> {
           free_shipping: meta.free_shipping ?? (meta.shipping_type === 'free' || item.price_usd >= 100),
           shipping_type: meta.shipping_type ?? (item.shipping_type ?? (item.price_usd >= 100 ? 'free' : 'standard')),
           rating: meta.rating ?? (item.rating ?? 4.9),
-          reviews_count: meta.reviews_count ?? (item.reviews_count ?? 42)
+          reviews_count: meta.reviews_count ?? (item.reviews_count ?? 42),
+          warranty: meta.warranty ?? (item.warranty ?? '12 Meses con NexCoin.sol'),
+          condition: meta.condition ?? (item.condition ?? 'Nuevo en Caja Sellada')
         };
       });
     }
@@ -70,7 +72,9 @@ export async function getProductById(id: string): Promise<Product | null> {
         free_shipping: meta.free_shipping ?? (meta.shipping_type === 'free' || data.price_usd >= 100),
         shipping_type: meta.shipping_type ?? (data.shipping_type ?? (data.price_usd >= 100 ? 'free' : 'standard')),
         rating: meta.rating ?? (data.rating ?? 4.9),
-        reviews_count: meta.reviews_count ?? (data.reviews_count ?? 42)
+        reviews_count: meta.reviews_count ?? (data.reviews_count ?? 42),
+        warranty: meta.warranty ?? (data.warranty ?? '12 Meses con NexCoin.sol'),
+        condition: meta.condition ?? (data.condition ?? 'Nuevo en Caja Sellada')
       };
     }
 
@@ -93,7 +97,9 @@ export async function getProductById(id: string): Promise<Product | null> {
         free_shipping: meta.free_shipping ?? (meta.shipping_type === 'free' || skuData.price_usd >= 100),
         shipping_type: meta.shipping_type ?? (skuData.shipping_type ?? (skuData.price_usd >= 100 ? 'free' : 'standard')),
         rating: meta.rating ?? (skuData.rating ?? 4.9),
-        reviews_count: meta.reviews_count ?? (skuData.reviews_count ?? 42)
+        reviews_count: meta.reviews_count ?? (skuData.reviews_count ?? 42),
+        warranty: meta.warranty ?? (skuData.warranty ?? '12 Meses con NexCoin.sol'),
+        condition: meta.condition ?? (skuData.condition ?? 'Nuevo en Caja Sellada')
       };
     }
   } catch (e) {

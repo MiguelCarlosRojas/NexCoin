@@ -30,6 +30,7 @@ dist-ssr
 # Database schemas & seed scripts
 schema.sql
 seed.sql
+*.sql
 
 # Vercel
 .vercel

@@ -53,7 +53,7 @@ export const SupplierLayout: React.FC<SupplierLayoutProps> = ({ children, title,
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <div className="min-h-screen bg-[#060911] text-slate-100 flex font-sans w-full overflow-x-hidden">
+    <div className="min-h-screen bg-[#060911] text-slate-100 flex font-sans w-full relative">
       
       {/* Mobile Backdrop */}
       {isMobileMenuOpen && (
@@ -65,7 +65,7 @@ export const SupplierLayout: React.FC<SupplierLayoutProps> = ({ children, title,
 
       {/* Lateral Navigation Sidebar with dedicated lateral scrollbar */}
       <aside
-        className={`fixed lg:sticky top-0 inset-y-0 left-0 z-50 w-72 bg-[#0a0f1d] border-r border-white/[0.08] flex flex-col justify-between transition-transform duration-300 ease-in-out h-screen lateral-scrollbar overflow-y-auto ${
+        className={`fixed lg:sticky top-0 inset-y-0 left-0 z-50 w-72 min-w-[18rem] max-w-[18rem] shrink-0 bg-[#0a0f1d] border-r border-white/[0.08] flex flex-col justify-between transition-transform duration-300 ease-in-out h-screen lateral-scrollbar overflow-y-auto ${
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
@@ -207,7 +207,7 @@ export const SupplierLayout: React.FC<SupplierLayoutProps> = ({ children, title,
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 bg-[#060911] w-full">
+      <div className="flex-1 flex flex-col min-w-0 bg-[#060911] w-full overflow-x-hidden">
         
         {/* Top Navbar */}
         <header className="h-16 sm:h-20 bg-[#0a0f1d]/85 backdrop-blur-xl border-b border-white/[0.08] px-4 sm:px-10 lg:px-12 flex items-center justify-between sticky top-0 z-30">
@@ -223,25 +223,6 @@ export const SupplierLayout: React.FC<SupplierLayoutProps> = ({ children, title,
               <h1 className="text-base sm:text-2xl font-black text-white tracking-tight font-heading truncate">{title}</h1>
               {subtitle && <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 truncate hidden sm:block">{subtitle}</p>}
             </div>
-          </div>
-
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <Link
-              to="/proveedores/productos"
-              className="hidden sm:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-amber-500/15 transition"
-            >
-              <Package className="w-4 h-4" />
-              <span>Mis Productos</span>
-            </Link>
-            
-            <Link
-              to="/"
-              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-[#0e1424] hover:bg-[#161f38] text-slate-200 text-xs font-bold rounded-xl border border-white/[0.08] hover:border-amber-500/30 transition shadow-sm"
-            >
-              <Store className="w-4 h-4 text-amber-400" />
-              <span className="hidden sm:inline">Ver Tienda</span>
-              <span className="sm:hidden text-[11px]">Tienda</span>
-            </Link>
           </div>
         </header>
 

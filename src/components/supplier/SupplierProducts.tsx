@@ -4,7 +4,7 @@ import { useSupplier } from '../../context/SupplierContext';
 import { supabase } from '../../lib/supabaseClient';
 import { Product } from '../../types/store';
 import { encodeProductDescription, parseProductDescription } from '../../lib/productMeta';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   Package,
   PlusCircle,
@@ -35,11 +35,50 @@ const BTC_PRICE_USD = 65000;
 
 export const SupplierProducts: React.FC = () => {
   const { supplier } = useSupplier();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const getInitialFilterTab = (f: string | null): 'all' | 'active' | 'low_stock' | 'archived' => {
+    if (!f) return 'all';
+    const lower = f.toLowerCase();
+    if (lower === 'activos' || lower === 'active' || lower === 'activo') return 'active';
+    if (lower === 'bajo_stock' || lower === 'agotados' || lower === 'low_stock') return 'low_stock';
+    if (lower === 'archivados' || lower === 'archived' || lower === 'archivado') return 'archived';
+    return 'all';
+  };
+
+  const urlFiltro = searchParams.get('filtro') || searchParams.get('filter');
+  const urlQ = searchParams.get('q') || searchParams.get('search') || '';
+  const urlCategoria = searchParams.get('categoria') || searchParams.get('category') || 'all';
+
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [filterTab, setFilterTab] = useState<'all' | 'active' | 'low_stock' | 'archived'>('all');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [search, setSearch] = useState(urlQ);
+  const [filterTab, setFilterTab] = useState<'all' | 'active' | 'low_stock' | 'archived'>(getInitialFilterTab(urlFiltro));
+  const [selectedCategory, setSelectedCategory] = useState<string>(urlCategoria);
+
+  // Sync URL search params
+  const syncUrlParams = (tab: string, qStr: string, catStr: string) => {
+    const params: Record<string, string> = {};
+    if (tab === 'active') params.filtro = 'activos';
+    else if (tab === 'low_stock') params.filtro = 'bajo_stock';
+    else if (tab === 'archived') params.filtro = 'archivados';
+
+    if (qStr.trim()) params.q = qStr.trim();
+    if (catStr && catStr !== 'all' && catStr !== 'Todas') params.categoria = catStr;
+
+    setSearchParams(params, { replace: true });
+  };
+
+  useEffect(() => {
+    const qParam = searchParams.get('q') || searchParams.get('search') || '';
+    const filtroParam = searchParams.get('filtro') || searchParams.get('filter');
+    const catParam = searchParams.get('categoria') || searchParams.get('category') || 'all';
+
+    if (qParam !== search) setSearch(qParam);
+    const mapped = getInitialFilterTab(filtroParam);
+    if (mapped !== filterTab) setFilterTab(mapped);
+    if (catParam !== selectedCategory) setSelectedCategory(catParam);
+  }, [searchParams]);
 
   // Quick stock edit inline
   const [updatingStockId, setUpdatingStockId] = useState<string | null>(null);
@@ -281,8 +320,32 @@ export const SupplierProducts: React.FC = () => {
         condition: condition.trim()
       });
 
-      // Payload strictly conforming to Supabase products table schema
-      const payload: any = {
+      // Direct full payload (for migrated DB schema)
+      const directPayload: any = {
+        supplier_id: supplier.id,
+        name: name.trim(),
+        description: fullDescription,
+        category: category.trim(),
+        price_usd: parsedPriceUsd,
+        price_btc: parsedPriceBtc,
+        stock: parsedStock,
+        image_url: imageUrl.trim() || allGalleryImages[0],
+        sku: sku.trim() || `NEX-${Date.now().toString().slice(-5)}`,
+        status: formStatus,
+        updated_at: new Date().toISOString(),
+        images: allGalleryImages,
+        discount_percent: parsedDiscount,
+        original_price_usd: parsedOrigPrice,
+        shipping_type: shippingType,
+        free_shipping: shippingType === 'free',
+        rating: parseFloat(rating) || 4.9,
+        reviews_count: parseInt(reviewsCount) || 20,
+        warranty: warranty.trim(),
+        condition: condition.trim()
+      };
+
+      // Fallback payload (for older schema before migration)
+      const fallbackPayload: any = {
         supplier_id: supplier.id,
         name: name.trim(),
         description: fullDescription,
@@ -297,20 +360,35 @@ export const SupplierProducts: React.FC = () => {
       };
 
       if (editingProduct) {
-        const { error } = await supabase
+        const { error: directErr } = await supabase
           .from('products')
-          .update(payload)
+          .update(directPayload)
           .eq('id', editingProduct.id);
 
-        if (error) throw error;
+        if (directErr) {
+          const { error: fallbackErr } = await supabase
+            .from('products')
+            .update(fallbackPayload)
+            .eq('id', editingProduct.id);
+
+          if (fallbackErr) throw fallbackErr;
+        }
         showToast('success', `Producto "${name}" actualizado con éxito`);
       } else {
-        payload.created_at = new Date().toISOString();
-        const { error } = await supabase
-          .from('products')
-          .insert([payload]);
+        directPayload.created_at = new Date().toISOString();
+        fallbackPayload.created_at = directPayload.created_at;
 
-        if (error) throw error;
+        const { error: directErr } = await supabase
+          .from('products')
+          .insert([directPayload]);
+
+        if (directErr) {
+          const { error: fallbackErr } = await supabase
+            .from('products')
+            .insert([fallbackPayload]);
+
+          if (fallbackErr) throw fallbackErr;
+        }
         showToast('success', `Producto "${name}" publicado en la tienda`);
       }
 
@@ -386,21 +464,39 @@ export const SupplierProducts: React.FC = () => {
   // Filtered products list
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
+      const q = search.trim().toLowerCase();
       const matchesSearch =
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        (p.sku && p.sku.toLowerCase().includes(search.toLowerCase())) ||
-        (p.category && p.category.toLowerCase().includes(search.toLowerCase()));
+        !q ||
+        p.name.toLowerCase().includes(q) ||
+        (p.sku && p.sku.toLowerCase().includes(q)) ||
+        (p.category && p.category.toLowerCase().includes(q)) ||
+        (p.description && p.description.toLowerCase().includes(q));
 
       const matchesCategory = selectedCategory === 'all' || p.category === selectedCategory;
 
       let matchesTab = true;
-      if (filterTab === 'active') matchesTab = p.status === 'active' && p.stock > 0;
+      if (filterTab === 'active') matchesTab = p.status === 'active';
       else if (filterTab === 'low_stock') matchesTab = p.stock <= 5;
       else if (filterTab === 'archived') matchesTab = p.status === 'archived';
 
       return matchesSearch && matchesCategory && matchesTab;
     });
   }, [products, search, filterTab, selectedCategory]);
+
+  const handleTabChange = (newTab: 'all' | 'active' | 'low_stock' | 'archived') => {
+    setFilterTab(newTab);
+    syncUrlParams(newTab, search, selectedCategory);
+  };
+
+  const handleSearchChange = (newSearch: string) => {
+    setSearch(newSearch);
+    syncUrlParams(filterTab, newSearch, selectedCategory);
+  };
+
+  const handleCategoryChange = (newCat: string) => {
+    setSelectedCategory(newCat);
+    syncUrlParams(filterTab, search, newCat);
+  };
 
   // Summary Metrics
   const activeCount = products.filter((p) => p.status === 'active').length;
@@ -497,7 +593,7 @@ export const SupplierProducts: React.FC = () => {
                 type="text"
                 placeholder="Buscar por título, SKU o categoría..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 transition"
               />
             </div>
@@ -523,7 +619,7 @@ export const SupplierProducts: React.FC = () => {
             <div className="flex flex-wrap items-center gap-1.5 p-1 bg-black/40 border border-white/[0.06] rounded-xl text-xs">
               <button
                 type="button"
-                onClick={() => setFilterTab('all')}
+                onClick={() => handleTabChange('all')}
                 className={`px-3 py-1.5 rounded-lg font-bold transition ${
                   filterTab === 'all'
                     ? 'bg-amber-500 text-slate-950 shadow-sm'
@@ -534,7 +630,7 @@ export const SupplierProducts: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setFilterTab('active')}
+                onClick={() => handleTabChange('active')}
                 className={`px-3 py-1.5 rounded-lg font-bold transition ${
                   filterTab === 'active'
                     ? 'bg-amber-500 text-slate-950 shadow-sm'
@@ -545,7 +641,7 @@ export const SupplierProducts: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setFilterTab('low_stock')}
+                onClick={() => handleTabChange('low_stock')}
                 className={`px-3 py-1.5 rounded-lg font-bold transition ${
                   filterTab === 'low_stock'
                     ? 'bg-amber-500 text-slate-950 shadow-sm'
@@ -556,7 +652,7 @@ export const SupplierProducts: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setFilterTab('archived')}
+                onClick={() => handleTabChange('archived')}
                 className={`px-3 py-1.5 rounded-lg font-bold transition ${
                   filterTab === 'archived'
                     ? 'bg-amber-500 text-slate-950 shadow-sm'
@@ -572,7 +668,7 @@ export const SupplierProducts: React.FC = () => {
               <span className="text-xs text-slate-400">Categoría:</span>
               <select
                 value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
+                onChange={(e) => handleCategoryChange(e.target.value)}
                 className="bg-[#060911] border border-white/[0.1] rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-amber-500"
               >
                 <option value="all">Todas las categorías</option>

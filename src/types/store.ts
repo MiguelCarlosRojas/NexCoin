@@ -29,6 +29,8 @@ export interface Product {
   shipping_type?: 'free' | 'express' | 'standard';
   rating?: number;
   reviews_count?: number;
+  warranty?: string;
+  condition?: string;
   created_at?: string;
   updated_at?: string;
   // joined fields
