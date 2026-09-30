@@ -1,11 +1,12 @@
 import { Product } from '../types/store';
 import { supabase } from '../lib/supabaseClient';
+import { parseProductDescription } from '../lib/productMeta';
 
 export const BTC_PRICE_USD = 65000;
 
 /**
  * Fetch all active real products directly from Supabase.
- * No mock or fake product concatenations.
+ * Enriches each item with structured metadata parsed from description.
  */
 export async function fetchAllStoreProducts(): Promise<Product[]> {
   try {
@@ -18,16 +19,22 @@ export async function fetchAllStoreProducts(): Promise<Product[]> {
     if (error) throw error;
 
     if (data && data.length > 0) {
-      return data.map((item) => ({
-        ...item,
-        images: item.images && item.images.length > 0 ? item.images : (item.image_url ? [item.image_url] : []),
-        discount_percent: item.discount_percent ?? (item.price_usd > 100 ? 10 : 0),
-        original_price_usd: item.original_price_usd ?? (item.discount_percent ? item.price_usd * 1.15 : item.price_usd),
-        free_shipping: item.free_shipping ?? (item.price_usd >= 100),
-        shipping_type: item.shipping_type ?? (item.price_usd >= 100 ? 'free' : 'standard'),
-        rating: item.rating ?? 4.9,
-        reviews_count: item.reviews_count ?? 42
-      }));
+      return data.map((item) => {
+        const { cleanDescription, meta } = parseProductDescription(item.description);
+        const imagesList = meta.images && meta.images.length > 0 ? meta.images : (item.image_url ? [item.image_url] : []);
+        
+        return {
+          ...item,
+          description: cleanDescription || item.description,
+          images: imagesList,
+          discount_percent: meta.discount_percent ?? (item.discount_percent ?? (item.price_usd > 100 ? 10 : 0)),
+          original_price_usd: meta.original_price_usd ?? (item.original_price_usd ?? (item.price_usd * 1.15)),
+          free_shipping: meta.free_shipping ?? (meta.shipping_type === 'free' || item.price_usd >= 100),
+          shipping_type: meta.shipping_type ?? (item.shipping_type ?? (item.price_usd >= 100 ? 'free' : 'standard')),
+          rating: meta.rating ?? (item.rating ?? 4.9),
+          reviews_count: meta.reviews_count ?? (item.reviews_count ?? 42)
+        };
+      });
     }
     return [];
   } catch (e) {
@@ -52,15 +59,18 @@ export async function getProductById(id: string): Promise<Product | null> {
       .maybeSingle();
 
     if (!error && data) {
+      const { cleanDescription, meta } = parseProductDescription(data.description);
+      const imagesList = meta.images && meta.images.length > 0 ? meta.images : (data.image_url ? [data.image_url] : []);
       return {
         ...data,
-        images: data.images && data.images.length > 0 ? data.images : (data.image_url ? [data.image_url] : []),
-        discount_percent: data.discount_percent ?? 0,
-        original_price_usd: data.original_price_usd ?? data.price_usd,
-        free_shipping: data.free_shipping ?? (data.price_usd >= 100),
-        shipping_type: data.shipping_type ?? (data.price_usd >= 100 ? 'free' : 'standard'),
-        rating: data.rating ?? 4.9,
-        reviews_count: data.reviews_count ?? 42
+        description: cleanDescription || data.description,
+        images: imagesList,
+        discount_percent: meta.discount_percent ?? (data.discount_percent ?? 0),
+        original_price_usd: meta.original_price_usd ?? (data.original_price_usd ?? data.price_usd),
+        free_shipping: meta.free_shipping ?? (meta.shipping_type === 'free' || data.price_usd >= 100),
+        shipping_type: meta.shipping_type ?? (data.shipping_type ?? (data.price_usd >= 100 ? 'free' : 'standard')),
+        rating: meta.rating ?? (data.rating ?? 4.9),
+        reviews_count: meta.reviews_count ?? (data.reviews_count ?? 42)
       };
     }
 
@@ -72,15 +82,18 @@ export async function getProductById(id: string): Promise<Product | null> {
       .maybeSingle();
 
     if (skuData) {
+      const { cleanDescription, meta } = parseProductDescription(skuData.description);
+      const imagesList = meta.images && meta.images.length > 0 ? meta.images : (skuData.image_url ? [skuData.image_url] : []);
       return {
         ...skuData,
-        images: skuData.images && skuData.images.length > 0 ? skuData.images : (skuData.image_url ? [skuData.image_url] : []),
-        discount_percent: skuData.discount_percent ?? 0,
-        original_price_usd: skuData.original_price_usd ?? skuData.price_usd,
-        free_shipping: skuData.free_shipping ?? (skuData.price_usd >= 100),
-        shipping_type: skuData.shipping_type ?? (skuData.price_usd >= 100 ? 'free' : 'standard'),
-        rating: skuData.rating ?? 4.9,
-        reviews_count: skuData.reviews_count ?? 42
+        description: cleanDescription || skuData.description,
+        images: imagesList,
+        discount_percent: meta.discount_percent ?? (skuData.discount_percent ?? 0),
+        original_price_usd: meta.original_price_usd ?? (skuData.original_price_usd ?? skuData.price_usd),
+        free_shipping: meta.free_shipping ?? (meta.shipping_type === 'free' || skuData.price_usd >= 100),
+        shipping_type: meta.shipping_type ?? (skuData.shipping_type ?? (skuData.price_usd >= 100 ? 'free' : 'standard')),
+        rating: meta.rating ?? (skuData.rating ?? 4.9),
+        reviews_count: meta.reviews_count ?? (skuData.reviews_count ?? 42)
       };
     }
   } catch (e) {
