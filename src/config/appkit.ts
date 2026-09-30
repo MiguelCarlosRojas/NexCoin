@@ -14,7 +14,7 @@ if (!projectId) {
 const metadata = {
   name: 'NexCoin',
   description: 'NexCoin - Plataforma de Comercio Descentralizado On-Chain',
-  url: typeof window !== 'undefined' ? window.location.origin : 'https://nexcoin.crypto',
+  url: typeof window !== 'undefined' ? window.location.origin : 'https://nex-coin-rho.vercel.app',
   icons: ['https://avatars.githubusercontent.com/u/179229932']
 };
 
