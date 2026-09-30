@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "vercel:env": "powershell -ExecutionPolicy Bypass -File scripts/set-vercel-env.ps1"
   },
   "dependencies": {
     "@blobatar/react": "^2.7.0",
