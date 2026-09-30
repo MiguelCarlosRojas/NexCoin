@@ -260,25 +260,43 @@ export const SupplierCustomersReport: React.FC = () => {
               )}
             </div>
 
-            {/* Export Buttons */}
-            <div className="flex items-center gap-2.5">
-              <button
-                onClick={handleExportPdf}
-                disabled={filtered.length === 0}
-                className="px-4 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 disabled:opacity-40 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-lg shadow-red-600/20 active:scale-95"
-              >
-                <FileText className="w-4 h-4" />
-                <span>Exportar PDF (Horizontal)</span>
-              </button>
+            {/* Action Buttons: Compact PDF & Excel with Tooltip */}
+            <div className="flex items-center gap-2">
+              
+              {/* PDF Icon Button */}
+              <div className="relative group">
+                <button
+                  type="button"
+                  onClick={handleExportPdf}
+                  disabled={filtered.length === 0}
+                  className="w-10 h-10 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 disabled:opacity-40 text-white flex items-center justify-center shadow-lg shadow-red-600/20 transition active:scale-95"
+                  aria-label="Exportar PDF"
+                  title="Exportar PDF"
+                >
+                  <FileText className="w-4 h-4" />
+                </button>
+                <div className="absolute -top-9 left-1/2 -translate-x-1/2 px-2.5 py-1 bg-slate-900 border border-white/[0.1] text-white text-[10px] font-bold rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition pointer-events-none whitespace-nowrap z-30">
+                  Exportar PDF
+                </div>
+              </div>
 
-              <button
-                onClick={handleExportExcel}
-                disabled={filtered.length === 0}
-                className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-40 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-lg shadow-emerald-600/20 active:scale-95"
-              >
-                <FileSpreadsheet className="w-4 h-4" />
-                <span>Exportar Excel</span>
-              </button>
+              {/* Excel Icon Button */}
+              <div className="relative group">
+                <button
+                  type="button"
+                  onClick={handleExportExcel}
+                  disabled={filtered.length === 0}
+                  className="w-10 h-10 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-40 text-white flex items-center justify-center shadow-lg shadow-emerald-600/20 transition active:scale-95"
+                  aria-label="Exportar Excel"
+                  title="Exportar Excel"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                </button>
+                <div className="absolute -top-9 left-1/2 -translate-x-1/2 px-2.5 py-1 bg-slate-900 border border-white/[0.1] text-white text-[10px] font-bold rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition pointer-events-none whitespace-nowrap z-30">
+                  Exportar Excel
+                </div>
+              </div>
+
             </div>
 
           </div>

@@ -27,8 +27,21 @@ import {
   Send,
   HelpCircle,
   Sparkles,
-  Receipt
+  Receipt,
+  CheckCircle2,
+  Clock,
+  User,
+  ShieldCheck,
+  X
 } from 'lucide-react';
+import {
+  fetchProductQuestions,
+  submitProductQuestion,
+  ProductQuestion,
+  fetchProductReviews,
+  submitProductReview,
+  ProductReview
+} from '../../lib/qaAndReviewsService';
 
 export const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -47,8 +60,24 @@ export const ProductDetailPage: React.FC = () => {
   const [copiedLink, setCopiedLink] = useState(false);
 
   // Q&A state
+  const [questionsList, setQuestionsList] = useState<ProductQuestion[]>([]);
   const [userQuestion, setUserQuestion] = useState('');
-  const [questionsList, setQuestionsList] = useState<{ q: string; a: string; date: string }[]>([]);
+  const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
+  const [isSubmittingQuestion, setIsSubmittingQuestion] = useState(false);
+  const [questionSuccess, setQuestionSuccess] = useState(false);
+
+  // Reviews & Rating state
+  const [reviewsList, setReviewsList] = useState<ProductReview[]>([]);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [reviewerName, setReviewerName] = useState('');
+  const [reviewerEmail, setReviewerEmail] = useState('');
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewVoucherCode, setReviewVoucherCode] = useState('');
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [reviewSuccess, setReviewSuccess] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -56,9 +85,11 @@ export const ProductDetailPage: React.FC = () => {
       setLoading(true);
       window.scrollTo(0, 0);
 
-      const [foundProduct, catalog] = await Promise.all([
+      const [foundProduct, catalog, questions, reviews] = await Promise.all([
         getProductById(id),
-        fetchAllStoreProducts()
+        fetchAllStoreProducts(),
+        fetchProductQuestions(id),
+        fetchProductReviews(id)
       ]);
 
       setProduct(foundProduct);
@@ -66,6 +97,8 @@ export const ProductDetailPage: React.FC = () => {
         document.title = `${foundProduct.name} | NexCoin Marketplace`;
       }
       setAllProducts(catalog);
+      setQuestionsList(questions);
+      setReviewsList(reviews);
       setActiveImageIndex(0);
       setQuantity(1);
       setLoading(false);
@@ -96,6 +129,103 @@ export const ProductDetailPage: React.FC = () => {
     return allProducts.filter((p) => p.id !== product.id).reverse().slice(0, 4);
   }, [product, allProducts]);
 
+  const averageRating = useMemo(() => {
+    if (reviewsList.length === 0) return product?.rating || 5.0;
+    const sum = reviewsList.reduce((acc, r) => acc + r.rating, 0);
+    return Number((sum / reviewsList.length).toFixed(1));
+  }, [reviewsList, product]);
+
+  const totalReviewsCount = reviewsList.length > 0 ? reviewsList.length : (product?.reviews_count || 0);
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(shareUrl);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2500);
+  };
+
+  const handleAddToCart = () => {
+    for (let i = 0; i < quantity; i++) {
+      addToCart(product!);
+    }
+    setAddedToast(true);
+    setTimeout(() => setAddedToast(false), 2200);
+  };
+
+  const handleBuyNow = () => {
+    for (let i = 0; i < quantity; i++) {
+      addToCart(product!);
+    }
+    setIsCartOpen(true);
+  };
+
+  const handleAddQuestion = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!product || !userQuestion.trim()) return;
+
+    setIsSubmittingQuestion(true);
+    try {
+      const created = await submitProductQuestion({
+        productId: product.id,
+        supplierId: product.supplier_id,
+        productName: product.name,
+        userName: userName.trim() || 'Comprador Web3',
+        userEmail: userEmail.trim(),
+        question: userQuestion.trim(),
+      });
+
+      setQuestionsList((prev) => [created, ...prev]);
+      setUserQuestion('');
+      setUserName('');
+      setUserEmail('');
+      setQuestionSuccess(true);
+      setTimeout(() => setQuestionSuccess(false), 4000);
+    } catch (err) {
+      console.error('Error submitting question:', err);
+    } finally {
+      setIsSubmittingQuestion(false);
+    }
+  };
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!product || !reviewComment.trim()) return;
+
+    setIsSubmittingReview(true);
+    try {
+      const created = await submitProductReview({
+        productId: product.id,
+        supplierId: product.supplier_id,
+        userName: reviewerName.trim() || 'Comprador Bitcoin',
+        userEmail: reviewerEmail.trim(),
+        rating: reviewRating,
+        comment: reviewComment.trim(),
+        voucherCode: reviewVoucherCode.trim() || undefined,
+        verifiedPurchase: Boolean(reviewVoucherCode.trim()),
+      });
+
+      setReviewsList((prev) => [created, ...prev]);
+
+      // Dynamically update product local rating
+      const allRatings = [created.rating, ...reviewsList.map((r) => r.rating)];
+      const avg = allRatings.reduce((a, b) => a + b, 0) / allRatings.length;
+      setProduct((prev) => prev ? { ...prev, rating: Number(avg.toFixed(1)), reviews_count: allRatings.length } : prev);
+
+      setReviewComment('');
+      setReviewVoucherCode('');
+      setReviewerName('');
+      setReviewerEmail('');
+      setReviewSuccess(true);
+      setTimeout(() => {
+        setReviewSuccess(false);
+        setShowReviewModal(false);
+      }, 1500);
+    } catch (err) {
+      console.error('Error submitting review:', err);
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
   if (loading || !product) {
     return (
       <div className="min-h-screen bg-[#060911] text-slate-100 flex flex-col items-center justify-center space-y-4">
@@ -115,41 +245,6 @@ export const ProductDetailPage: React.FC = () => {
 
   const shareUrl = window.location.href;
   const shareText = `Mira ${product.name} en NexCoin Store, cómpralo con Bitcoin: ${shareUrl}`;
-
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(shareUrl);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2500);
-  };
-
-  const handleAddToCart = () => {
-    for (let i = 0; i < quantity; i++) {
-      addToCart(product);
-    }
-    setAddedToast(true);
-    setTimeout(() => setAddedToast(false), 2200);
-  };
-
-  const handleBuyNow = () => {
-    for (let i = 0; i < quantity; i++) {
-      addToCart(product);
-    }
-    setIsCartOpen(true);
-  };
-
-  const handleAddQuestion = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!userQuestion.trim()) return;
-    setQuestionsList([
-      {
-        q: userQuestion.trim(),
-        a: 'Tu pregunta fue enviada al proveedor. La respuesta será publicada en breve.',
-        date: 'Reciente'
-      },
-      ...questionsList
-    ]);
-    setUserQuestion('');
-  };
 
   return (
     <div className="min-h-screen bg-[#060911] text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-black">
@@ -657,59 +752,141 @@ export const ProductDetailPage: React.FC = () => {
 
         {/* SECTION: PREGUNTAS Y RESPUESTAS */}
         <section className="bg-[#090d19] border border-white/[0.08] rounded-3xl p-6 sm:p-10 shadow-2xl space-y-6">
-          <h2 className="text-xl sm:text-2xl font-black text-white font-heading flex items-center gap-2">
-            <HelpCircle className="w-6 h-6 text-amber-400" />
-            <span>Preguntas y respuestas</span>
-          </h2>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.08] pb-4">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-black text-white font-heading flex items-center gap-2">
+                <HelpCircle className="w-6 h-6 text-amber-400" />
+                <span>Preguntas y respuestas</span>
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
+                ¿Tienes dudas sobre el producto, compatibilidad o envío? Pregúntale directamente al proveedor.
+              </p>
+            </div>
+            <span className="text-xs font-mono px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-300 border border-amber-500/20 font-bold self-start sm:self-auto">
+              {questionsList.length} pregunta(s)
+            </span>
+          </div>
 
           {/* Ask Input Form */}
-          <form onSubmit={handleAddQuestion} className="space-y-3">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                required
-                placeholder="Escribe tu pregunta sobre este producto al proveedor..."
-                value={userQuestion}
-                onChange={(e) => setUserQuestion(e.target.value)}
-                className="flex-1 bg-[#060911] border border-white/[0.1] rounded-xl px-4 py-3 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
-              />
-              <button
-                type="submit"
-                className="px-5 py-3 bg-amber-500 hover:bg-amber-400 text-black font-black text-xs uppercase tracking-wider rounded-xl transition shrink-0"
-              >
-                Preguntar
-              </button>
+          <form onSubmit={handleAddQuestion} className="space-y-3 bg-[#060911] border border-white/[0.06] rounded-2xl p-4 sm:p-5">
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                Escribe tu pregunta sobre este producto
+              </label>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej: ¿El producto incluye cable de conexión y garantía oficial del fabricante?"
+                  value={userQuestion}
+                  onChange={(e) => setUserQuestion(e.target.value)}
+                  className="flex-1 bg-[#090d19] border border-white/[0.1] rounded-xl px-4 py-3 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                />
+                <button
+                  type="submit"
+                  disabled={isSubmittingQuestion || !userQuestion.trim()}
+                  className="px-5 py-3 bg-amber-500 hover:bg-amber-400 text-black font-black text-xs uppercase tracking-wider rounded-xl transition shrink-0 disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/10"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>{isSubmittingQuestion ? 'Enviando...' : 'Preguntar'}</span>
+                </button>
+              </div>
             </div>
-            <p className="text-[11px] text-slate-400">
-              Tiempo estimado de respuesta del proveedor: menos de 2 horas.
-            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div>
+                <label className="block text-[11px] text-slate-400 mb-1">
+                  Tu nombre o alias (opcional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ej: Satoshi Lover, Carlos R."
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
+                  className="w-full bg-[#090d19] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] text-slate-400 mb-1">
+                  Tu correo electrónico (opcional, para avisarte cuando respondan)
+                </label>
+                <input
+                  type="email"
+                  placeholder="comprador@ejemplo.com"
+                  value={userEmail}
+                  onChange={(e) => setUserEmail(e.target.value)}
+                  className="w-full bg-[#090d19] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                />
+              </div>
+            </div>
+
+            {questionSuccess && (
+              <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center gap-2 animate-fade-in">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>¡Tu pregunta fue enviada al proveedor! Cuando responda desde su panel aparecerá aquí con la insignia oficial.</span>
+              </div>
+            )}
           </form>
 
           {/* Questions List */}
           <div className="space-y-4 pt-2">
             <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-400">
-              Últimas preguntas realizadas
+              Preguntas de compradores ({questionsList.length})
             </h4>
 
             {questionsList.length === 0 ? (
-              <div className="p-6 rounded-2xl bg-[#060911] border border-white/[0.06] text-center space-y-1">
-                <p className="text-xs text-slate-400">Aún no hay preguntas para este producto.</p>
-                <p className="text-[11px] text-slate-500">¿Tienes dudas sobre el envío, garantía o especificaciones? ¡Escribe tu pregunta arriba!</p>
+              <div className="p-8 rounded-2xl bg-[#060911] border border-white/[0.06] text-center space-y-2">
+                <HelpCircle className="w-8 h-8 text-slate-600 mx-auto" />
+                <p className="text-xs text-slate-400 font-medium">Aún no hay preguntas para este producto.</p>
+                <p className="text-[11px] text-slate-500">¿Tienes dudas sobre el envío, garantía o especificaciones? ¡Escribe la primera pregunta arriba!</p>
               </div>
             ) : (
-              questionsList.map((item, idx) => (
-                <div key={idx} className="p-4 rounded-2xl bg-[#060911] border border-white/[0.06] space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
-                      <span className="text-amber-400 font-mono">P:</span>
-                      {item.q}
+              questionsList.map((item) => (
+                <div key={item.id} className="p-5 rounded-2xl bg-[#060911] border border-white/[0.06] space-y-3">
+                  {/* User Question */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-white/[0.06] border border-white/[0.1] flex items-center justify-center text-slate-300">
+                          <User className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="text-xs font-bold text-white">{item.user_name || 'Comprador Web3'}</span>
+                      </div>
+                      <span className="text-[10px] text-slate-500 font-mono">
+                        {item.created_at ? new Date(item.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Reciente'}
+                      </span>
+                    </div>
+
+                    <p className="text-xs sm:text-sm text-slate-200 pl-8 leading-relaxed font-medium">
+                      <span className="text-amber-400 font-bold mr-1.5">P:</span>
+                      {item.question}
                     </p>
-                    <span className="text-[10px] text-slate-500 font-mono shrink-0">{item.date}</span>
                   </div>
-                  <p className="text-xs text-slate-300 pl-4 border-l-2 border-amber-500/40 leading-relaxed">
-                    <span className="text-emerald-400 font-mono font-bold mr-1.5">R:</span>
-                    {item.a}
-                  </p>
+
+                  {/* Supplier Answer or Pending Badge */}
+                  {item.answer ? (
+                    <div className="ml-6 sm:ml-8 p-4 rounded-xl bg-gradient-to-r from-emerald-950/40 to-[#0a1814] border border-emerald-500/30 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold">
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>Respuesta oficial del Proveedor ({supplierName})</span>
+                        </div>
+                        {item.answered_at && (
+                          <span className="text-[10px] text-emerald-500/80 font-mono">
+                            {new Date(item.answered_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-200 leading-relaxed pl-1">
+                        {item.answer}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="ml-6 sm:ml-8 flex items-center gap-2 text-[11px] font-mono text-amber-400/90 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-lg w-fit">
+                      <Clock className="w-3.5 h-3.5 animate-pulse" />
+                      <span>Pendiente de respuesta por el proveedor</span>
+                    </div>
+                  )}
                 </div>
               ))
             )}
@@ -720,35 +897,255 @@ export const ProductDetailPage: React.FC = () => {
         <section className="bg-[#090d19] border border-white/[0.08] rounded-3xl p-6 sm:p-10 shadow-2xl space-y-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-white/[0.08] pb-6">
             <div>
-              <h2 className="text-xl sm:text-2xl font-black text-white font-heading">
-                Opiniones del producto
+              <span className="text-[11px] font-mono tracking-widest text-amber-400 uppercase font-bold">
+                Transparencia & Confianza On-Chain
+              </span>
+              <h2 className="text-xl sm:text-2xl font-black text-white font-heading mt-0.5">
+                Opiniones y Calificación del Proveedor
               </h2>
-              <p className="text-xs text-slate-400 mt-1">Calificaciones certificadas de compradores con Bitcoin.</p>
+              <p className="text-xs text-slate-400 mt-1">
+                Calificaciones de compradores de {supplierName} verificadas en Bitcoin blockchain.
+              </p>
             </div>
 
-            <div className="flex items-center gap-4 p-4 rounded-2xl bg-[#060911] border border-white/[0.06]">
-              <span className="text-4xl font-black text-amber-400 font-heading">
-                {product.rating ? product.rating.toFixed(1) : '5.0'}
-              </span>
-              <div>
-                <div className="flex items-center gap-1 text-amber-400">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <Star key={s} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                  ))}
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-4 p-4 rounded-2xl bg-[#060911] border border-white/[0.06]">
+                <span className="text-4xl font-black text-amber-400 font-heading">
+                  {averageRating.toFixed(1)}
+                </span>
+                <div>
+                  <div className="flex items-center gap-1 text-amber-400">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star
+                        key={s}
+                        className={`w-4 h-4 ${
+                          s <= Math.round(averageRating)
+                            ? 'fill-amber-400 text-amber-400'
+                            : 'text-slate-600'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                    {totalReviewsCount ? `Basado en ${totalReviewsCount} calificaciones` : 'Sé el primero en calificar'}
+                  </p>
                 </div>
-                <p className="text-[11px] text-slate-400 font-mono mt-0.5">
-                  {product.reviews_count ? `Basado en ${product.reviews_count} calificaciones` : 'Sin calificaciones registradas'}
-                </p>
               </div>
+
+              <button
+                type="button"
+                onClick={() => setShowReviewModal(true)}
+                className="px-5 py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg shadow-amber-500/20 transition flex items-center gap-2 hover:scale-[1.02] active:scale-95"
+              >
+                <Star className="w-4 h-4 fill-black" />
+                <span>Calificar Producto y Proveedor</span>
+              </button>
             </div>
           </div>
 
-          {/* Genuine Reviews Section */}
-          <div className="p-6 rounded-2xl bg-[#060911] border border-white/[0.06] text-center space-y-1">
-            <p className="text-xs text-slate-400 font-medium">Las opiniones se registran de compras verificadas on-chain con voucher.</p>
-            <p className="text-[11px] text-slate-500">Al completar tu pago en Bitcoin y recibir tu voucher, podrás calificar este producto.</p>
+          {/* Reviews List */}
+          <div className="space-y-4">
+            {reviewsList.length === 0 ? (
+              <div className="p-8 rounded-2xl bg-[#060911] border border-white/[0.06] text-center space-y-3">
+                <Star className="w-8 h-8 text-amber-400/50 mx-auto" />
+                <h4 className="text-sm font-bold text-white">Aún no hay calificaciones registradas</h4>
+                <p className="text-xs text-slate-400 max-w-md mx-auto">
+                  ¿Adquiriste este producto o contrataste con {supplierName}? Comparte tu experiencia con la comunidad crypto.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowReviewModal(true)}
+                  className="mt-2 px-4 py-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold rounded-xl transition"
+                >
+                  Escribir la primera reseña
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {reviewsList.map((review) => (
+                  <div key={review.id} className="p-5 rounded-2xl bg-[#060911] border border-white/[0.06] space-y-3 flex flex-col justify-between">
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 font-bold text-xs">
+                            {review.user_name ? review.user_name.substring(0, 2).toUpperCase() : 'US'}
+                          </div>
+                          <div>
+                            <span className="text-xs font-bold text-white block">{review.user_name || 'Comprador Bitcoin'}</span>
+                            <span className="text-[10px] text-slate-500 font-mono">
+                              {review.created_at ? new Date(review.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Reciente'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Stars */}
+                        <div className="flex items-center gap-0.5 text-amber-400">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star
+                              key={s}
+                              className={`w-3.5 h-3.5 ${
+                                s <= review.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-700'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Verified Badge if voucher present */}
+                      {(review.verified_purchase || review.voucher_code) && (
+                        <div className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md w-fit">
+                          <ShieldCheck className="w-3 h-3" />
+                          <span>Compra Verificada On-Chain {review.voucher_code ? `(Voucher #${review.voucher_code})` : ''}</span>
+                        </div>
+                      )}
+
+                      {/* Review Comment */}
+                      <p className="text-xs text-slate-300 leading-relaxed pt-1">
+                        "{review.comment}"
+                      </p>
+                    </div>
+
+                    <div className="pt-2 border-t border-white/[0.04] text-[10px] font-mono text-slate-500 flex items-center justify-between">
+                      <span>Proveedor: {supplierName}</span>
+                      <span className="text-emerald-500/80">Calificación verificada</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </section>
+
+        {/* REVIEW SUBMISSION MODAL */}
+        {showReviewModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+            <div className="bg-[#090d19] border border-white/[0.1] rounded-3xl p-6 sm:p-8 max-w-lg w-full space-y-5 shadow-2xl relative">
+              <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-white font-heading">
+                    Calificar Producto y Proveedor
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {product.name} • {supplierName}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowReviewModal(false)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-white transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmitReview} className="space-y-4">
+                {/* Interactive Star Rating */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                    ¿Cómo calificarías este producto y la atención del proveedor?
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 p-2 rounded-xl bg-[#060911] border border-white/[0.08]">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onMouseEnter={() => setHoverRating(star)}
+                          onMouseLeave={() => setHoverRating(0)}
+                          onClick={() => setReviewRating(star)}
+                          className="p-1 transition hover:scale-125 focus:outline-none"
+                        >
+                          <Star
+                            className={`w-6 h-6 ${
+                              star <= (hoverRating || reviewRating)
+                                ? 'fill-amber-400 text-amber-400'
+                                : 'text-slate-600'
+                            }`}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                    <span className="text-xs font-bold text-amber-400 font-mono">
+                      {reviewRating === 5 && '★★★★★ Excelente'}
+                      {reviewRating === 4 && '★★★★☆ Muy bueno'}
+                      {reviewRating === 3 && '★★★☆☆ Bueno'}
+                      {reviewRating === 2 && '★★☆☆☆ Regular'}
+                      {reviewRating === 1 && '★☆☆☆☆ Insuficiente'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Name / Alias */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">
+                      Nombre o Alias del comprador
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ej: Daniel V., Satoshi Fan"
+                      value={reviewerName}
+                      onChange={(e) => setReviewerName(e.target.value)}
+                      className="w-full bg-[#060911] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">
+                      Código de Voucher / Orden (opcional)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ej: VCH-2026-XXXX"
+                      value={reviewVoucherCode}
+                      onChange={(e) => setReviewVoucherCode(e.target.value)}
+                      className="w-full bg-[#060911] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:ring-1 focus:ring-amber-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Comment */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Tu opinión sobre el producto y servicio del proveedor
+                  </label>
+                  <textarea
+                    required
+                    rows={4}
+                    placeholder="Describe los puntos fuertes del producto, el estado en que llegó el paquete, la velocidad de despacho y la comunicación con el proveedor..."
+                    value={reviewComment}
+                    onChange={(e) => setReviewComment(e.target.value)}
+                    className="w-full bg-[#060911] border border-white/[0.08] rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  />
+                </div>
+
+                {reviewSuccess && (
+                  <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>¡Calificación registrada con éxito en la plataforma!</span>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowReviewModal(false)}
+                    className="px-4 py-2.5 rounded-xl border border-white/[0.1] text-xs font-bold text-slate-300 hover:text-white hover:bg-white/[0.05] transition"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingReview || !reviewComment.trim()}
+                    className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs uppercase tracking-wider rounded-xl transition shadow-lg shadow-amber-500/20 disabled:opacity-50"
+                  >
+                    {isSubmittingReview ? 'Publicando...' : 'Publicar Calificación'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* SECTION: PRODUCTOS RELACIONADOS */}
         {relatedProducts.length > 0 && (

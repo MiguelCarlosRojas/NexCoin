@@ -28,8 +28,10 @@ import {
   Plus,
   Minus,
   Layers,
-  FileText
+  FileText,
+  FileSpreadsheet
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { exportLandscapePdfTable } from '../../lib/pdfReportGenerator';
 
 const BTC_PRICE_USD = 65000;
@@ -575,6 +577,29 @@ export const SupplierProducts: React.FC = () => {
     });
   };
 
+  // Export to Excel
+  const handleExportExcel = () => {
+    const data = filteredProducts.map((p) => {
+      const { meta } = parseProductDescription(p.description);
+      return {
+        SKU: p.sku || 'N/A',
+        Nombre: p.name,
+        Categoría: p.category || 'General',
+        Estado: p.status === 'active' ? 'ACTIVO' : 'ARCHIVADO',
+        Stock: p.stock,
+        'Precio USD': Number(p.price_usd).toFixed(2),
+        'Precio BTC': Number(p.price_btc).toFixed(8),
+        'Descuento %': meta.discount_percent ?? (p.discount_percent || 0),
+        Envío: p.free_shipping || meta.shipping_type === 'free' ? 'Gratis' : 'Estándar',
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Catálogo');
+    XLSX.writeFile(workbook, `Catalogo_Productos_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
   return (
     <SupplierLayout
       title="Mis Productos & Catálogo"
@@ -670,25 +695,52 @@ export const SupplierProducts: React.FC = () => {
             </div>
 
             {/* Top Right: Export & Create Buttons */}
-            <div className="flex items-center gap-2.5">
-              <button
-                type="button"
-                onClick={handleExportPdf}
-                disabled={filteredProducts.length === 0}
-                className="px-4 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 disabled:opacity-40 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-lg shadow-red-600/20 active:scale-95"
-              >
-                <FileText className="w-4 h-4" />
-                <span>Exportar PDF (Horizontal)</span>
-              </button>
+            <div className="flex items-center gap-2">
+              
+              {/* PDF Icon Button with Tooltip */}
+              <div className="relative group">
+                <button
+                  type="button"
+                  onClick={handleExportPdf}
+                  disabled={filteredProducts.length === 0}
+                  className="w-10 h-10 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 disabled:opacity-40 text-white flex items-center justify-center shadow-lg shadow-red-600/20 transition active:scale-95"
+                  aria-label="Exportar PDF"
+                  title="Exportar PDF"
+                >
+                  <FileText className="w-4 h-4" />
+                </button>
+                <div className="absolute -top-9 left-1/2 -translate-x-1/2 px-2.5 py-1 bg-slate-900 border border-white/[0.1] text-white text-[10px] font-bold rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition pointer-events-none whitespace-nowrap z-30">
+                  Exportar PDF
+                </div>
+              </div>
 
+              {/* Excel Icon Button with Tooltip */}
+              <div className="relative group">
+                <button
+                  type="button"
+                  onClick={handleExportExcel}
+                  disabled={filteredProducts.length === 0}
+                  className="w-10 h-10 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-40 text-white flex items-center justify-center shadow-lg shadow-emerald-600/20 transition active:scale-95"
+                  aria-label="Exportar Excel"
+                  title="Exportar Excel"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                </button>
+                <div className="absolute -top-9 left-1/2 -translate-x-1/2 px-2.5 py-1 bg-slate-900 border border-white/[0.1] text-white text-[10px] font-bold rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition pointer-events-none whitespace-nowrap z-30">
+                  Exportar Excel
+                </div>
+              </div>
+
+              {/* Agregar Producto Button */}
               <button
                 type="button"
                 onClick={handleOpenAddModal}
-                className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-amber-500/20 transition flex items-center justify-center gap-2 active:scale-95"
+                className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-amber-500/20 transition flex items-center gap-1.5 active:scale-95 shrink-0"
               >
-                <PlusCircle className="w-4 h-4 stroke-[2.5]" />
-                <span>Publicar Nuevo Producto</span>
+                <Plus className="w-4 h-4 stroke-[3]" />
+                <span>Agregar Producto</span>
               </button>
+
             </div>
 
           </div>

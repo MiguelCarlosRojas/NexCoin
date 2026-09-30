@@ -16,7 +16,8 @@ import {
   Menu as MenuIcon,
   X,
   Bitcoin,
-  ChevronDown
+  ChevronDown,
+  MessageSquare
 } from 'lucide-react';
 
 interface SupplierLayoutProps {
@@ -40,6 +41,7 @@ export const SupplierLayout: React.FC<SupplierLayoutProps> = ({ children, title,
   const navItems = [
     { name: 'Dashboard', path: '/proveedores/dashboard', icon: LayoutDashboard },
     { name: 'Mis Productos', path: '/proveedores/productos', icon: Package },
+    { name: 'Preguntas de Clientes', path: '/proveedores/preguntas', icon: MessageSquare },
     { name: 'Ventas & Vouchers', path: '/proveedores/ventas', icon: ShoppingBag },
     { name: 'Mi Perfil & Icono', path: '/proveedores/perfil', icon: User },
   ];
