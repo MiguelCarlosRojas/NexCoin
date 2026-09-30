@@ -99,36 +99,8 @@ export const SupplierLayout: React.FC<SupplierLayoutProps> = ({ children, title,
             </button>
           </div>
 
-          {/* Supplier Info Badge */}
-          {supplier && (() => {
-            const parsed = parseBlobatar(supplier.avatar_url, supplier.company_name || 'NexCoin');
-            return (
-              <Link
-                to="/proveedores/perfil"
-                className="mx-4 my-4 p-3.5 bg-slate-950/80 hover:bg-slate-950 border border-slate-800 hover:border-amber-500/40 rounded-2xl flex items-center gap-3 transition group"
-                title="Personalizar mi perfil e icono Blobatar"
-              >
-                <Blobatar
-                  name={parsed.seed}
-                  blobatar={{
-                    expression: parsed.expression,
-                    animate: parsed.animProp,
-                  }}
-                  className={`w-10 h-10 ${parsed.shapeClass} border ${parsed.borderClass} ${parsed.glowClass} group-hover:scale-105 transition shrink-0`}
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-white group-hover:text-amber-400 transition truncate">{supplier.company_name}</p>
-                  <p className="text-[11px] text-slate-400 truncate">{supplier.email}</p>
-                  <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                    Proveedor Verificado
-                  </span>
-                </div>
-              </Link>
-            );
-          })()}
-
           {/* Nav Items */}
-          <nav className="px-4 space-y-1.5 mt-2">
+          <nav className="px-4 space-y-1.5 mt-4">
             <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
               Gestión Principal
             </p>
@@ -235,24 +207,24 @@ export const SupplierLayout: React.FC<SupplierLayoutProps> = ({ children, title,
             {/* Notificaciones Aisladas por Proveedor */}
             <SupplierNotificationsDropdown supplierId={supplier?.id || ''} />
 
-            {/* Supplier Info Box in top-right corner */}
+            {/* Supplier Info Box in top-right corner (Compact & Sleek) */}
             {supplier && (() => {
               const parsed = parseBlobatar(supplier.avatar_url, supplier.company_name || 'TechGlobal Hardware & Cryptowear');
               return (
                 <Link
                   to="/proveedores/perfil"
-                  className="flex items-center gap-3 p-1.5 sm:px-3 sm:py-2 rounded-2xl bg-slate-900/80 hover:bg-slate-800 border border-white/[0.08] hover:border-amber-500/40 transition group"
+                  className="flex items-center gap-2.5 p-1 sm:px-2.5 sm:py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-850 border border-white/[0.08] hover:border-amber-500/40 transition group"
                   title="Mi Perfil de Proveedor Verificado"
                 >
                   <div className="text-right hidden md:block">
-                    <p className="text-xs font-bold text-white group-hover:text-amber-400 transition truncate max-w-[220px]">
+                    <p className="text-[11px] font-bold text-white group-hover:text-amber-400 transition truncate max-w-[190px]">
                       {supplier.company_name || 'TechGlobal Hardware & Cryptowear'}
                     </p>
-                    <p className="text-[10px] text-slate-400 truncate max-w-[220px]">
+                    <p className="text-[9.5px] text-slate-400 truncate max-w-[190px] -mt-0.5">
                       {supplier.email || 'proveedor@nexcoin.com'}
                     </p>
-                    <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-emerald-400">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="inline-flex items-center gap-1 text-[8.5px] font-bold uppercase tracking-wider text-emerald-400 mt-0.5">
+                      <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
                       Proveedor Verificado
                     </span>
                   </div>
@@ -263,7 +235,7 @@ export const SupplierLayout: React.FC<SupplierLayoutProps> = ({ children, title,
                       expression: parsed.expression,
                       animate: parsed.animProp,
                     }}
-                    className={`w-9 h-9 sm:w-10 sm:h-10 ${parsed.shapeClass} border ${parsed.borderClass} ${parsed.glowClass} group-hover:scale-105 transition shrink-0`}
+                    className={`w-7 h-7 sm:w-8 sm:h-8 ${parsed.shapeClass} border ${parsed.borderClass} ${parsed.glowClass} group-hover:scale-105 transition shrink-0`}
                   />
                 </Link>
               );
