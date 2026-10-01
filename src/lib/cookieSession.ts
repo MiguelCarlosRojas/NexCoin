@@ -1,6 +1,6 @@
 import { Supplier } from '../types/store';
 
-const COOKIE_NAME = 'nexcoin_supplier_session';
+const COOKIE_NAME = 'novasats_supplier_session';
 const COOKIE_MAX_AGE_DAYS = 7;
 
 /**
@@ -42,7 +42,7 @@ export function getSupplierSession(): Supplier | null {
       if (parsed && typeof parsed === 'object' && parsed.id && parsed.email) {
         // Clean any legacy localStorage
         if (typeof localStorage !== 'undefined') {
-          localStorage.removeItem('nexcoin_supplier');
+          localStorage.removeItem('novasats_supplier');
           localStorage.removeItem('supabase_supplier_session');
         }
         return parsed as Supplier;
@@ -51,10 +51,10 @@ export function getSupplierSession(): Supplier | null {
 
     // Migration fallback: if cookie doesn't exist but legacy localStorage exists, migrate to cookie
     if (typeof localStorage !== 'undefined') {
-      const legacy = localStorage.getItem('nexcoin_supplier');
+      const legacy = localStorage.getItem('novasats_supplier');
       if (legacy) {
         const parsed = JSON.parse(legacy);
-        localStorage.removeItem('nexcoin_supplier');
+        localStorage.removeItem('novasats_supplier');
         localStorage.removeItem('supabase_supplier_session');
         if (parsed && parsed.id) {
           setSupplierSession(parsed);
@@ -77,7 +77,7 @@ export function setSupplierSession(supplier: Supplier): void {
     setCookie(COOKIE_NAME, raw, COOKIE_MAX_AGE_DAYS);
     // Ensure localStorage is cleared to adhere to cookie-only storage requirement
     if (typeof localStorage !== 'undefined') {
-      localStorage.removeItem('nexcoin_supplier');
+      localStorage.removeItem('novasats_supplier');
       localStorage.removeItem('supabase_supplier_session');
     }
   } catch (err) {
@@ -91,7 +91,7 @@ export function setSupplierSession(supplier: Supplier): void {
 export function clearSupplierSession(): void {
   removeCookie(COOKIE_NAME);
   if (typeof localStorage !== 'undefined') {
-    localStorage.removeItem('nexcoin_supplier');
+    localStorage.removeItem('novasats_supplier');
     localStorage.removeItem('supabase_supplier_session');
   }
 }

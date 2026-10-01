@@ -3,10 +3,10 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-/// @title NexCoin Marketplace & Payment Gateway
-/// @author NexCoin Core Team
+/// @title NovaSats Marketplace & Payment Gateway
+/// @author NovaSats Core Team
 /// @notice Contrato oficial para procesamiento de compras en tienda, firmas criptográficas y pagos Web3
-contract NexCoin is Ownable {
+contract NovaSats is Ownable {
 
     /// @notice Estructura que define una transacción pendiente
     struct PendingTransaction {
@@ -55,7 +55,7 @@ contract NexCoin is Ownable {
         paymentReceiver = _paymentReceiver;
     }
 
-    /// @notice Registrar una compra con su firma criptográfica en el contrato NexCoin
+    /// @notice Registrar una compra con su firma criptográfica en el contrato NovaSats
     /// @param orderNumber Número único de orden
     /// @param voucherCode Código inmutable del voucher emitido
     /// @param receiver Dirección wallet que recibe los fondos (proveedor o tesorería)

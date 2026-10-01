@@ -56,7 +56,7 @@ export function getBlobatarAnimate(mode: 'hover' | 'always' | 'static'): 'hover'
   return mode === 'static' ? undefined : mode;
 }
 
-export function parseBlobatar(rawUrl?: string | null, fallbackSeed: string = 'NexCoin'): {
+export function parseBlobatar(rawUrl?: string | null, fallbackSeed: string = 'NovaSats'): {
   seed: string;
   expression: any;
   expressionKey: string;

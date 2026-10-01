@@ -12,13 +12,13 @@ interface FAQItem {
 const FAQS: FAQItem[] = [
   {
     category: 'Pagos con Bitcoin',
-    q: '¿Cómo realizo el pago de un producto en NexCoin?',
+    q: '¿Cómo realizo el pago de un producto en NovaSats?',
     a: 'Selecciona tus productos y agrégalos a tu carrito. Al presionar "Pagar con Bitcoin", el sistema calculará la suma exacta en BTC y Satoshis según la tasa spot. Podrás escanear el código QR con cualquier billetera compatible (Electrum, BlueWallet, Muun, Binance, etc.) o copiar la dirección pública para transferir. Una vez recibida la confirmación de la red, la orden se sellará automáticamente.'
   },
   {
     category: 'Vouchers & Facturación',
     q: '¿Qué es el Voucher Criptográfico y para qué sirve?',
-    a: 'Es tu comprobante digital de compra oficial emitido por NexCoin. Contiene un código único (ejemplo: VCH-948102), el resumen de los productos, la dirección de entrega, el hash de transacción y la firma criptográfica del contrato inteligente NexCoin.sol. Puedes descargarlo en formato PDF o enviártelo directamente a tu correo Gmail.'
+    a: 'Es tu comprobante digital de compra oficial emitido por NovaSats. Contiene un código único (ejemplo: VCH-948102), el resumen de los productos, la dirección de entrega, el hash de transacción y la firma criptográfica del contrato inteligente NovaSats.sol. Puedes descargarlo en formato PDF o enviártelo directamente a tu correo Gmail.'
   },
   {
     category: 'Vouchers & Facturación',
@@ -33,7 +33,7 @@ const FAQS: FAQItem[] = [
   {
     category: 'Proveedores & Seguridad',
     q: '¿Quién respalda las transacciones y la calidad del producto?',
-    a: 'Cada producto es vendido y despachado por proveedores verificados con identidad Web3 y avatares Blobatar. Cada transacción queda registrada y verificada on-chain mediante el protocolo criptográfico NexCoin. Si un producto presenta defectos de fábrica o no coincide con la descripción, dispones del protocolo de Reclamos y el Libro de Reclamaciones conforme a la Ley N° 29571.'
+    a: 'Cada producto es vendido y despachado por proveedores verificados con identidad Web3 y avatares Blobatar. Cada transacción queda registrada y verificada on-chain mediante el protocolo criptográfico NovaSats. Si un producto presenta defectos de fábrica o no coincide con la descripción, dispones del protocolo de Reclamos y el Libro de Reclamaciones conforme a la Ley N° 29571.'
   },
   {
     category: 'Proveedores & Seguridad',
@@ -67,7 +67,7 @@ export const AyudaPage: React.FC = () => {
             ¿En qué podemos ayudarte hoy?
           </h1>
           <p className="text-sm sm:text-base text-slate-400 leading-relaxed max-w-4xl">
-            Aprende cómo funciona el marketplace descentralizado NexCoin: pagos directos en Bitcoin, emisión y validación de vouchers con contrato inteligente, plazos de envío y soporte técnico.
+            Aprende cómo funciona el marketplace descentralizado NovaSats: pagos directos en Bitcoin, emisión y validación de vouchers con contrato inteligente, plazos de envío y soporte técnico.
           </p>
 
           {/* Quick Search */}
@@ -121,7 +121,7 @@ export const AyudaPage: React.FC = () => {
             <div className="w-9 h-9 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
               <ShieldCheck className="w-4 h-4" />
             </div>
-            <h3 className="text-sm font-bold text-white">Garantía NexCoin.sol</h3>
+            <h3 className="text-sm font-bold text-white">Garantía NovaSats.sol</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
               Resolución garantizada por contrato inteligente y Libro de Reclamaciones legal.
             </p>
@@ -186,7 +186,7 @@ export const AyudaPage: React.FC = () => {
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
             <a
-              href="mailto:soporte@nexcoin.com"
+              href="mailto:soporte@novasats.com"
               className="px-5 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition flex items-center gap-2"
             >
               <Mail className="w-3.5 h-3.5" />

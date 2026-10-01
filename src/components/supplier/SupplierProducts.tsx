@@ -102,7 +102,7 @@ export const SupplierProducts: React.FC = () => {
   const [category, setCategory] = useState('Hardware Wallets');
   const [sku, setSku] = useState('');
   const [condition, setCondition] = useState('Nuevo en Caja Sellada');
-  const [warranty, setWarranty] = useState('12 Meses con NexCoin.sol');
+  const [warranty, setWarranty] = useState('12 Meses con NovaSats.sol');
   
   // Pricing & Stock
   const [priceUsd, setPriceUsd] = useState('');
@@ -316,7 +316,7 @@ export const SupplierProducts: React.FC = () => {
     const extraImgs = (meta.images || p.images || []).filter((img: string) => img !== p.image_url);
     const initialSku = p.sku || `NEX-${Math.floor(1000 + Math.random() * 9000)}`;
     const initialCond = meta.condition || 'Nuevo en Caja Sellada';
-    const initialWarr = meta.warranty || '12 Meses con NexCoin.sol';
+    const initialWarr = meta.warranty || '12 Meses con NovaSats.sol';
     const initialStat = p.status || 'active';
     const initialDisc = String(meta.discount_percent ?? (p.discount_percent ?? 0));
     const initialOrigP = String(meta.original_price_usd ? meta.original_price_usd : p.price_usd);
@@ -652,7 +652,7 @@ export const SupplierProducts: React.FC = () => {
 
     exportLandscapePdfTable({
       title: 'Catálogo Oficial de Productos & Inventario',
-      supplierName: supplier?.company_name || 'NexCoin Partner',
+      supplierName: supplier?.company_name || 'NovaSats Partner',
       stats: [
         { label: 'Total Productos', value: `${filteredProducts.length}` },
         { label: 'Productos Activos', value: `${activeCount}` },
@@ -1339,7 +1339,7 @@ export const SupplierProducts: React.FC = () => {
                         </label>
                         <input
                           type="text"
-                          placeholder="12 Meses con NexCoin.sol"
+                          placeholder="12 Meses con NovaSats.sol"
                           value={warranty}
                           onChange={(e) => setWarranty(e.target.value)}
                           className="w-full bg-[#060911] border border-white/[0.1] rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
@@ -1369,7 +1369,7 @@ export const SupplierProducts: React.FC = () => {
                     
                     <div className="p-4 rounded-2xl bg-amber-500/[0.05] border border-amber-500/20 text-xs text-slate-300 flex items-center justify-between">
                       <span className="font-mono text-amber-400 font-bold">Conversión Oficial: 1 BTC = ${BTC_PRICE_USD.toLocaleString()} USD</span>
-                      <span className="text-[11px] text-slate-400">Contrato Inteligente NexCoin</span>
+                      <span className="text-[11px] text-slate-400">Contrato Inteligente NovaSats</span>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

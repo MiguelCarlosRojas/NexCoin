@@ -15,7 +15,7 @@ export const ServicioClientePage: React.FC = () => {
             Canales de Atención 24/7
           </div>
           <h1 className="text-3xl sm:text-4xl font-black text-white font-heading tracking-tight">
-            Servicio al Cliente • NexCoin
+            Servicio al Cliente • NovaSats
           </h1>
           <p className="text-sm sm:text-base text-slate-400 leading-relaxed max-w-3xl">
             Estamos disponibles para asistirte en todo momento con tus compras en Bitcoin, seguimiento de órdenes, verificación de vouchers o comunicación con proveedores.
@@ -29,7 +29,7 @@ export const ServicioClientePage: React.FC = () => {
               <Mail className="w-5 h-5" />
             </div>
             <h3 className="text-sm font-bold text-white uppercase tracking-wider">Atención por Correo</h3>
-            <p className="text-sm font-mono text-amber-400">soporte@nexcoin.com</p>
+            <p className="text-sm font-mono text-amber-400">soporte@novasats.com</p>
             <p className="text-xs text-slate-400 leading-relaxed">
               Atención prioritaria los 365 días del año. Tiempo medio de respuesta: menos de 2 horas.
             </p>

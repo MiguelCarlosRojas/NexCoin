@@ -604,7 +604,7 @@ export const StoreLanding: React.FC = () => {
           <span className="hidden sm:inline text-slate-400">1 BTC = ${BTC_PRICE_USD.toLocaleString()} USD</span>
         </div>
         <div className="flex items-center gap-4">
-          <span className="hidden md:inline text-slate-400">Smart Contract: NexCoin.sol v2.0</span>
+          <span className="hidden md:inline text-slate-400">Smart Contract: NovaSats.sol v2.0</span>
           <a
             href="#consultar-voucher"
             className="text-slate-300 hover:text-amber-400 transition flex items-center gap-1"
@@ -660,7 +660,7 @@ export const StoreLanding: React.FC = () => {
           </h1>
 
           <p className="max-w-2xl mx-auto text-sm sm:text-base text-slate-400 leading-relaxed font-normal">
-            Adquiere productos directamente de proveedores verificados. Sin intermediarios bancarios, con firma de contrato inteligente <code className="text-amber-400 font-mono text-xs">NexCoin.sol</code> y voucher digital inmutable con respaldo PDF y Gmail.
+            Adquiere productos directamente de proveedores verificados. Sin intermediarios bancarios, con firma de contrato inteligente <code className="text-amber-400 font-mono text-xs">NovaSats.sol</code> y voucher digital inmutable con respaldo PDF y Gmail.
           </p>
 
           <div className="pt-2 flex flex-wrap items-center justify-center gap-4">
@@ -694,7 +694,7 @@ export const StoreLanding: React.FC = () => {
 
             <div className="p-5 rounded-2xl bg-[#0a0f1e]/80 border border-white/[0.06]">
               <div className="text-amber-400 font-mono text-xs font-bold uppercase tracking-wider mb-1">
-                02 • Smart Contract NexCoin
+                02 • Smart Contract NovaSats
               </div>
               <h3 className="text-sm font-bold text-white mb-1">Firma Criptográfica ECDSA</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
@@ -1181,7 +1181,7 @@ export const StoreLanding: React.FC = () => {
               </span>
             </div>
             <p className="text-[11px] text-slate-400 leading-relaxed">
-              Plataforma de comercio electrónico descentralizado respaldada en la red Bitcoin con firmas de contrato inteligente `NexCoin.sol`.
+              Plataforma de comercio electrónico descentralizado respaldada en la red Bitcoin con firmas de contrato inteligente `NovaSats.sol`.
             </p>
             <div className="pt-1">
               <span className="px-2.5 py-1 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-mono font-bold">
@@ -1281,11 +1281,11 @@ export const StoreLanding: React.FC = () => {
 
         {/* Bottom Sub-bar */}
         <div className="max-w-7xl mx-auto pt-6 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-400">
-          <p>© Todos los derechos reservados • NexCoin Technologies S.A.C.</p>
+          <p>© Todos los derechos reservados • NovaSats Technologies S.A.C.</p>
           <div className="flex items-center gap-4 text-slate-400 font-mono text-[10px]">
             <span>Bitcoin Network Verified</span>
             <span>•</span>
-            <span>NexCoin.sol • On-Chain</span>
+            <span>NovaSats.sol • On-Chain</span>
           </div>
         </div>
       </footer>

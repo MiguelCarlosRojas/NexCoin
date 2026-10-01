@@ -1,8 +1,9 @@
 import { ethers } from 'ethers';
 
-export const NEXCOIN_CONTRACT_ADDRESS = import.meta.env.VITE_NEXCOIN_CONTRACT_ADDRESS || 'Protocolo NexCoin P2P On-Chain';
+export const NOVASATS_CONTRACT_ADDRESS = import.meta.env.VITE_NOVASATS_CONTRACT_ADDRESS || import.meta.env.VITE_NEXCOIN_CONTRACT_ADDRESS || 'Protocolo NovaSats P2P On-Chain (NovaSats.sol)';
+export const NEXCOIN_CONTRACT_ADDRESS = NOVASATS_CONTRACT_ADDRESS;
 
-export interface NexCoinSignatureResult {
+export interface NovaSatsSignatureResult {
   signature: string;
   contractAddress: string;
   signerAddress: string;
@@ -11,29 +12,31 @@ export interface NexCoinSignatureResult {
   timestamp: string;
 }
 
+export type NexCoinSignatureResult = NovaSatsSignatureResult;
+
 /**
- * Genera y solicita la firma criptográfica para NexCoin.sol al momento de realizar la compra
+ * Genera y solicita la firma criptográfica para NovaSats.sol al momento de realizar la compra
  */
-export async function signPurchaseWithNexCoin(
+export async function signPurchaseWithNovaSats(
   buyerAddress: string,
   orderNumber: string,
   voucherCode: string,
   totalBtc: number,
   totalUsd: number
-): Promise<NexCoinSignatureResult> {
+): Promise<NovaSatsSignatureResult> {
   const timestamp = new Date().toISOString();
   
-  // Mensaje estructurado para NexCoin.sol
+  // Mensaje estructurado para NovaSats.sol
   const structuredMessage = [
-    `=== COMPROBANTE DE COMPRA NEXCOIN.SOL ===`,
-    `Contrato: ${NEXCOIN_CONTRACT_ADDRESS}`,
+    `=== COMPROBANTE DE COMPRA NOVASATS.SOL ===`,
+    `Contrato: ${NOVASATS_CONTRACT_ADDRESS}`,
     `Orden: ${orderNumber}`,
     `Voucher: ${voucherCode}`,
     `Comprador: ${buyerAddress}`,
     `Total USD: $${totalUsd.toFixed(2)}`,
     `Total BTC: ${totalBtc.toFixed(8)} BTC`,
     `Fecha: ${timestamp}`,
-    `Autorizo el débito y la confirmación inmutable en el contrato inteligente NexCoin.sol`,
+    `Autorizo el débito y la confirmación inmutable en el contrato inteligente NovaSats.sol`,
   ].join('\n');
 
   try {
@@ -48,7 +51,7 @@ export async function signPurchaseWithNexCoin(
 
       return {
         signature,
-        contractAddress: NEXCOIN_CONTRACT_ADDRESS,
+        contractAddress: NOVASATS_CONTRACT_ADDRESS,
         signerAddress: buyerAddress,
         messageHash,
         signedMessage: structuredMessage,
@@ -60,28 +63,28 @@ export async function signPurchaseWithNexCoin(
     // Generar firma criptográfica determinística ECDSA válida
     const messageHash = ethers.keccak256(ethers.toUtf8Bytes(structuredMessage));
     const privateKeyEntropy = ethers.keccak256(
-      ethers.toUtf8Bytes(`${buyerAddress}_${orderNumber}_${voucherCode}_${NEXCOIN_CONTRACT_ADDRESS}`)
+      ethers.toUtf8Bytes(`${buyerAddress}_${orderNumber}_${voucherCode}_${NOVASATS_CONTRACT_ADDRESS}`)
     );
     const ephemeralWallet = new ethers.Wallet(privateKeyEntropy);
     const signature = await ephemeralWallet.signMessage(structuredMessage);
 
     return {
       signature,
-      contractAddress: NEXCOIN_CONTRACT_ADDRESS,
+      contractAddress: NOVASATS_CONTRACT_ADDRESS,
       signerAddress: buyerAddress,
       messageHash,
       signedMessage: structuredMessage,
       timestamp,
     };
   } catch (error: any) {
-    console.warn('Fallback a firma criptográfica determinística NexCoin.sol:', error);
+    console.warn('Fallback a firma criptográfica determinística NovaSats.sol:', error);
     const messageHash = ethers.keccak256(ethers.toUtf8Bytes(structuredMessage));
     const randomWallet = ethers.Wallet.createRandom();
     const signature = await randomWallet.signMessage(structuredMessage);
 
     return {
       signature,
-      contractAddress: NEXCOIN_CONTRACT_ADDRESS,
+      contractAddress: NOVASATS_CONTRACT_ADDRESS,
       signerAddress: buyerAddress,
       messageHash,
       signedMessage: structuredMessage,
@@ -89,3 +92,5 @@ export async function signPurchaseWithNexCoin(
     };
   }
 }
+
+export const signPurchaseWithNexCoin = signPurchaseWithNovaSats;

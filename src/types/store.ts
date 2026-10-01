@@ -63,7 +63,7 @@ export interface Order {
   total_btc: number;
   status: 'completed' | 'pending' | 'cancelled';
   voucher_code: string;
-  signature_nexcoin?: string;
+  signature_novasats?: string;
   contract_address?: string;
   created_at: string;
   items?: OrderItem[];

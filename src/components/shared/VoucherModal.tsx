@@ -6,17 +6,33 @@ import {
   Printer, 
   Download, 
   Mail, 
-  CheckCircle, 
   Copy, 
   ShieldCheck, 
   Bitcoin,
   Check,
   Receipt,
   FileText,
-  Smartphone
+  Smartphone,
+  Building2
 } from 'lucide-react';
-import { NEXCOIN_CONTRACT_ADDRESS } from '../../utils/nexCoinSignature';
+import { NOVASATS_CONTRACT_ADDRESS } from '../../utils/nexCoinSignature';
 import { getSupplierVoucherConfig } from '../../lib/voucherConfigHelper';
+
+// INFORMACIÓN FISCAL Y DATOS COMERCIALES DE LA EMPRESA / MARCA
+export const NOVASATS_FISCAL_INFO = {
+  razonSocial: 'NOVASATS TECHNOLOGIES S.A.C.',
+  nombreComercial: 'NovaSats Marketplace · Web3 & Pagos Bitcoin',
+  ruc: '20612849501',
+  direccionFiscal: 'Av. Javier Prado Este 4200, Edificio Capital, Piso 18, San Isidro, Lima - Perú',
+  telefono: '+51 (01) 748-9200',
+  whatsapp: '+51 987 654 321',
+  emailFacturacion: 'facturacion@novasats.com',
+  emailSoporte: 'soporte@novasats.com',
+  web: 'https://novasats.vercel.app',
+  giroComercial: 'Venta de Hardware Cripto, Nodos y Plataforma de Pasarela Web3',
+  autorizacionSunat: 'Resolución de Superintendencia N° 097-2012/SUNAT',
+  tipoComprobante: 'COMPROBANTE ELECTRÓNICO DE PAGO BITCOIN ON-CHAIN',
+};
 
 interface VoucherModalProps {
   order: Order | null;
@@ -30,7 +46,7 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
   order,
   isOpen,
   onClose,
-  title = 'Comprobante de Compra Oficial',
+  title = 'Comprobante de Pago Electrónico',
   isSupplierView: _isSupplierView = false,
 }) => {
   const [copied, setCopied] = useState(false);
@@ -71,189 +87,240 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Generate 80mm PDF for preview or download (Crisp Modern Helvetica Layout)
+  // Helpers for calculations
+  const calculateTaxes = (totalUsd: number) => {
+    const total = Number(totalUsd) || 0;
+    const subtotal = total / 1.18;
+    const igv = total - subtotal;
+    return {
+      subtotal: subtotal.toFixed(2),
+      igv: igv.toFixed(2),
+      total: total.toFixed(2),
+    };
+  };
+
+  const getPosSeriesNumber = (orderNumber: string) => {
+    const digits = orderNumber.replace(/\D/g, '');
+    const padded = digits.slice(-6).padStart(6, '0') || '004829';
+    return `T001-${padded}`;
+  };
+
+  // Generate 80mm PDF for thermal printer (Clean POS Monochrome Aesthetic with Full Fiscal Data)
   const generate80mmPdfDoc = (currentOrder: Order) => {
     const itemsCount = currentOrder.items?.length || 1;
-    const calculatedHeight = Math.max(185, 130 + itemsCount * 14);
+    const calculatedHeight = Math.max(220, 160 + itemsCount * 12);
     
-    // 80mm width ticket
+    // 80mm width ticket (monochrome/clean thermal receipt style)
     const doc = new jsPDF({
       unit: 'mm',
       format: [80, calculatedHeight],
     });
 
-    // Background header accent
-    doc.setFillColor(15, 23, 42); // slate-900
-    doc.rect(0, 0, 80, 24, 'F');
+    let y = 7;
+    doc.setTextColor(0, 0, 0);
 
-    // Header NexCoin
+    // 1. Cabecera Fiscal y Datos Comerciales
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.setTextColor(255, 255, 255);
-    doc.text('NexCoin Marketplace', 40, 10, { align: 'center' });
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(251, 191, 36); // amber-400
-    doc.text('Comercio Web3 & Pagos Bitcoin', 40, 15, { align: 'center' });
-    doc.setTextColor(203, 213, 225); // slate-300
-    doc.setFontSize(7);
-    doc.text('https://nex-coin-rho.vercel.app', 40, 20, { align: 'center' });
-
-    // Ticket Title
-    let y = 30;
-    doc.setTextColor(15, 23, 42);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.text('VOUCHER ELECTRÓNICO (80MM)', 40, y, { align: 'center' });
-    y += 5;
-
-    // Divider
-    doc.setDrawColor(203, 213, 225);
-    doc.setLineWidth(0.3);
-    doc.line(4, y, 76, y);
-    y += 5;
-
-    // Details Grid
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(71, 85, 105);
-
-    doc.text('Voucher:', 4, y);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(15, 23, 42);
-    doc.text(currentOrder.voucher_code, 76, y, { align: 'right' });
-    y += 4.5;
-
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(71, 85, 105);
-    doc.text('Orden:', 4, y);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(15, 23, 42);
-    doc.text(`#${currentOrder.order_number}`, 76, y, { align: 'right' });
-    y += 4.5;
-
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(71, 85, 105);
-    doc.text('Fecha:', 4, y);
-    doc.setTextColor(30, 41, 59);
-    doc.text(new Date(currentOrder.created_at).toLocaleDateString(), 76, y, { align: 'right' });
-    y += 4.5;
-
-    doc.setTextColor(71, 85, 105);
-    doc.text('Cliente:', 4, y);
-    doc.setTextColor(30, 41, 59);
-    doc.text(currentOrder.customer_name.substring(0, 24), 76, y, { align: 'right' });
-    y += 4.5;
-
-    const walletSnippet = currentOrder.customer_wallet 
-      ? `${currentOrder.customer_wallet.substring(0, 8)}...${currentOrder.customer_wallet.substring(currentOrder.customer_wallet.length - 6)}`
-      : 'N/A';
-    doc.setTextColor(71, 85, 105);
-    doc.text('Wallet:', 4, y);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(217, 119, 6);
-    doc.text(walletSnippet, 76, y, { align: 'right' });
-    y += 6;
-
-    // Table Header
-    doc.setFillColor(241, 245, 249);
-    doc.rect(4, y - 4, 72, 7, 'F');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7.5);
-    doc.setTextColor(30, 41, 59);
-    doc.text('PRODUCTO', 6, y);
-    doc.text('CANT', 44, y);
-    doc.text('TOTAL', 74, y, { align: 'right' });
-    y += 5;
-
-    // Items
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7.5);
-    if (currentOrder.items && currentOrder.items.length > 0) {
-      currentOrder.items.forEach((item) => {
-        doc.setTextColor(15, 23, 42);
-        const nameLines = doc.splitTextToSize(item.product_name, 36);
-        doc.text(nameLines, 6, y);
-        doc.text(String(item.quantity), 47, y);
-        doc.setFont('helvetica', 'bold');
-        doc.text(`$${Number(item.total_usd).toFixed(2)}`, 74, y, { align: 'right' });
-        doc.setFont('helvetica', 'normal');
-        
-        const blockHeight = Math.max(nameLines.length * 3.8, 5);
-        y += blockHeight;
-      });
-    }
-
-    y += 2;
-    doc.setDrawColor(203, 213, 225);
-    doc.line(4, y, 76, y);
-    y += 5;
-
-    // Totals
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(71, 85, 105);
-    doc.text('TOTAL USD:', 4, y);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.setTextColor(15, 23, 42);
-    doc.text(`$${Number(currentOrder.total_usd).toFixed(2)}`, 76, y, { align: 'right' });
-    y += 5.5;
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(71, 85, 105);
-    doc.text('TOTAL BITCOIN:', 4, y);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.setTextColor(217, 119, 6); // amber-600
-    doc.text(`${Number(currentOrder.total_btc).toFixed(8)} BTC`, 76, y, { align: 'right' });
-    y += 6;
-
-    // Status Banner
-    doc.setFillColor(236, 253, 245);
-    doc.rect(4, y - 4, 72, 7, 'F');
-    doc.setTextColor(5, 150, 105);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7.5);
-    doc.text('PAGO CONFIRMADO ON-CHAIN', 40, y, { align: 'center' });
-    y += 6;
-
-    // Blockchain Security Block
-    doc.setDrawColor(226, 232, 240);
-    doc.line(4, y, 76, y);
+    doc.setFontSize(9.5);
+    doc.text(NOVASATS_FISCAL_INFO.razonSocial, 40, y, { align: 'center' });
     y += 4;
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(6.5);
-    doc.setTextColor(100, 116, 139);
-    doc.text('FIRMA CRIPTOGRAFICA & CONTRATO SMART', 40, y, { align: 'center' });
+    doc.setFontSize(8.5);
+    doc.text(`R.U.C. ${NOVASATS_FISCAL_INFO.ruc}`, 40, y, { align: 'center' });
     y += 3.8;
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(6);
-    doc.setTextColor(100, 116, 139);
-    doc.text(`TX: ${(currentOrder.payment_tx_hash || '0x...').substring(0, 36)}...`, 40, y, { align: 'center' });
+    doc.setFontSize(6.5);
+    doc.text('Av. Javier Prado Este 4200, Piso 18, San Isidro, Lima - Perú', 40, y, { align: 'center' });
     y += 3.2;
-    doc.text(`CONTRATO: ${(currentOrder.contract_address || NEXCOIN_CONTRACT_ADDRESS).substring(0, 34)}...`, 40, y, { align: 'center' });
+    doc.text(`Tel: ${NOVASATS_FISCAL_INFO.telefono} | WA: ${NOVASATS_FISCAL_INFO.whatsapp}`, 40, y, { align: 'center' });
     y += 3.2;
-    doc.text(`ECDSA: ${(currentOrder.signature_nexcoin || '0x3a4b9c8d...').substring(0, 36)}...`, 40, y, { align: 'center' });
-    y += 5;
+    doc.text(`Email: ${NOVASATS_FISCAL_INFO.emailFacturacion}`, 40, y, { align: 'center' });
+    y += 3.2;
+    doc.text(`Web: ${NOVASATS_FISCAL_INFO.web}`, 40, y, { align: 'center' });
+    y += 4;
 
-    doc.setDrawColor(203, 213, 225);
+    // Línea separadora limpia
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.3);
     doc.line(4, y, 76, y);
     y += 4.5;
 
+    // 2. Título de Comprobante y Serie POS
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.text('COMPROBANTE ELECTRÓNICO DE PAGO', 40, y, { align: 'center' });
+    y += 3.8;
+    doc.text(`TICKET POS N° ${getPosSeriesNumber(currentOrder.order_number)}`, 40, y, { align: 'center' });
+    y += 3.5;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6);
+    doc.text(NOVASATS_FISCAL_INFO.autorizacionSunat, 40, y, { align: 'center' });
+    y += 3.5;
+
+    doc.line(4, y, 76, y);
+    y += 4.5;
+
+    // 3. Metadatos de la Orden
+    doc.setFontSize(7);
+    
+    doc.setFont('helvetica', 'bold');
+    doc.text('FECHA / HORA:', 4, y);
+    doc.setFont('helvetica', 'normal');
+    doc.text(new Date(currentOrder.created_at).toLocaleString(), 76, y, { align: 'right' });
+    y += 3.8;
+
+    doc.setFont('helvetica', 'bold');
+    doc.text('VOUCHER:', 4, y);
+    doc.text(currentOrder.voucher_code, 76, y, { align: 'right' });
+    y += 3.8;
+
+    doc.setFont('helvetica', 'bold');
+    doc.text('N° ORDEN:', 4, y);
+    doc.text(`#${currentOrder.order_number}`, 76, y, { align: 'right' });
+    y += 3.8;
+
+    doc.setFont('helvetica', 'bold');
+    doc.text('FORMA DE PAGO:', 4, y);
+    doc.setFont('helvetica', 'normal');
+    doc.text('BITCOIN ON-CHAIN (L1)', 76, y, { align: 'right' });
+    y += 3.8;
+
+    doc.setFont('helvetica', 'bold');
+    doc.text('ESTADO:', 4, y);
+    doc.text('PAGO LIQUIDADO Y CONFIRMADO', 76, y, { align: 'right' });
+    y += 4.5;
+
+    doc.line(4, y, 76, y);
+    y += 4;
+
+    // 4. Datos del Cliente / Comprador
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6.8);
+    doc.text('DATOS DEL CLIENTE:', 4, y);
+    y += 3.5;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.5);
+    doc.text(`Cliente: ${currentOrder.customer_name.substring(0, 26)}`, 4, y);
+    y += 3.2;
+    doc.text(`Email: ${currentOrder.customer_email.substring(0, 30)}`, 4, y);
+    y += 3.2;
+
+    const walletShort = currentOrder.customer_wallet 
+      ? `${currentOrder.customer_wallet.substring(0, 10)}...${currentOrder.customer_wallet.substring(currentOrder.customer_wallet.length - 8)}`
+      : 'No especificada';
+    doc.text(`Wallet: ${walletShort}`, 4, y);
+    y += 4.5;
+
+    doc.line(4, y, 76, y);
+    y += 4;
+
+    // 5. Tabla de Artículos
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6.8);
+    doc.text('CANT', 4, y);
+    doc.text('DESCRIPCIÓN', 16, y);
+    doc.text('P.UNIT', 56, y);
+    doc.text('TOTAL', 76, y, { align: 'right' });
+    y += 3.5;
+    doc.line(4, y, 76, y);
+    y += 3.8;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.5);
+
+    if (currentOrder.items && currentOrder.items.length > 0) {
+      currentOrder.items.forEach((item) => {
+        const itemLines = doc.splitTextToSize(item.product_name, 38);
+        doc.text(String(item.quantity), 5, y);
+        doc.text(itemLines, 16, y);
+        doc.text(`$${Number(item.unit_price_usd).toFixed(2)}`, 56, y);
+        doc.text(`$${Number(item.total_usd).toFixed(2)}`, 76, y, { align: 'right' });
+        
+        const lineH = Math.max(itemLines.length * 3.2, 4);
+        y += lineH;
+      });
+    }
+
+    doc.line(4, y, 76, y);
+    y += 4.5;
+
+    // 6. Desglose Fiscal & Totales
+    const taxes = calculateTaxes(currentOrder.total_usd);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.text('SUBTOTAL GRAVADO (USD):', 4, y);
+    doc.text(`$${taxes.subtotal}`, 76, y, { align: 'right' });
+    y += 3.5;
+
+    doc.text('I.G.V. (18.00%):', 4, y);
+    doc.text(`$${taxes.igv}`, 76, y, { align: 'right' });
+    y += 4;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.text('TOTAL IMPORTE (USD):', 4, y);
+    doc.text(`$${taxes.total} USD`, 76, y, { align: 'right' });
+    y += 4.5;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.8);
+    const btcPriceRef = Number(currentOrder.total_usd) / (Number(currentOrder.total_btc) || 1);
+    doc.text('TASA DE CAMBIO REF.:', 4, y);
+    doc.text(`$${btcPriceRef.toFixed(2)} USD/BTC`, 76, y, { align: 'right' });
+    y += 3.5;
+
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7.5);
-    doc.setTextColor(15, 23, 42);
-    doc.text('¡GRACIAS POR SU COMPRA EN NEXCOIN!', 40, y, { align: 'center' });
+    doc.text('TOTAL BITCOIN LIQUIDADO:', 4, y);
+    doc.text(`${Number(currentOrder.total_btc).toFixed(8)} BTC`, 76, y, { align: 'right' });
+    y += 5;
+
+    doc.line(4, y, 76, y);
+    y += 4;
+
+    // 7. Registro Criptográfico & Auditoría On-Chain
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6.5);
+    doc.text('AUDITORÍA ON-CHAIN & CONTRATO SMART:', 4, y);
+    y += 3.5;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(5.8);
+    const txShort = currentOrder.payment_tx_hash ? `${currentOrder.payment_tx_hash.substring(0, 42)}...` : '0x...';
+    doc.text(`TX: ${txShort}`, 4, y);
+    y += 3;
+    const contractShort = `${(currentOrder.contract_address || NOVASATS_CONTRACT_ADDRESS).substring(0, 40)}...`;
+    doc.text(`CONTRATO: ${contractShort} (NovaSats.sol)`, 4, y);
+    y += 3;
+    const sigShort = `${(currentOrder.signature_novasats || '0x3a4b9c8d...').substring(0, 42)}...`;
+    doc.text(`FIRMA ECDSA: ${sigShort}`, 4, y);
+    y += 4.5;
+
+    doc.line(4, y, 76, y);
+    y += 4;
+
+    // 8. Términos & Garantía Fiscal
+    doc.setFontSize(5.8);
+    doc.setFont('helvetica', 'normal');
+    doc.text('- Representación impresa de Comprobante de Pago Electrónico.', 40, y, { align: 'center' });
+    y += 2.8;
+    doc.text('- Válido como comprobante oficial de compra y garantía.', 40, y, { align: 'center' });
+    y += 2.8;
+    doc.text('- Garantía oficial de 12 meses respaldada en NovaSats.sol.', 40, y, { align: 'center' });
+    y += 4;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.text('¡GRACIAS POR SU PREFERENCIA!', 40, y, { align: 'center' });
     y += 3.5;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6.5);
-    doc.setTextColor(148, 163, 184);
-    doc.text('Comprobante inmutable emitido bajo protocolo Web3', 40, y, { align: 'center' });
+    doc.text('www.novasats.com', 40, y, { align: 'center' });
 
     return doc;
   };
@@ -287,86 +354,167 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Download standard A4 PDF
+  const taxes = calculateTaxes(order.total_usd);
+
+  // Download standard A4 PDF (Detailed Tax Invoice / Comprobante Fiscal)
   const handleDownloadStandardPdf = () => {
     try {
       const doc = new jsPDF();
       doc.setFont('helvetica');
 
-      // Header
+      // Top Fiscal Header
       doc.setFillColor(15, 23, 42); // slate-900
-      doc.rect(0, 0, 210, 38, 'F');
+      doc.rect(0, 0, 210, 36, 'F');
       
       doc.setTextColor(255, 255, 255);
-      doc.setFontSize(22);
-      doc.text('NexCoin Marketplace', 14, 20);
-      doc.setFontSize(10);
-      doc.text('Plataforma Descentralizada de Comercio Web3', 14, 28);
-      doc.text(`VOUCHER: ${order.voucher_code}`, 140, 20);
-      doc.text(`ORDEN: ${order.order_number}`, 140, 28);
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('NOVASATS MARKETPLACE', 14, 16);
+      
+      doc.setFontSize(8.5);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(251, 191, 36);
+      doc.text('Plataforma Web3 & Pasarela de Pagos Bitcoin On-Chain', 14, 23);
+      doc.setTextColor(203, 213, 225);
+      doc.text(NOVASATS_FISCAL_INFO.web, 14, 29);
 
-      // Status
-      doc.setTextColor(16, 185, 129);
-      doc.setFontSize(11);
-      doc.text('ESTADO: PAGO CONFIRMADO EN BITCOIN', 14, 48);
-
-      // Customer & Order Info
-      doc.setTextColor(51, 65, 85);
-      doc.setFontSize(10);
-      doc.text(`Cliente: ${order.customer_name}`, 14, 58);
-      doc.text(`Email: ${order.customer_email}`, 14, 64);
-      doc.text(`Wallet que realizó el pago: ${order.customer_wallet || 'No especificada'}`, 14, 70);
-      doc.text(`Fecha: ${new Date(order.created_at).toLocaleString()}`, 14, 76);
-      doc.text(`Hash TX: ${order.payment_tx_hash || '0x...'}`, 14, 82);
+      // Fiscal Box on Top Right
+      doc.setDrawColor(203, 213, 225);
+      doc.setFillColor(255, 255, 255);
+      doc.roundedRect(125, 6, 72, 24, 2, 2, 'FD');
+      
+      doc.setTextColor(15, 23, 42);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.text(`R.U.C. ${NOVASATS_FISCAL_INFO.ruc}`, 161, 13, { align: 'center' });
+      doc.setFontSize(8);
+      doc.text('COMPROBANTE ELECTRÓNICO', 161, 19, { align: 'center' });
+      doc.setFontSize(9);
       doc.setTextColor(217, 119, 6);
-      doc.text(`Contrato NexCoin.sol: ${order.contract_address || NEXCOIN_CONTRACT_ADDRESS}`, 14, 88);
+      doc.text(getPosSeriesNumber(order.order_number), 161, 26, { align: 'center' });
+
+      let y = 46;
+
+      // 1. Datos del Emisor (Empresa) y Datos del Cliente
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(14, y, 88, 38, 2, 2, 'F');
+      doc.roundedRect(108, y, 88, 38, 2, 2, 'F');
+
+      // Emisor Fiscal
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text('DATOS DE LA EMPRESA / EMISOR:', 18, y + 6);
+      
+      doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.5);
-      doc.setTextColor(100, 116, 139);
-      doc.text(`Firma Criptográfica: ${(order.signature_nexcoin || '0x3a4b9c8d...').substring(0, 75)}...`, 14, 93);
+      doc.setTextColor(71, 85, 105);
+      doc.text(`Razón Social: ${NOVASATS_FISCAL_INFO.razonSocial}`, 18, y + 12);
+      doc.text(`R.U.C.: ${NOVASATS_FISCAL_INFO.ruc}`, 18, y + 17);
+      doc.text(`Dirección: ${NOVASATS_FISCAL_INFO.direccionFiscal.substring(0, 40)}...`, 18, y + 22);
+      doc.text(`Tel: ${NOVASATS_FISCAL_INFO.telefono}`, 18, y + 27);
+      doc.text(`Email: ${NOVASATS_FISCAL_INFO.emailFacturacion}`, 18, y + 32);
 
-      // Table Header
-      let y = 104;
-      doc.setFillColor(241, 245, 249);
-      doc.rect(14, y - 6, 182, 10, 'F');
-      doc.setTextColor(30, 41, 59);
-      doc.setFontSize(9);
-      doc.text('PRODUCTO', 16, y);
-      doc.text('CANT', 110, y);
-      doc.text('P. UNIT (USD)', 130, y);
-      doc.text('TOTAL (USD)', 165, y);
+      // Cliente / Adquiriente
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text('DATOS DEL CLIENTE / RECEPTOR:', 112, y + 6);
 
-      // Items
-      y += 8;
-      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(71, 85, 105);
+      doc.text(`Cliente: ${order.customer_name}`, 112, y + 12);
+      doc.text(`Email: ${order.customer_email}`, 112, y + 17);
+      doc.text(`Fecha: ${new Date(order.created_at).toLocaleString()}`, 112, y + 22);
+      doc.text(`Voucher: ${order.voucher_code}`, 112, y + 27);
+      doc.text(`Orden N°: #${order.order_number}`, 112, y + 32);
+
+      y += 46;
+
+      // 2. Tabla de Productos
+      doc.setFillColor(15, 23, 42);
+      doc.rect(14, y, 182, 8, 'F');
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.text('CANT', 18, y + 5.5);
+      doc.text('DESCRIPCIÓN DEL ARTÍCULO', 36, y + 5.5);
+      doc.text('PRECIO UNITARIO', 130, y + 5.5);
+      doc.text('IMPORTE USD', 170, y + 5.5);
+
+      y += 11;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+
       if (order.items && order.items.length > 0) {
         order.items.forEach((item) => {
-          doc.setTextColor(71, 85, 105);
-          doc.text(item.product_name.substring(0, 45), 16, y);
-          doc.text(String(item.quantity), 115, y);
+          doc.setTextColor(30, 41, 59);
+          doc.text(String(item.quantity), 20, y);
+          doc.text(item.product_name.substring(0, 50), 36, y);
           doc.text(`$${Number(item.unit_price_usd).toFixed(2)}`, 130, y);
-          doc.text(`$${Number(item.total_usd).toFixed(2)}`, 165, y);
-          y += 8;
+          doc.setFont('helvetica', 'bold');
+          doc.text(`$${Number(item.total_usd).toFixed(2)}`, 170, y);
+          doc.setFont('helvetica', 'normal');
+          
+          y += 6.5;
         });
       }
 
-      // Summary
-      y += 6;
+      y += 4;
       doc.setDrawColor(203, 213, 225);
       doc.line(14, y, 196, y);
-      y += 8;
-      doc.setFontSize(12);
+      y += 6;
+
+      // 3. Resumen y Desglose Tributario
+      doc.setFontSize(8.5);
+      doc.setTextColor(71, 85, 105);
+      doc.text('SUBTOTAL OPERACIÓN GRAVADA:', 110, y);
+      doc.text(`$${taxes.subtotal} USD`, 170, y);
+      y += 5.5;
+
+      doc.text('I.G.V. / TAX (18.00%):', 110, y);
+      doc.text(`$${taxes.igv} USD`, 170, y);
+      y += 6;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10.5);
       doc.setTextColor(15, 23, 42);
-      doc.text(`TOTAL PAGADO EN USD: $${Number(order.total_usd).toFixed(2)}`, 110, y);
-      y += 7;
-      doc.setTextColor(234, 88, 12);
-      doc.text(`TOTAL PAGADO EN BTC: ${Number(order.total_btc).toFixed(8)} BTC`, 110, y);
+      doc.text('TOTAL IMPORTE PAGADO:', 110, y);
+      doc.text(`$${taxes.total} USD`, 170, y);
+      y += 6.5;
+
+      doc.setFontSize(9.5);
+      doc.setTextColor(217, 119, 6);
+      doc.text('TOTAL BITCOIN ON-CHAIN:', 110, y);
+      doc.text(`${Number(order.total_btc).toFixed(8)} BTC`, 170, y);
+      y += 12;
+
+      // 4. Auditoría y Firma Blockchain
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(14, y, 182, 34, 2, 2, 'F');
+      
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(15, 23, 42);
+      doc.text('SEGURIDAD CRIPTOGRÁFICA & CONTRATO SMART (NOVASATS.SOL)', 18, y + 6);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(71, 85, 105);
+      doc.text(`TX Hash Bitcoin: ${order.payment_tx_hash || '0x...'}`, 18, y + 13);
+      doc.text(`Wallet Pagadora: ${order.customer_wallet || 'No especificada'}`, 18, y + 19);
+      doc.text(`Contrato Inteligente: ${order.contract_address || NOVASATS_CONTRACT_ADDRESS} (NovaSats.sol)`, 18, y + 25);
+      doc.text(`Firma ECDSA: ${(order.signature_novasats || '0x3a4b9c8d...').substring(0, 85)}...`, 18, y + 30);
 
       // Footer
-      doc.setFontSize(8);
+      doc.setFontSize(7.5);
       doc.setTextColor(148, 163, 184);
-      doc.text('Comprobante digital firmado criptográficamente y respaldado por el contrato inteligente NexCoin.sol.', 14, 280);
+      doc.text('Este documento es una representación impresa de Comprobante de Pago Electrónico generado bajo protocolo Web3.', 14, 280);
+      doc.text('Para consultas o reclamos tributarios contactar a facturacion@novasats.com. Garantía de 12 meses respaldada on-chain.', 14, 285);
 
-      doc.save(`Voucher_NexCoin_${order.order_number}.pdf`);
+      doc.save(`Comprobante_NovaSats_${order.order_number}.pdf`);
     } catch (e) {
       console.error('Error generating PDF:', e);
     }
@@ -376,34 +524,38 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
   const handleDownload80mmPdf = () => {
     try {
       const doc = generate80mmPdfDoc(order);
-      doc.save(`Voucher_80mm_NexCoin_${order.order_number}.pdf`);
+      doc.save(`Ticket_80mm_NovaSats_${order.order_number}.pdf`);
     } catch (e) {
       console.error('Error generating 80mm PDF:', e);
     }
   };
 
+  // Open in Gmail with prefilled body
   const handleOpenGmail = () => {
-    const subject = encodeURIComponent(`Comprobante de Compra #${order.order_number} - NexCoin Store [Firmado NexCoin.sol]`);
-    
-    let itemsText = '';
-    if (order.items && order.items.length > 0) {
-      itemsText = order.items
-        .map(
-          (item) =>
-            `- ${item.product_name} x${item.quantity}: $${Number(item.total_usd).toFixed(2)} USD (${Number(item.total_btc).toFixed(8)} BTC)`
-        )
-        .join('\n');
-    }
+    const subject = `Comprobante Oficial de Compra NovaSats - Voucher ${order.voucher_code} (Orden ${order.order_number})`;
+    const itemsText = (order.items || [])
+      .map((it) => `- ${it.quantity}x ${it.product_name} ($${Number(it.total_usd).toFixed(2)} USD)`)
+      .join('\n');
 
-    const bodyText = `¡Hola ${order.customer_name}!
+    const bodyText = `Estimado/a ${order.customer_name},
 
-Aquí tienes el comprobante oficial de tu compra realizada con Bitcoin en NexCoin Marketplace.
+Aquí tienes el comprobante electrónico oficial de tu compra realizada con Bitcoin en NovaSats Marketplace.
 
 ------------------------------------------------
-DETALLES DEL VOUCHER
+INFORMACIÓN FISCAL DEL EMISOR
+------------------------------------------------
+Razón Social: ${NOVASATS_FISCAL_INFO.razonSocial}
+R.U.C.: ${NOVASATS_FISCAL_INFO.ruc}
+Dirección Fiscal: ${NOVASATS_FISCAL_INFO.direccionFiscal}
+Teléfono: ${NOVASATS_FISCAL_INFO.telefono} | WhatsApp: ${NOVASATS_FISCAL_INFO.whatsapp}
+Email Fiscal: ${NOVASATS_FISCAL_INFO.emailFacturacion}
+
+------------------------------------------------
+DETALLES DEL COMPROBANTE
 ------------------------------------------------
 Código de Voucher: ${order.voucher_code}
 Número de Orden: ${order.order_number}
+Ticket POS: ${getPosSeriesNumber(order.order_number)}
 Fecha: ${new Date(order.created_at).toLocaleString()}
 Cliente: ${order.customer_name}
 Email: ${order.customer_email}
@@ -411,31 +563,25 @@ Wallet Cliente: ${order.customer_wallet}
 TX Hash Bitcoin: ${order.payment_tx_hash}
 
 ------------------------------------------------
-FIRMA CRIPTOGRÁFICA NEXCOIN.SOL
-------------------------------------------------
-Contrato Inteligente: ${order.contract_address || NEXCOIN_CONTRACT_ADDRESS} (NexCoin.sol)
-Firma Digital: ${order.signature_nexcoin || '0x...'}
-Estado de Validación: FIRMADO Y VERIFICADO ON-CHAIN
-
-------------------------------------------------
 PRODUCTOS ADQUIRIDOS
 ------------------------------------------------
 ${itemsText}
 
 ------------------------------------------------
-TOTAL PAGADO
+DESGLOSE DE PAGO
 ------------------------------------------------
-Total USD: $${Number(order.total_usd).toFixed(2)} USD
-Total BTC: ${Number(order.total_btc).toFixed(8)} BTC
+Subtotal Gravado (USD): $${taxes.subtotal}
+I.G.V. (18%): $${taxes.igv}
+Total Importe: $${taxes.total} USD
+Total Bitcoin Liquidado: ${Number(order.total_btc).toFixed(8)} BTC
 
 Estado del Pago: CONFIRMADO EN BLOCKCHAIN
-Gracias por comprar en NexCoin Store.
-https://nex-coin-rho.vercel.app`;
+Gracias por comprar en NovaSats Marketplace.
+${NOVASATS_FISCAL_INFO.web}`;
 
     const encodedBody = encodeURIComponent(bodyText);
     const toEmail = encodeURIComponent(order.customer_email);
-    
-    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${toEmail}&su=${subject}&body=${encodedBody}`;
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${toEmail}&su=${encodeURIComponent(subject)}&body=${encodedBody}`;
     window.open(gmailUrl, '_blank');
   };
 
@@ -444,11 +590,11 @@ https://nex-coin-rho.vercel.app`;
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
       <div className="relative w-full max-w-3xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden my-6">
         
         {/* Modal Header */}
-        <div className="bg-gradient-to-r from-blue-950 via-slate-900 to-amber-950 text-white p-5 sm:p-6 relative">
+        <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-amber-950 text-white p-5 sm:p-6 relative border-b border-white/10">
           <button
             onClick={onClose}
             className="absolute top-4 right-4 p-2 text-gray-300 hover:text-white rounded-full hover:bg-white/10 transition"
@@ -462,22 +608,22 @@ https://nex-coin-rho.vercel.app`;
             </div>
             <div>
               <h3 className="text-lg sm:text-xl font-bold tracking-tight">{title}</h3>
-              <p className="text-xs text-amber-200/80">NexCoin Marketplace · Pagos Bitcoin On-Chain</p>
+              <p className="text-xs text-amber-200/80">NovaSats Marketplace · Comprobante Electrónico Homologado</p>
             </div>
           </div>
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-white/10 text-xs">
             <div>
-              <span className="text-gray-400">VOUCHER: </span>
-              <span className="font-mono font-bold text-amber-300">{order.voucher_code}</span>
+              <span className="text-gray-400 font-mono">SERIE POS: </span>
+              <span className="font-mono font-bold text-amber-400">{getPosSeriesNumber(order.order_number)}</span>
             </div>
             <div>
-              <span className="text-gray-400">ORDEN: </span>
-              <span className="font-mono font-semibold">{order.order_number}</span>
+              <span className="text-gray-400 font-mono">VOUCHER: </span>
+              <span className="font-mono font-bold text-white">{order.voucher_code}</span>
             </div>
-            <div className="flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 px-2.5 py-1 rounded-full border border-emerald-500/30">
-              <CheckCircle className="w-3.5 h-3.5" />
-              <span className="font-semibold uppercase tracking-wider text-[11px]">Pago Confirmado</span>
+            <div>
+              <span className="text-gray-400 font-mono">ORDEN: </span>
+              <span className="font-mono font-semibold text-slate-300">{order.order_number}</span>
             </div>
           </div>
 
@@ -494,7 +640,7 @@ https://nex-coin-rho.vercel.app`;
                 }`}
               >
                 <Receipt className="w-3.5 h-3.5" />
-                <span>Vista previa del voucher · 80mm</span>
+                <span>Ticket Térmico · 80mm</span>
               </button>
               <button
                 type="button"
@@ -523,11 +669,10 @@ https://nex-coin-rho.vercel.app`;
                 </div>
                 <div>
                   <h4 className="text-base font-bold text-white">
-                    Vista previa de Voucher Térmico 80mm
+                    Ticket Térmico Oficial 80mm
                   </h4>
                   <p className="text-xs text-slate-300 mt-1.5 max-w-md mx-auto leading-relaxed">
-                    En dispositivos móviles no se puede tener vista previa incrustada de vouchers PDF. 
-                    Puedes descargar el ticket térmico oficial de 80mm directamente a tu teléfono con un solo toque.
+                    Formato de impresión térmica de 80mm con datos fiscales completos de la empresa, desglose tributario y firma on-chain.
                   </p>
                 </div>
 
@@ -538,7 +683,7 @@ https://nex-coin-rho.vercel.app`;
                     className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold text-sm shadow-xl transition active:scale-95"
                   >
                     <Download className="w-4 h-4" />
-                    <span>Descargar Voucher 80mm (PDF)</span>
+                    <span>Descargar Ticket 80mm (PDF)</span>
                   </button>
 
                   <button
@@ -557,7 +702,7 @@ https://nex-coin-rho.vercel.app`;
                 <div className="flex items-center justify-between bg-slate-950/80 px-4 py-2.5 rounded-xl border border-white/10 text-xs">
                   <div className="flex items-center gap-2 text-slate-300">
                     <Receipt className="w-4 h-4 text-amber-400" />
-                    <span>Formato térmico oficial <strong className="text-white">80 mm</strong> listo para impresión o archivo.</span>
+                    <span>Formato térmico oficial <strong className="text-white">80 mm</strong> listo para impresión o descarga.</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -571,7 +716,7 @@ https://nex-coin-rho.vercel.app`;
                   </div>
                 </div>
 
-                <div className="w-full h-[500px] bg-slate-950 rounded-xl overflow-hidden border border-white/10 flex items-center justify-center shadow-inner">
+                <div className="w-full h-[520px] bg-slate-950 rounded-xl overflow-hidden border border-white/10 flex items-center justify-center shadow-inner">
                   {pdf80mmUrl ? (
                     <iframe
                       src={pdf80mmUrl}
@@ -580,7 +725,7 @@ https://nex-coin-rho.vercel.app`;
                     />
                   ) : (
                     <div className="text-center p-8 text-slate-400 text-xs">
-                      Generando vista previa del voucher de 80mm...
+                      Generando ticket térmico de 80mm...
                     </div>
                   )}
                 </div>
@@ -632,15 +777,16 @@ https://nex-coin-rho.vercel.app`;
             </div>
           </div>
         ) : (
-          /* Vista Digital Detallada */
+          /* Vista Digital Detallada con Información Fiscal y Comercial */
           <div ref={voucherRef} className="p-5 sm:p-6 space-y-5 text-gray-800 dark:text-gray-200">
-            {/* Status banner */}
+            
+            {/* Status & Copy banner */}
             <div className="flex items-center justify-between p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-xl">
               <div className="flex items-center gap-3">
                 <ShieldCheck className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                 <div>
                   <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">
-                    Transacción Verificada en Blockchain
+                    Transacción Bitcoin Liquidada y Verificada On-Chain
                   </p>
                   <p className="text-xs text-emerald-700 dark:text-emerald-400">
                     {new Date(order.created_at).toLocaleString()}
@@ -657,16 +803,52 @@ https://nex-coin-rho.vercel.app`;
               </button>
             </div>
 
-            {/* Details Grid */}
+            {/* SECCIÓN FISCAL & COMERCIAL DE LA EMPRESA */}
+            <div className="p-4 rounded-xl bg-slate-950/50 border border-white/[0.08] space-y-3">
+              <div className="flex items-center justify-between border-b border-white/[0.08] pb-2">
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-amber-400" />
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">
+                    Información Fiscal & Comercial de la Empresa
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                  {getPosSeriesNumber(order.order_number)}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <span className="text-slate-400 block text-[11px]">Razón Social:</span>
+                  <p className="font-bold text-white">{NOVASATS_FISCAL_INFO.razonSocial}</p>
+                  <span className="text-slate-400 block text-[11px] mt-1.5">R.U.C. Fiscal:</span>
+                  <p className="font-mono font-bold text-amber-400">{NOVASATS_FISCAL_INFO.ruc}</p>
+                  <span className="text-slate-400 block text-[11px] mt-1.5">Dirección Fiscal:</span>
+                  <p className="text-slate-300 text-[11px] leading-relaxed">{NOVASATS_FISCAL_INFO.direccionFiscal}</p>
+                </div>
+
+                <div>
+                  <span className="text-slate-400 block text-[11px]">Contacto Comercial:</span>
+                  <p className="text-slate-200 font-mono text-[11px]">{NOVASATS_FISCAL_INFO.telefono} | WA: {NOVASATS_FISCAL_INFO.whatsapp}</p>
+                  <span className="text-slate-400 block text-[11px] mt-1.5">Facturación & Soporte:</span>
+                  <p className="text-slate-200 font-mono text-[11px]">{NOVASATS_FISCAL_INFO.emailFacturacion}</p>
+                  <span className="text-slate-400 block text-[11px] mt-1.5">Régimen & Autorización:</span>
+                  <p className="text-slate-300 text-[11px] leading-relaxed">{NOVASATS_FISCAL_INFO.autorizacionSunat}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Details Grid (Cliente y On-Chain) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
               <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400 block">Comprador</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 block">Datos del Cliente</span>
                 <p className="font-medium text-gray-900 dark:text-white">{order.customer_name}</p>
                 <p className="text-xs text-gray-600 dark:text-gray-400">{order.customer_email}</p>
               </div>
+
               <div className="p-3 bg-blue-50/60 dark:bg-blue-950/40 rounded-xl border border-blue-200 dark:border-blue-800/80">
                 <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 block uppercase tracking-wider">
-                  Wallet que realizó el pago
+                  Wallet Pagadora Bitcoin
                 </span>
                 <p className="font-mono text-xs font-bold text-gray-900 dark:text-white truncate mt-0.5 flex items-center gap-1.5" title={order.customer_wallet}>
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
@@ -676,27 +858,29 @@ https://nex-coin-rho.vercel.app`;
                   ✓ Pagador Web3 Verificado
                 </span>
               </div>
+
               <div className="sm:col-span-2">
                 <span className="text-xs text-gray-500 dark:text-gray-400 block">Hash de Transacción Bitcoin</span>
                 <p className="font-mono text-xs text-gray-700 dark:text-gray-300 truncate bg-white dark:bg-gray-900 p-2 rounded border border-gray-200 dark:border-gray-700">
                   {order.payment_tx_hash}
                 </p>
               </div>
+
               <div className="sm:col-span-2 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-transparent p-3 rounded-xl border border-amber-500/30">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[11px] font-bold text-amber-500 flex items-center gap-1.5 uppercase tracking-wider">
                     <Bitcoin className="w-3.5 h-3.5" />
-                    Firma Criptográfica Contrato Inteligente (NexCoin.sol)
+                    Firma Criptográfica Contrato Inteligente (NovaSats.sol)
                   </span>
                   <span className="text-[10px] font-mono bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded font-bold">
                     VERIFICADO ECDSA
                   </span>
                 </div>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400 font-mono mb-1">
-                  Contrato: <span className="text-gray-700 dark:text-gray-300 font-semibold">{order.contract_address || NEXCOIN_CONTRACT_ADDRESS} (NexCoin.sol)</span>
+                  Contrato: <span className="text-gray-700 dark:text-gray-300 font-semibold">{order.contract_address || NOVASATS_CONTRACT_ADDRESS} (NovaSats.sol)</span>
                 </p>
                 <p className="font-mono text-[10px] text-amber-600 dark:text-amber-400 break-all bg-white dark:bg-gray-950 p-2 rounded border border-amber-500/20">
-                  {order.signature_nexcoin || '0x3a4b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b5c'}
+                  {order.signature_novasats || '0x3a4b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b5c'}
                 </p>
               </div>
             </div>
@@ -704,7 +888,7 @@ https://nex-coin-rho.vercel.app`;
             {/* Purchased Items List */}
             <div>
               <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">
-                Artículos en este Voucher
+                Detalle de Artículos Adquiridos
               </h4>
               <div className="border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden divide-y divide-gray-100 dark:divide-gray-800">
                 {order.items && order.items.length > 0 ? (
@@ -730,21 +914,31 @@ https://nex-coin-rho.vercel.app`;
               </div>
             </div>
 
-            {/* Total Breakdown */}
-            <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border border-amber-200 dark:border-amber-800/40 p-4 rounded-xl flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-wider font-semibold text-amber-800 dark:text-amber-400">
-                  Monto Total Liquidado
-                </p>
-                <p className="text-2xl font-black text-gray-900 dark:text-white">
-                  ${Number(order.total_usd).toFixed(2)} <span className="text-xs font-normal text-gray-500">USD</span>
-                </p>
+            {/* Total & Tax Breakdown */}
+            <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border border-amber-200 dark:border-amber-800/40 p-4 rounded-xl space-y-3">
+              <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 font-mono">
+                <span>Subtotal Operación Gravada (USD):</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">${taxes.subtotal}</span>
               </div>
-              <div className="text-right">
-                <span className="text-xs text-amber-700 dark:text-amber-300 block">Equivalente en Bitcoin</span>
-                <p className="text-xl font-mono font-bold text-amber-600 dark:text-amber-400">
-                  {Number(order.total_btc).toFixed(8)} ₿
-                </p>
+              <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 font-mono">
+                <span>I.G.V. / Impuesto (18.00%):</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">${taxes.igv}</span>
+              </div>
+              <div className="border-t border-amber-200/60 dark:border-amber-800/60 pt-2 flex items-center justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-wider font-semibold text-amber-800 dark:text-amber-400">
+                    Monto Total Liquidado
+                  </p>
+                  <p className="text-2xl font-black text-gray-900 dark:text-white">
+                    ${taxes.total} <span className="text-xs font-normal text-gray-500">USD</span>
+                  </p>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs text-amber-700 dark:text-amber-300 block">Equivalente en Bitcoin</span>
+                  <p className="text-xl font-mono font-bold text-amber-600 dark:text-amber-400">
+                    {Number(order.total_btc).toFixed(8)} ₿
+                  </p>
+                </div>
               </div>
             </div>
 

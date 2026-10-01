@@ -40,7 +40,7 @@ export const StorePageLayout: React.FC<StorePageLayoutProps> = ({
           <span className="hidden sm:inline text-slate-400">1 BTC = ${BTC_PRICE_USD.toLocaleString()} USD</span>
         </div>
         <div className="flex items-center gap-4">
-          <span className="hidden md:inline text-slate-400">Smart Contract: NexCoin.sol v2.0</span>
+          <span className="hidden md:inline text-slate-400">Smart Contract: NovaSats.sol v2.0</span>
           <Link
             to="/#consultar-voucher"
             className="text-slate-300 hover:text-amber-400 transition flex items-center gap-1"
@@ -132,7 +132,7 @@ export const StorePageLayout: React.FC<StorePageLayoutProps> = ({
               </span>
             </div>
             <p className="text-[11px] text-slate-400 leading-relaxed">
-              Plataforma de comercio electrónico descentralizado respaldada en la red Bitcoin con firmas de contrato inteligente `NexCoin.sol`.
+              Plataforma de comercio electrónico descentralizado respaldada en la red Bitcoin con firmas de contrato inteligente `NovaSats.sol`.
             </p>
             <div className="pt-1">
               <span className="px-2.5 py-1 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-mono font-bold">
@@ -232,11 +232,11 @@ export const StorePageLayout: React.FC<StorePageLayoutProps> = ({
 
         {/* Bottom Sub-bar */}
         <div className="max-w-7xl mx-auto pt-6 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-400">
-          <p>© Todos los derechos reservados • NexCoin Technologies S.A.C.</p>
+          <p>© Todos los derechos reservados • NovaSats Technologies S.A.C.</p>
           <div className="flex items-center gap-4 text-slate-400 font-mono text-[10px]">
             <span>Bitcoin Network Verified</span>
             <span>•</span>
-            <span>NexCoin.sol • On-Chain</span>
+            <span>NovaSats.sol • On-Chain</span>
           </div>
         </div>
       </footer>

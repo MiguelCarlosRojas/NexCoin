@@ -15,10 +15,10 @@ export const PromocionesPage: React.FC = () => {
             Ofertas & Beneficios On-Chain
           </div>
           <h1 className="text-3xl sm:text-4xl font-black text-white font-heading tracking-tight">
-            Promociones & Descuentos en NexCoin
+            Promociones & Descuentos en NovaSats
           </h1>
           <p className="text-sm sm:text-base text-slate-400 leading-relaxed max-w-4xl">
-            Aprovecha precios exclusivos y descuentos directos en Bitcoin en nuestro catálogo de billeteras frías, seguridad crypto, minería y moda descentralizada. En NexCoin los descuentos se liquidan al valor exacto del bloque sin comisiones bancarias ocultas.
+            Aprovecha precios exclusivos y descuentos directos en Bitcoin en nuestro catálogo de billeteras frías, seguridad crypto, minería y moda descentralizada. En NovaSats los descuentos se liquidan al valor exacto del bloque sin comisiones bancarias ocultas.
           </p>
         </div>
 
@@ -105,7 +105,7 @@ export const PromocionesPage: React.FC = () => {
             <div className="p-5 rounded-2xl bg-[#090e1c] border border-white/[0.08] space-y-2">
               <h4 className="text-sm font-bold text-amber-400 uppercase tracking-wider">2. Comprobante VCH Sellado</h4>
               <p className="text-xs text-slate-400 leading-relaxed">
-                El voucher generado (<code className="text-slate-300">VCH-...</code>) refleja el porcentaje de descuento aplicado, el ahorro en satoshis y la firma ECDSA del contrato NexCoin.sol.
+                El voucher generado (<code className="text-slate-300">VCH-...</code>) refleja el porcentaje de descuento aplicado, el ahorro en satoshis y la firma ECDSA del contrato NovaSats.sol.
               </p>
             </div>
 

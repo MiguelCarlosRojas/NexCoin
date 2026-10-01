@@ -14,10 +14,10 @@ export const AccesibilidadPage: React.FC = () => {
             Inclusión Digital & Estándares WCAG 2.1
           </div>
           <h1 className="text-3xl sm:text-4xl font-black text-white font-heading tracking-tight">
-            Declaración de Accesibilidad Universal en NexCoin
+            Declaración de Accesibilidad Universal en NovaSats
           </h1>
           <p className="text-sm sm:text-base text-slate-400 leading-relaxed max-w-4xl">
-            En NexCoin estamos comprometidos con asegurar que cualquier persona, independientemente de sus capacidades físicas, sensoriales o cognitivas, pueda acceder, navegar y realizar compras en Bitcoin con total autonomía y facilidad.
+            En NovaSats estamos comprometidos con asegurar que cualquier persona, independientemente de sus capacidades físicas, sensoriales o cognitivas, pueda acceder, navegar y realizar compras en Bitcoin con total autonomía y facilidad.
           </p>
         </div>
 
@@ -108,11 +108,11 @@ export const AccesibilidadPage: React.FC = () => {
             <p className="text-xs text-slate-400">Trabajamos continuamente para mejorar. Escríbenos y nuestro equipo técnico lo adaptará de inmediato.</p>
           </div>
           <a
-            href="mailto:accesibilidad@nexcoin.com"
+            href="mailto:accesibilidad@novasats.com"
             className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition flex items-center gap-2 shrink-0"
           >
             <Mail className="w-3.5 h-3.5" />
-            <span>accesibilidad@nexcoin.com</span>
+            <span>accesibilidad@novasats.com</span>
           </a>
         </div>
 

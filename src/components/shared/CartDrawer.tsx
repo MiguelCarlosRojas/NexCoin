@@ -5,7 +5,7 @@ import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
 import { supabase } from '../../lib/supabaseClient';
 import { VoucherModal } from './VoucherModal';
 import { Order } from '../../types/store';
-import { signPurchaseWithNexCoin, NEXCOIN_CONTRACT_ADDRESS } from '../../utils/nexCoinSignature';
+import { signPurchaseWithNovaSats, NOVASATS_CONTRACT_ADDRESS } from '../../utils/nexCoinSignature';
 import confetti from 'canvas-confetti';
 import {
   X,
@@ -74,8 +74,8 @@ export const CartDrawer: React.FC = () => {
       const orderNumber = `ORD-${Date.now().toString().slice(-6)}`;
       const voucherCode = `VOUCH-${Math.random().toString(36).substring(2, 7).toUpperCase()}-${Date.now().toString().slice(-4)}`;
 
-      // 2. Firma criptográfica con el contrato inteligente NexCoin.sol
-      const signResult = await signPurchaseWithNexCoin(
+      // 2. Firma criptográfica con el contrato inteligente NovaSats.sol
+      const signResult = await signPurchaseWithNovaSats(
         payerWalletAddress,
         orderNumber,
         voucherCode,
@@ -83,7 +83,7 @@ export const CartDrawer: React.FC = () => {
         totalUsd
       );
 
-      // 3. Insert order into Supabase with NexCoin.sol signature and verified payer wallet
+      // 3. Insert order into Supabase with NovaSats.sol signature and verified payer wallet
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .insert([
@@ -98,8 +98,8 @@ export const CartDrawer: React.FC = () => {
             total_btc: totalBtc,
             status: 'completed',
             voucher_code: voucherCode,
-            signature_nexcoin: signResult.signature,
-            contract_address: NEXCOIN_CONTRACT_ADDRESS,
+            signature_novasats: signResult.signature,
+            contract_address: NOVASATS_CONTRACT_ADDRESS,
           },
         ])
         .select()
@@ -307,7 +307,7 @@ export const CartDrawer: React.FC = () => {
                       Pago Seguro en Red Bitcoin
                     </p>
                     <p>
-                      Al confirmar, se descontará el stock automáticamente en Supabase y se generará tu voucher con link a Gmail y descarga en PDF.
+                      Al confirmar, se descontará el stock automáticamente en la base de datos y se generará tu voucher con link a Gmail y descarga en PDF.
                     </p>
                   </div>
 

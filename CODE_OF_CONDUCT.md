@@ -1,8 +1,8 @@
-# Código de Conducta de la Comunidad NexCoin
+# Código de Conducta de la Comunidad NovaSats
 
 ## Nuestro Compromiso
 
-Nosotros, como miembros, colaboradores y administradores de **NexCoin**, nos comprometemos a hacer de la participación en nuestra comunidad y plataforma una experiencia libre de acoso para todos, independientemente de la edad, dimensión corporal, discapacidad visible o invisible, etnicidad, características sexuales, identidad y expresión de género, nivel de experiencia, educación, estatus socioeconómico, nacionalidad, apariencia personal, raza, religión o identidad y orientación sexual.
+Nosotros, como miembros, colaboradores y administradores de **NovaSats**, nos comprometemos a hacer de la participación en nuestra comunidad y plataforma una experiencia libre de acoso para todos, independientemente de la edad, dimensión corporal, discapacidad visible o invisible, etnicidad, características sexuales, identidad y expresión de género, nivel de experiencia, educación, estatus socioeconómico, nacionalidad, apariencia personal, raza, religión o identidad y orientación sexual.
 
 Nos comprometemos a actuar e interactuar de maneras que contribuyan a una comunidad abierta, acogedora, diversa, inclusiva y saludable.
 
@@ -46,7 +46,7 @@ Este Código de Conducta se aplica a todos los espacios de la comunidad y la pla
 ## Aplicación
 
 Los casos de comportamiento abusivo, acosador o inaceptable pueden comunicarse a los administradores del proyecto a través de:
-**conducta@nexcoin.com** o mediante los canales oficiales de soporte.
+**conducta@novasats.com** o mediante los canales oficiales de soporte.
 
 Todas las quejas serán revisadas e investigadas de manera rápida y justa. Todos los miembros del equipo están obligados a respetar la privacidad y la seguridad de quienes reporten cualquier incidente.
 

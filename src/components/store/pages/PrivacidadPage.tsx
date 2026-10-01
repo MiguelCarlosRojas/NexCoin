@@ -14,7 +14,7 @@ export const PrivacidadPage: React.FC = () => {
             Privacidad & Cifrado Web3
           </div>
           <h1 className="text-3xl sm:text-4xl font-black text-white font-heading tracking-tight">
-            Cómo Cuidamos tu Privacidad en NexCoin
+            Cómo Cuidamos tu Privacidad en NovaSats
           </h1>
           <p className="text-sm sm:text-base text-slate-400 leading-relaxed max-w-4xl">
             Tu soberanía y confidencialidad son pilares fundamentales de nuestra arquitectura. Diseñamos un sistema de comercio electrónico descentralizado que minimiza la recolección de datos y elimina los intermediarios financieros invasivos.
@@ -62,7 +62,7 @@ export const PrivacidadPage: React.FC = () => {
               <span>1. Almacenamiento Cifrado y Entrega del Comprobante</span>
             </h3>
             <p>
-              Cuando realizas una compra, el sistema genera tu comprobante oficial (Voucher) con su código único (ej. <code className="text-amber-400">VCH-XXXXXX</code>) y lo envía a tu dirección de correo electrónico a través del servicio de mensajería transaccional cifrada. Dicho voucher contiene únicamente el resumen de los productos adquiridos, el hash de la transacción y la firma criptográfica del contrato <code className="text-amber-400">NexCoin.sol</code>.
+              Cuando realizas una compra, el sistema genera tu comprobante oficial (Voucher) con su código único (ej. <code className="text-amber-400">VCH-XXXXXX</code>) y lo envía a tu dirección de correo electrónico a través del servicio de mensajería transaccional cifrada. Dicho voucher contiene únicamente el resumen de los productos adquiridos, el hash de la transacción y la firma criptográfica del contrato <code className="text-amber-400">NovaSats.sol</code>.
             </p>
           </div>
 
@@ -72,7 +72,7 @@ export const PrivacidadPage: React.FC = () => {
               <span>2. Cumplimiento Normativo (Ley N° 29733 & GDPR)</span>
             </h3>
             <p>
-              El banco de datos personales de NexCoin Technologies S.A.C. cumple estrictamente con los lineamientos de la Ley N° 29733 de Protección de Datos Personales de la República del Perú y los estándares globales del Reglamento General de Protección de Datos (GDPR). Implementamos medidas técnicas, organizativas y legales para evitar la alteración, pérdida o acceso no autorizado.
+              El banco de datos personales de NovaSats Technologies S.A.C. cumple estrictamente con los lineamientos de la Ley N° 29733 de Protección de Datos Personales de la República del Perú y los estándares globales del Reglamento General de Protección de Datos (GDPR). Implementamos medidas técnicas, organizativas y legales para evitar la alteración, pérdida o acceso no autorizado.
             </p>
           </div>
 
@@ -85,7 +85,7 @@ export const PrivacidadPage: React.FC = () => {
               Como titular de tus datos, puedes ejercer en cualquier momento tus derechos de <strong>Acceso, Rectificación, Cancelación y Oposición (ARCO)</strong>. Puedes solicitar la supresión de tu historial de envíos de nuestra base de datos operativa una vez concluido el plazo legal de entrega y garantía del producto.
             </p>
             <p className="pt-2 text-slate-400">
-              Para tramitar tu solicitud ARCO, envía un correo a: <strong className="text-amber-400 font-mono">privacidad@nexcoin.com</strong> adjuntando tu número de documento de identidad.
+              Para tramitar tu solicitud ARCO, envía un correo a: <strong className="text-amber-400 font-mono">privacidad@novasats.com</strong> adjuntando tu número de documento de identidad.
             </p>
           </div>
         </div>
@@ -97,7 +97,7 @@ export const PrivacidadPage: React.FC = () => {
             <p className="text-xs text-slate-400">¿Dudas sobre cómo resguardamos tus datos en el contrato inteligente?</p>
           </div>
           <a
-            href="mailto:privacidad@nexcoin.com"
+            href="mailto:privacidad@novasats.com"
             className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition flex items-center gap-2 shrink-0"
           >
             <Mail className="w-3.5 h-3.5" />

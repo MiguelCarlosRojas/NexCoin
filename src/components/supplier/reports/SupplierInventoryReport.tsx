@@ -157,7 +157,7 @@ export const SupplierInventoryReport: React.FC = () => {
 
     exportLandscapePdfTable({
       title: 'Reporte Oficial de Inventario & Existencias de Almacén',
-      supplierName: supplier?.company_name || 'NexCoin Partner',
+      supplierName: supplier?.company_name || 'NovaSats Partner',
       stats: [
         { label: 'Total Productos', value: `${filteredProducts.length}` },
         { label: 'Unidades en Stock', value: `${totalStockUnits} uds.` },
@@ -167,7 +167,7 @@ export const SupplierInventoryReport: React.FC = () => {
       headers,
       rows,
       footers,
-      fileName: `Reporte_Inventario_NexCoin_${new Date().toISOString().slice(0, 10)}.pdf`,
+      fileName: `Reporte_Inventario_NovaSats_${new Date().toISOString().slice(0, 10)}.pdf`,
       columnStyles: {
         0: { fontStyle: 'bold', cellWidth: 26 },
         1: { cellWidth: 'auto' },
@@ -200,7 +200,7 @@ export const SupplierInventoryReport: React.FC = () => {
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Inventario');
-    XLSX.writeFile(workbook, `Reporte_Inventario_NexCoin_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.writeFile(workbook, `Reporte_Inventario_NovaSats_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   return (

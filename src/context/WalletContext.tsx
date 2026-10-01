@@ -15,16 +15,16 @@ const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
 export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [walletAddress, setWalletAddress] = useState<string | null>(() => {
-    return localStorage.getItem('nexcoin_customer_wallet') || null;
+    return localStorage.getItem('novasats_customer_wallet') || null;
   });
   const [isConnecting, setIsConnecting] = useState(false);
   const [balanceBtc] = useState<string>('0.00000000');
 
   useEffect(() => {
     if (walletAddress) {
-      localStorage.setItem('nexcoin_customer_wallet', walletAddress);
+      localStorage.setItem('novasats_customer_wallet', walletAddress);
     } else {
-      localStorage.removeItem('nexcoin_customer_wallet');
+      localStorage.removeItem('novasats_customer_wallet');
     }
   }, [walletAddress]);
 
@@ -54,7 +54,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const disconnectWallet = () => {
     setWalletAddress(null);
-    localStorage.removeItem('nexcoin_customer_wallet');
+    localStorage.removeItem('novasats_customer_wallet');
   };
 
   const sendBtcPayment = async (

@@ -15,7 +15,7 @@ export const PoliticaCookiesPage: React.FC = () => {
             Política de Cookies & Almacenamiento Local
           </h1>
           <p className="text-xs sm:text-sm text-slate-400">
-            Conoce cómo NexCoin emplea almacenamiento técnico local para optimizar tu experiencia de compra Web3 y conservar tu carrito de productos.
+            Conoce cómo NovaSats emplea almacenamiento técnico local para optimizar tu experiencia de compra Web3 y conservar tu carrito de productos.
           </p>
         </div>
 
@@ -24,12 +24,12 @@ export const PoliticaCookiesPage: React.FC = () => {
           <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-2">
             <h3 className="text-sm font-bold text-white uppercase tracking-wider">1. ¿Qué información almacenamos en tu navegador?</h3>
             <p>
-              NexCoin no utiliza cookies de seguimiento publicitario de terceros ni píxeles invasivos. Utilizamos exclusivamente almacenamiento local (`localStorage`) en tu propio navegador con fines estrictamente funcionales:
+              NovaSats no utiliza cookies de seguimiento publicitario de terceros ni píxeles invasivos. Utilizamos exclusivamente almacenamiento local (`localStorage`) en tu propio navegador con fines estrictamente funcionales:
             </p>
             <ul className="list-disc list-inside space-y-1 pl-2 text-slate-400">
               <li><strong>Carrito de Compras:</strong> Recordar los artículos, cantidades y precios agregados a tu bolsa.</li>
               <li><strong>Sesión de Billetera:</strong> Guardar la dirección pública de tu Wallet para no solicitar reconexión en cada navegación.</li>
-              <li><strong>Sesión de Proveedor:</strong> Token seguro de autenticación en Supabase para el panel de proveedores.</li>
+              <li><strong>Sesión de Proveedor:</strong> Token seguro de autenticación en el servidor seguro para el panel de proveedores.</li>
             </ul>
           </div>
 

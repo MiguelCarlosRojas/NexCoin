@@ -234,7 +234,7 @@ export const SupplierLayout: React.FC<SupplierLayoutProps> = ({ children, title,
                       {supplier.company_name || 'TechGlobal Hardware & Cryptowear'}
                     </p>
                     <p className="text-[10px] text-slate-400 truncate max-w-[210px] -mt-0.5">
-                      {supplier.email || 'proveedor@nexcoin.com'}
+                      {supplier.email || 'proveedor@novasats.com'}
                     </p>
                     {isVerified ? (
                       <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-emerald-400 mt-0.5">

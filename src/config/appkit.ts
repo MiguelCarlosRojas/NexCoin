@@ -10,11 +10,11 @@ if (!projectId) {
   console.warn('⚠️ Variable VITE_REOWN_PROJECT_ID no configurada en el archivo .env');
 }
 
-// 2. Metadata configuration for NexCoin
+// 2. Metadata configuration for NovaSats
 const metadata = {
-  name: 'NexCoin',
-  description: 'NexCoin - Plataforma de Comercio Descentralizado On-Chain',
-  url: typeof window !== 'undefined' ? window.location.origin : 'https://nex-coin-rho.vercel.app',
+  name: 'NovaSats',
+  description: 'NovaSats - Plataforma de Comercio Descentralizado On-Chain',
+  url: typeof window !== 'undefined' ? window.location.origin : 'https://novasats.vercel.app',
   icons: ['https://avatars.githubusercontent.com/u/179229932']
 };
 

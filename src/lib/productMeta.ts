@@ -10,7 +10,7 @@ export interface ProductExtraMeta {
   condition?: string;
 }
 
-const META_REGEX = /<!--NEXCOIN_META:([\s\S]*?)-->/;
+const META_REGEX = /<!--NOVASATS_META:([\s\S]*?)-->/;
 
 /**
  * Extracts clean user description and embedded metadata object from raw database text
@@ -52,5 +52,5 @@ export function encodeProductDescription(
     return cleanDescription.trim();
   }
 
-  return `${cleanDescription.trim()}\n\n<!--NEXCOIN_META:${JSON.stringify(metaFiltered)}-->`;
+  return `${cleanDescription.trim()}\n\n<!--NOVASATS_META:${JSON.stringify(metaFiltered)}-->`;
 }

@@ -24,7 +24,7 @@ export const LegalesCampanasPage: React.FC = () => {
           <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-2">
             <h3 className="text-sm font-bold text-white uppercase tracking-wider">1. Vigencia y Stock Promocional</h3>
             <p>
-              Toda campaña de descuento o beneficio promocional anunciada en la tienda estará vigente durante el plazo estipulado en las comunicaciones oficiales de NexCoin o hasta agotar el stock de unidades reservadas por el proveedor para dicha campaña.
+              Toda campaña de descuento o beneficio promocional anunciada en la tienda estará vigente durante el plazo estipulado en las comunicaciones oficiales de NovaSats o hasta agotar el stock de unidades reservadas por el proveedor para dicha campaña.
             </p>
           </div>
 

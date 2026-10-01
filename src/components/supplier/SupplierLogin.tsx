@@ -148,7 +148,7 @@ export const SupplierLogin: React.FC = () => {
           </h1>
 
           <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-normal">
-            Gestiona tu catálogo con modales de alta velocidad, controla inventario en tiempo real, emite comprobantes firmados criptográficamente con el Smart Contract NexCoin.sol y analiza tus métricas comerciales.
+            Gestiona tu catálogo con modales de alta velocidad, controla inventario en tiempo real, emite comprobantes firmados criptográficamente con el Smart Contract NovaSats.sol y analiza tus métricas comerciales.
           </p>
 
           {/* Grid of Perks */}
@@ -166,7 +166,7 @@ export const SupplierLogin: React.FC = () => {
                 <FileCheck2 className="w-4 h-4 text-emerald-400" />
               </div>
               <h3 className="text-xs font-black uppercase tracking-wide text-white">Firma Criptográfica</h3>
-              <p className="text-[11px] text-slate-400 mt-1">Vouchers respaldados por hash ECDSA y Smart Contract NexCoin.sol v2.0.</p>
+              <p className="text-[11px] text-slate-400 mt-1">Vouchers respaldados por hash ECDSA y Smart Contract NovaSats.sol v2.0.</p>
             </div>
 
             <div className="p-4 rounded-2xl bg-[#0f1628]/80 border border-white/[0.08] backdrop-blur-sm">
@@ -214,7 +214,7 @@ export const SupplierLogin: React.FC = () => {
             <span>Volver a la Tienda</span>
           </Link>
           <div className="flex items-center gap-2 text-slate-500 font-mono text-[11px]">
-            <span>NexCoin.sol</span>
+            <span>NovaSats.sol</span>
             <span>•</span>
             <span>On-Chain Verificado</span>
           </div>
@@ -233,7 +233,7 @@ export const SupplierLogin: React.FC = () => {
                 Acceso Corporativo
               </span>
               <span className="px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-mono font-bold">
-                Supabase Online
+                Base de Datos Online
               </span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight mt-1 font-heading">

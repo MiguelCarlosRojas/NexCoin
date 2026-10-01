@@ -117,7 +117,7 @@ export const SupplierProfile: React.FC = () => {
       XLSX.utils.book_append_sheet(wb, ws, 'Inventario');
       
       const safeCompanyName = (supplier.company_name || 'Proveedor').replace(/[^a-zA-Z0-9_-]/g, '_');
-      const filename = `Copia_Seguridad_Inventario_NexCoin_${safeCompanyName}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      const filename = `Copia_Seguridad_Inventario_NovaSats_${safeCompanyName}_${new Date().toISOString().split('T')[0]}.xlsx`;
       XLSX.writeFile(wb, filename);
 
       setHasExportedBackup(true);
@@ -157,7 +157,7 @@ export const SupplierProfile: React.FC = () => {
         .eq('id', supplier.id);
 
       // 3. Clear local storage records for this supplier
-      localStorage.removeItem(`nexcoin_read_notifs_${supplier.id}`);
+      localStorage.removeItem(`novasats_read_notifs_${supplier.id}`);
       localStorage.removeItem(`supplier_payout_wallets_${supplier.id}`);
 
       // 4. Logout session
@@ -178,7 +178,7 @@ export const SupplierProfile: React.FC = () => {
   const [walletAddress, setWalletAddress] = useState(supplier?.wallet_address || '');
   
   // Custom Blobatar configuration parsed from supplier.avatar_url
-  const initialBlob = parseBlobatar(supplier?.avatar_url, supplier?.company_name || 'NexCoin Supplier');
+  const initialBlob = parseBlobatar(supplier?.avatar_url, supplier?.company_name || 'NovaSats Supplier');
   const [avatarSeed, setAvatarSeed] = useState(initialBlob.seed);
   const [selectedExpression, setSelectedExpression] = useState(initialBlob.expressionKey);
   const [selectedShape, setSelectedShape] = useState(initialBlob.shapeKey);
@@ -642,7 +642,7 @@ export const SupplierProfile: React.FC = () => {
               <div className="flex flex-col sm:flex-row items-center gap-6 relative z-10">
                 <div className="relative group">
                   <Blobatar
-                    name={avatarSeed || 'NexCoin'}
+                    name={avatarSeed || 'NovaSats'}
                     blobatar={{
                       expression: activeExpression.expr,
                       animate: getBlobatarAnimate(animationMode),
@@ -656,7 +656,7 @@ export const SupplierProfile: React.FC = () => {
 
                 <div className="space-y-1.5 text-center sm:text-left">
                   <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                    <h4 className="text-base font-black text-white">{avatarSeed || companyName || 'NexCoin Supplier'}</h4>
+                    <h4 className="text-base font-black text-white">{avatarSeed || companyName || 'NovaSats Supplier'}</h4>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
                       Semilla Activa
                     </span>
@@ -676,7 +676,7 @@ export const SupplierProfile: React.FC = () => {
                 {/* Sidebar context */}
                 <div className="flex flex-col items-center gap-1.5 bg-[#0e1424] p-3 rounded-2xl border border-white/[0.06] text-center min-w-[90px]">
                   <Blobatar
-                    name={avatarSeed || 'NexCoin'}
+                    name={avatarSeed || 'NovaSats'}
                     blobatar={{ expression: activeExpression.expr, animate: getBlobatarAnimate(animationMode) }}
                     className={`w-12 h-12 ${activeShape.class} border ${activeGlow.border}`}
                   />
@@ -687,7 +687,7 @@ export const SupplierProfile: React.FC = () => {
                 {/* Product Detail context */}
                 <div className="flex flex-col items-center gap-1.5 bg-[#0e1424] p-3 rounded-2xl border border-white/[0.06] text-center min-w-[90px]">
                   <Blobatar
-                    name={avatarSeed || 'NexCoin'}
+                    name={avatarSeed || 'NovaSats'}
                     blobatar={{ expression: activeExpression.expr, animate: getBlobatarAnimate(animationMode) }}
                     className={`w-10 h-10 ${activeShape.class} border ${activeGlow.border}`}
                   />
@@ -698,7 +698,7 @@ export const SupplierProfile: React.FC = () => {
                 {/* Voucher context */}
                 <div className="flex flex-col items-center gap-1.5 bg-[#0e1424] p-3 rounded-2xl border border-white/[0.06] text-center min-w-[90px]">
                   <Blobatar
-                    name={avatarSeed || 'NexCoin'}
+                    name={avatarSeed || 'NovaSats'}
                     blobatar={{ expression: activeExpression.expr, animate: getBlobatarAnimate(animationMode) }}
                     className={`w-8 h-8 ${activeShape.class} border ${activeGlow.border}`}
                   />
@@ -709,7 +709,7 @@ export const SupplierProfile: React.FC = () => {
                 {/* Store Catalog context */}
                 <div className="flex flex-col items-center gap-1.5 bg-[#0e1424] p-3 rounded-2xl border border-white/[0.06] text-center min-w-[90px]">
                   <Blobatar
-                    name={avatarSeed || 'NexCoin'}
+                    name={avatarSeed || 'NovaSats'}
                     blobatar={{ expression: activeExpression.expr, animate: getBlobatarAnimate(animationMode) }}
                     className={`w-6 h-6 ${activeShape.class} border border-white/20`}
                   />
@@ -997,7 +997,7 @@ export const SupplierProfile: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Correo Electrónico (Registrado en Supabase)
+                  Correo Electrónico (Registrado en el Sistema)
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
@@ -1059,7 +1059,7 @@ export const SupplierProfile: React.FC = () => {
               className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-xl shadow-amber-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
             >
               <Save className="w-4 h-4" />
-              <span>{isSaving ? 'Guardando en Supabase...' : 'Guardar Perfil & Blobatar'}</span>
+              <span>{isSaving ? 'Guardando en el Servidor...' : 'Guardar Perfil & Blobatar'}</span>
             </button>
           </div>
         </form>
@@ -1245,7 +1245,7 @@ export const SupplierProfile: React.FC = () => {
               className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-xl shadow-amber-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
             >
               <Save className="w-4 h-4" />
-              <span>{isSaving ? 'Guardando en Supabase...' : 'Guardar Billeteras de Cobro'}</span>
+              <span>{isSaving ? 'Guardando en el Servidor...' : 'Guardar Billeteras de Cobro'}</span>
             </button>
           </div>
         </form>
@@ -1293,7 +1293,7 @@ export const SupplierProfile: React.FC = () => {
                   </div>
                   <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
                     {verificationData.isVerified
-                      ? 'Tu comercio cuenta con la insignia de confianza de NexCoin. Tus productos y perfil comercial están certificados para todos los compradores Web3.'
+                      ? 'Tu comercio cuenta con la insignia de confianza de NovaSats. Tus productos y perfil comercial están certificados para todos los compradores Web3.'
                       : 'Certifica tu identidad comercial y datos fiscales para activar la insignia de verificación oficial en tus productos y maximizar tus ventas.'}
                   </p>
                 </div>
@@ -1476,7 +1476,7 @@ export const SupplierProfile: React.FC = () => {
                   className="w-4 h-4 mt-0.5 rounded border-white/20 bg-slate-900 text-emerald-500 focus:ring-emerald-500 shrink-0"
                 />
                 <span className="text-xs text-slate-300 leading-relaxed">
-                  Declaro bajo juramento que represento legalmente a esta empresa comercial, que los datos suministrados son fidedignos y que todos los productos ofertados en NexCoin Marketplace son auténticos, lícitos y cuentan con garantía de entrega al comprador.
+                  Declaro bajo juramento que represento legalmente a esta empresa comercial, que los datos suministrados son fidedignos y que todos los productos ofertados en NovaSats Marketplace son auténticos, lícitos y cuentan con garantía de entrega al comprador.
                 </span>
               </label>
             </div>
@@ -1574,7 +1574,7 @@ export const SupplierProfile: React.FC = () => {
                 <div>
                   <span className="font-bold text-xs block text-white">Comprobante Digital Detallado</span>
                   <span className="text-[11px] text-slate-400 leading-relaxed block mt-1">
-                    Comprobante digital completo en pantalla con verificación de contrato NexCoin.sol, firma ECDSA y envío a Gmail.
+                    Comprobante digital completo en pantalla con verificación de contrato NovaSats.sol, firma ECDSA y envío a Gmail.
                   </span>
                 </div>
               </label>
@@ -1589,7 +1589,7 @@ export const SupplierProfile: React.FC = () => {
               className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-xl shadow-amber-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
             >
               <Save className="w-4 h-4" />
-              <span>{isSaving ? 'Guardando en Supabase...' : 'Guardar Preferencias de Voucher'}</span>
+              <span>{isSaving ? 'Guardando en el Servidor...' : 'Guardar Preferencias de Voucher'}</span>
             </button>
           </div>
         </form>
@@ -1607,7 +1607,7 @@ export const SupplierProfile: React.FC = () => {
                 Zona de Peligro: Eliminar Cuenta de Proveedor
               </h3>
               <p className="text-xs text-rose-200/80 mt-1 leading-relaxed">
-                Esta acción es destructiva e irreversible. Si eliminas tu cuenta, todos tus productos activos y archivados se eliminarán inmediatamente del catálogo de NexCoin Marketplace.
+                Esta acción es destructiva e irreversible. Si eliminas tu cuenta, todos tus productos activos y archivados se eliminarán inmediatamente del catálogo de NovaSats Marketplace.
               </p>
             </div>
           </div>

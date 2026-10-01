@@ -30,7 +30,7 @@ export function Blobatar({ name, src, alt, blobatar, className, ...props }: Blob
     <Avatar className={className} {...props}>
       {src ? <AvatarImage src={src} alt={alt ?? name} /> : null}
       <AvatarFallback className="bg-transparent p-0 overflow-hidden flex items-center justify-center">
-        <Generated {...blobatar} name={name || "NexCoin"} className="size-full" />
+        <Generated {...blobatar} name={name || "NovaSats"} className="size-full" />
       </AvatarFallback>
     </Avatar>
   );

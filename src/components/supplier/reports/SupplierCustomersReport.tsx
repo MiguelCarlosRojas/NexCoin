@@ -94,7 +94,7 @@ export const SupplierCustomersReport: React.FC = () => {
             const ord = item.orders;
             if (!ord) return;
 
-            const emailKey = (ord.customer_email || 'anonimo@nexcoin.com').toLowerCase();
+            const emailKey = (ord.customer_email || 'anonimo@novasats.com').toLowerCase();
             if (!custMap[emailKey]) {
               custMap[emailKey] = {
                 email: emailKey,
@@ -185,7 +185,7 @@ export const SupplierCustomersReport: React.FC = () => {
 
     exportLandscapePdfTable({
       title: 'Reporte Oficial de Clientes & Compradores Bitcoin',
-      supplierName: supplier?.company_name || 'NexCoin Partner',
+      supplierName: supplier?.company_name || 'NovaSats Partner',
       stats: [
         { label: 'Clientes Únicos', value: `${filtered.length}` },
         { label: 'Gasto Total USD', value: `$${totalSpentAllUsd.toFixed(2)}` },
@@ -195,7 +195,7 @@ export const SupplierCustomersReport: React.FC = () => {
       headers,
       rows,
       footers,
-      fileName: `Reporte_Clientes_NexCoin_${new Date().toISOString().slice(0, 10)}.pdf`,
+      fileName: `Reporte_Clientes_NovaSats_${new Date().toISOString().slice(0, 10)}.pdf`,
       columnStyles: {
         0: { fontStyle: 'bold', cellWidth: 32 },
         1: { cellWidth: 42 },
@@ -225,7 +225,7 @@ export const SupplierCustomersReport: React.FC = () => {
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Clientes');
-    XLSX.writeFile(workbook, `Reporte_Clientes_NexCoin_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.writeFile(workbook, `Reporte_Clientes_NovaSats_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   return (

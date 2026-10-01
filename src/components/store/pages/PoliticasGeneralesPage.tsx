@@ -16,7 +16,7 @@ export const PoliticasGeneralesPage: React.FC = () => {
             Políticas Generales de la Tienda
           </h1>
           <p className="text-xs sm:text-sm text-slate-400">
-            Estándares de calidad, políticas de despacho logístico, devoluciones y cumplimiento ético en NexCoin.
+            Estándares de calidad, políticas de despacho logístico, devoluciones y cumplimiento ético en NovaSats.
           </p>
         </div>
 
@@ -48,7 +48,7 @@ export const PoliticasGeneralesPage: React.FC = () => {
               <h3 className="text-sm font-bold text-white uppercase tracking-wider">3. Política de Integridad del Proveedor</h3>
             </div>
             <p>
-              Todo proveedor que forme parte de la red de NexCoin es auditado en su historial de ventas y cumplimiento. La publicación de productos apócrifos, información engañosa o la omisión reiterada de stock resultará en la suspensión inmediata e irrevocable de la cuenta del proveedor en la plataforma.
+              Todo proveedor que forme parte de la red de NovaSats es auditado en su historial de ventas y cumplimiento. La publicación de productos apócrifos, información engañosa o la omisión reiterada de stock resultará en la suspensión inmediata e irrevocable de la cuenta del proveedor en la plataforma.
             </p>
           </div>
         </div>

@@ -8,7 +8,7 @@ export function getSupplierVoucherConfig(supplierId?: string): SupplierVoucherCo
     return { allow80mm: true, allowDigital: true };
   }
   try {
-    const raw = localStorage.getItem(`nexcoin_voucher_config_${supplierId}`);
+    const raw = localStorage.getItem(`novasats_voucher_config_${supplierId}`);
     if (raw) {
       const parsed = JSON.parse(raw);
       return {
@@ -22,7 +22,7 @@ export function getSupplierVoucherConfig(supplierId?: string): SupplierVoucherCo
 
 export function setSupplierVoucherConfig(supplierId: string, config: SupplierVoucherConfig) {
   try {
-    localStorage.setItem(`nexcoin_voucher_config_${supplierId}`, JSON.stringify(config));
+    localStorage.setItem(`novasats_voucher_config_${supplierId}`, JSON.stringify(config));
   } catch (err) {
     console.error('Error saving supplier voucher config:', err);
   }

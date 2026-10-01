@@ -23,7 +23,6 @@ import {
   Mail,
   Plus,
   Minus,
-  MessageCircle,
   Send,
   HelpCircle,
   Sparkles,
@@ -42,6 +41,13 @@ import {
   submitProductReview,
   ProductReview
 } from '../../lib/qaAndReviewsService';
+import { 
+  FaWhatsapp, 
+  FaFacebookF, 
+  FaXTwitter, 
+  FaTelegram, 
+  FaLinkedinIn 
+} from 'react-icons/fa6';
 
 export const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -94,7 +100,7 @@ export const ProductDetailPage: React.FC = () => {
 
       setProduct(foundProduct);
       if (foundProduct?.name) {
-        document.title = `${foundProduct.name} | NexCoin Marketplace`;
+        document.title = `${foundProduct.name} | NovaSats Marketplace`;
       }
       setAllProducts(catalog);
       setQuestionsList(questions);
@@ -241,12 +247,12 @@ export const ProductDetailPage: React.FC = () => {
 
   const inStock = product.stock > 0;
   const isFreeShipping = isFreeShippingProduct(product);
-  const supplierName = product.suppliers?.company_name || 'Proveedor Verificado NexCoin';
-  const supplierEmail = product.suppliers?.email || 'soporte@nexcoin.com';
+  const supplierName = product.suppliers?.company_name || 'Proveedor Verificado NovaSats';
+  const supplierEmail = product.suppliers?.email || 'soporte@novasats.com';
   const supplierWallet = product.suppliers?.wallet_address || 'No registrada';
 
   const shareUrl = window.location.href;
-  const shareText = `Mira ${product.name} en NexCoin Store, cómpralo con Bitcoin: ${shareUrl}`;
+  const shareText = `Mira ${product.name} en NovaSats Store, cómpralo con Bitcoin: ${shareUrl}`;
 
   return (
     <div className="min-h-screen bg-[#060911] text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-black">
@@ -262,7 +268,7 @@ export const ProductDetailPage: React.FC = () => {
           <span className="hidden sm:inline text-slate-400">1 BTC = ${BTC_PRICE_USD.toLocaleString()} USD</span>
         </div>
         <div className="flex items-center gap-4">
-          <span className="hidden md:inline text-slate-400">Smart Contract: NexCoin.sol v2.0</span>
+          <span className="hidden md:inline text-slate-400">Smart Contract: NovaSats.sol v2.0</span>
           <Link
             to="/#consultar-voucher"
             className="text-slate-300 hover:text-amber-400 transition flex items-center gap-1"
@@ -411,7 +417,7 @@ export const ProductDetailPage: React.FC = () => {
                   </li>
                   <li className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                    <span><strong>Garantía oficial de 12 meses:</strong> Respaldada por el Smart Contract NexCoin.sol v2.0 con voucher criptográfico.</span>
+                    <span><strong>Garantía oficial de 12 meses:</strong> Respaldada por el Smart Contract NovaSats.sol v2.0 con voucher criptográfico.</span>
                   </li>
                   <li className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
@@ -633,59 +639,77 @@ export const ProductDetailPage: React.FC = () => {
                 </span>
 
                 <div className="flex flex-wrap items-center gap-2.5">
+                  {/* WhatsApp */}
                   <a
                     href={`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-10 h-10 rounded-xl bg-emerald-600/10 hover:bg-emerald-600/25 border border-emerald-500/30 text-emerald-400 flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-sm"
-                    title="WhatsApp"
+                    className="w-10 h-10 rounded-xl bg-[#25D366]/15 hover:bg-[#25D366]/25 border border-[#25D366]/30 text-[#25D366] flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-sm"
+                    title="Compartir en WhatsApp"
                     aria-label="Compartir en WhatsApp"
                   >
-                    <MessageCircle className="w-4 h-4" />
+                    <FaWhatsapp className="w-5 h-5" />
                   </a>
 
+                  {/* Facebook */}
                   <a
                     href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-10 h-10 rounded-xl bg-blue-600/10 hover:bg-blue-600/25 border border-blue-500/30 text-blue-400 flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-sm"
-                    title="Facebook"
+                    className="w-10 h-10 rounded-xl bg-[#1877F2]/15 hover:bg-[#1877F2]/25 border border-[#1877F2]/30 text-[#1877F2] flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-sm"
+                    title="Compartir en Facebook"
                     aria-label="Compartir en Facebook"
                   >
-                    <span className="font-bold text-base leading-none">f</span>
+                    <FaFacebookF className="w-4 h-4" />
                   </a>
 
+                  {/* X (Twitter) */}
                   <a
-                    href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Descubre ${product.name} en @NexCoinMarket:`)}&url=${encodeURIComponent(shareUrl)}`}
+                    href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Descubre ${product.name} en @NovaSatsMarket:`)}&url=${encodeURIComponent(shareUrl)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 border border-white/[0.1] text-slate-200 flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-sm"
-                    title="X"
-                    aria-label="Compartir en X"
+                    className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-sm"
+                    title="Compartir en X (Twitter)"
+                    aria-label="Compartir en X (Twitter)"
                   >
-                    <span className="font-mono font-black text-sm">𝕏</span>
+                    <FaXTwitter className="w-4 h-4" />
                   </a>
 
+                  {/* Telegram */}
                   <a
                     href={`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(product.name)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-10 h-10 rounded-xl bg-sky-500/10 hover:bg-sky-500/25 border border-sky-500/30 text-sky-400 flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-sm"
-                    title="Telegram"
+                    className="w-10 h-10 rounded-xl bg-[#229ED9]/15 hover:bg-[#229ED9]/25 border border-[#229ED9]/30 text-[#229ED9] flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-sm"
+                    title="Compartir en Telegram"
                     aria-label="Compartir en Telegram"
                   >
-                    <Send className="w-4 h-4" />
+                    <FaTelegram className="w-5 h-5" />
                   </a>
 
+                  {/* LinkedIn */}
                   <a
-                    href={`mailto:?subject=${encodeURIComponent(`Te recomiendo: ${product.name} en NexCoin`)}&body=${encodeURIComponent(shareText)}`}
-                    className="w-10 h-10 rounded-xl bg-purple-600/10 hover:bg-purple-600/25 border border-purple-500/30 text-purple-400 flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-sm"
-                    title="Mail"
-                    aria-label="Compartir por Mail"
+                    href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 rounded-xl bg-[#0A66C2]/15 hover:bg-[#0A66C2]/25 border border-[#0A66C2]/30 text-[#0A66C2] flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-sm"
+                    title="Compartir en LinkedIn"
+                    aria-label="Compartir en LinkedIn"
+                  >
+                    <FaLinkedinIn className="w-4 h-4" />
+                  </a>
+
+                  {/* Email */}
+                  <a
+                    href={`mailto:?subject=${encodeURIComponent(`Te recomiendo: ${product.name}`)}&body=${encodeURIComponent(shareText)}`}
+                    className="w-10 h-10 rounded-xl bg-purple-600/15 hover:bg-purple-600/25 border border-purple-500/30 text-purple-400 flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-sm"
+                    title="Compartir por Correo Electrónico"
+                    aria-label="Compartir por Correo Electrónico"
                   >
                     <Mail className="w-4 h-4" />
                   </a>
 
+                  {/* Copy Link */}
                   <button
                     type="button"
                     onClick={handleCopyLink}
@@ -694,7 +718,7 @@ export const ProductDetailPage: React.FC = () => {
                         ? 'bg-emerald-500 text-black border-emerald-400'
                         : 'bg-white/[0.05] hover:bg-white/[0.1] text-slate-200 border-white/[0.1]'
                     }`}
-                    title={copiedLink ? '¡Enlace copiado al portapapeles!' : 'Copiar link'}
+                    title={copiedLink ? '¡Enlace copiado al portapapeles!' : 'Copiar enlace directo'}
                     aria-label="Copiar link"
                   >
                     {copiedLink ? <Check className="w-4 h-4 text-black" /> : <Copy className="w-4 h-4 text-amber-400" />}
@@ -739,7 +763,7 @@ export const ProductDetailPage: React.FC = () => {
             </div>
             <div className="p-4 rounded-xl bg-[#060911] border border-white/[0.06] flex justify-between">
               <span className="text-slate-400">Garantía Smart Contract</span>
-              <span className="font-bold text-white">12 Meses con NexCoin.sol</span>
+              <span className="font-bold text-white">12 Meses con NovaSats.sol</span>
             </div>
           </div>
         </section>
@@ -752,7 +776,7 @@ export const ProductDetailPage: React.FC = () => {
           <div className="prose prose-invert max-w-none text-xs sm:text-sm text-slate-300 leading-relaxed space-y-4">
             <p>{product.description}</p>
             <p>
-              Este artículo forma parte del ecosistema oficial de productos de NexCoin. Cada unidad es inspeccionada rigurosamente antes del despacho para certificar su autenticidad física y criptográfica.
+              Este artículo forma parte del ecosistema oficial de productos de NovaSats. Cada unidad es inspeccionada rigurosamente antes del despacho para certificar su autenticidad física y criptográfica.
             </p>
             <p>
               Al completar tu compra con Bitcoin, nuestro contrato inteligente registrará la transferencia on-chain y expedirá tu comprobante inmutable con número de orden y hash de verificación para cualquier atención de garantía o reclamo.
@@ -1235,7 +1259,7 @@ export const ProductDetailPage: React.FC = () => {
         {/* SECTION: PRODUCTOS MÁS BUSCADOS */}
         <section className="bg-[#090d19] border border-white/[0.08] rounded-3xl p-6 sm:p-8 space-y-4">
           <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-400">
-            Productos más buscados en NexCoin
+            Productos más buscados en NovaSats
           </h3>
           <div className="flex flex-wrap gap-2 text-xs">
             {[
@@ -1296,7 +1320,7 @@ export const ProductDetailPage: React.FC = () => {
               </span>
             </div>
             <p className="text-[11px] text-slate-400 leading-relaxed">
-              Plataforma de comercio electrónico descentralizado respaldada en la red Bitcoin con firmas de contrato inteligente `NexCoin.sol`.
+              Plataforma de comercio electrónico descentralizado respaldada en la red Bitcoin con firmas de contrato inteligente `NovaSats.sol`.
             </p>
             <div className="pt-1">
               <span className="px-2.5 py-1 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-mono font-bold">
@@ -1392,11 +1416,11 @@ export const ProductDetailPage: React.FC = () => {
         </div>
 
         <div className="max-w-7xl mx-auto pt-6 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-400">
-          <p>© Todos los derechos reservados • NexCoin Technologies S.A.C.</p>
+          <p>© Todos los derechos reservados • NovaSats Technologies S.A.C.</p>
           <div className="flex items-center gap-4 text-slate-400 font-mono text-[10px]">
             <span>Bitcoin Network Verified</span>
             <span>•</span>
-            <span>NexCoin.sol • On-Chain</span>
+            <span>NovaSats.sol • On-Chain</span>
           </div>
         </div>
       </footer>

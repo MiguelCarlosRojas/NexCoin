@@ -146,7 +146,7 @@ export const SupplierSalesReport: React.FC = () => {
 
     exportLandscapePdfTable({
       title: 'Reporte Oficial de Ventas & Facturación Bitcoin',
-      supplierName: supplier?.company_name || 'NexCoin Partner',
+      supplierName: supplier?.company_name || 'NovaSats Partner',
       stats: [
         { label: 'Facturación USD', value: `$${totalRevenueUsd.toFixed(2)}` },
         { label: 'Facturación BTC', value: `${totalRevenueBtc.toFixed(8)} BTC` },
@@ -192,7 +192,7 @@ export const SupplierSalesReport: React.FC = () => {
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Reporte de Ventas');
-    XLSX.writeFile(workbook, `Reporte_Ventas_NexCoin_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.writeFile(workbook, `Reporte_Ventas_NovaSats_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   return (

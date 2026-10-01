@@ -42,7 +42,7 @@ export const ReclamosPage: React.FC = () => {
               </div>
               <h3 className="text-sm font-bold text-white">Auditoría On-Chain</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Verificamos la firma criptográfica en el contrato inteligente `NexCoin.sol` y contactamos al proveedor responsable del despacho.
+                Verificamos la firma criptográfica en el contrato inteligente `NovaSats.sol` y contactamos al proveedor responsable del despacho.
               </p>
             </div>
 

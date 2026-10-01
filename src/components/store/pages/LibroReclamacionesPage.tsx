@@ -46,7 +46,7 @@ export const LibroReclamacionesPage: React.FC = () => {
             Libro de Reclamaciones Virtual
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-            Razón Social: <strong>NEXCOIN TECHNOLOGIES S.A.C.</strong> • RUC: <strong>20608945123</strong>
+            Razón Social: <strong>NOVASATS TECHNOLOGIES S.A.C.</strong> • RUC: <strong>20608945123</strong>
             <br />
             Dirección Fiscal: Av. Javier Prado Este 4200, Santiago de Surco, Lima - Perú.
           </p>
@@ -269,7 +269,7 @@ export const LibroReclamacionesPage: React.FC = () => {
                     className="mt-0.5 accent-amber-500 w-4 h-4 rounded shrink-0"
                   />
                   <span className="text-[11px] text-slate-300 leading-snug">
-                    Declaro bajo juramento que los datos consignados en la presente hoja de reclamación son verídicos y autorizo a NEXCOIN TECHNOLOGIES S.A.C. a utilizarlos para dar respuesta formal conforme a ley.
+                    Declaro bajo juramento que los datos consignados en la presente hoja de reclamación son verídicos y autorizo a NOVASATS TECHNOLOGIES S.A.C. a utilizarlos para dar respuesta formal conforme a ley.
                   </span>
                 </label>
               </div>

@@ -13,30 +13,30 @@ const RouteTitleUpdater: React.FC = () => {
     const path = location.pathname;
 
     const titleMap: Record<string, string> = {
-      '/': 'NexCoin | Marketplace Web3 & Pagos Bitcoin',
-      '/tienda': 'Catálogo de Productos | NexCoin Store',
-      '/trabaja-con-nosotros': 'Trabaja con Nosotros | NexCoin Marketplace',
-      '/nosotros': 'Sobre Nosotros | NexCoin Ecosistema',
-      '/sobre-nosotros': 'Sobre Nosotros | NexCoin Ecosistema',
-      '/nuestro-proposito': 'Nuestro Propósito | NexCoin',
-      '/promociones': 'Promociones & Ofertas | NexCoin',
-      '/ayuda': 'Centro de Ayuda | NexCoin',
-      '/servicio-al-cliente': 'Servicio al Cliente | NexCoin',
-      '/reclamos': 'Libro de Reclamaciones | NexCoin',
-      '/libro-de-reclamaciones': 'Libro de Reclamaciones | NexCoin',
-      '/terminos-y-condiciones': 'Términos y Condiciones | NexCoin',
-      '/como-cuidamos-tu-privacidad': 'Aviso de Privacidad | NexCoin',
-      '/privacidad': 'Política de Privacidad | NexCoin',
-      '/accesibilidad': 'Declaración de Accesibilidad | NexCoin',
-      '/legales-campanas': 'Legales de Campañas | NexCoin',
-      '/politicas-generales': 'Políticas Generales | NexCoin',
-      '/politica-cookies': 'Política de Cookies | NexCoin',
-      '/proteccion-de-datos': 'Protección de Datos | NexCoin',
+      '/': 'NovaSats | Marketplace Web3 & Pagos Bitcoin',
+      '/tienda': 'Catálogo de Productos | NovaSats Store',
+      '/trabaja-con-nosotros': 'Trabaja con Nosotros | NovaSats Marketplace',
+      '/nosotros': 'Sobre Nosotros | NovaSats Ecosistema',
+      '/sobre-nosotros': 'Sobre Nosotros | NovaSats Ecosistema',
+      '/nuestro-proposito': 'Nuestro Propósito | NovaSats',
+      '/promociones': 'Promociones & Ofertas | NovaSats',
+      '/ayuda': 'Centro de Ayuda | NovaSats',
+      '/servicio-al-cliente': 'Servicio al Cliente | NovaSats',
+      '/reclamos': 'Libro de Reclamaciones | NovaSats',
+      '/libro-de-reclamaciones': 'Libro de Reclamaciones | NovaSats',
+      '/terminos-y-condiciones': 'Términos y Condiciones | NovaSats',
+      '/como-cuidamos-tu-privacidad': 'Aviso de Privacidad | NovaSats',
+      '/privacidad': 'Política de Privacidad | NovaSats',
+      '/accesibilidad': 'Declaración de Accesibilidad | NovaSats',
+      '/legales-campanas': 'Legales de Campañas | NovaSats',
+      '/politicas-generales': 'Políticas Generales | NovaSats',
+      '/politica-cookies': 'Política de Cookies | NovaSats',
+      '/proteccion-de-datos': 'Protección de Datos | NovaSats',
       '/proveedores/login': 'Iniciar Sesión | Portal Proveedores',
       '/login': 'Iniciar Sesión | Portal Proveedores',
-      '/proveedores/logout': 'Sesión Finalizada | NexCoin',
-      '/proveedores/sesion-cerrada': 'Sesión Finalizada | NexCoin',
-      '/proveedores/cuenta-eliminada': 'Cuenta Eliminada con Éxito | NexCoin',
+      '/proveedores/logout': 'Sesión Finalizada | NovaSats',
+      '/proveedores/sesion-cerrada': 'Sesión Finalizada | NovaSats',
+      '/proveedores/cuenta-eliminada': 'Cuenta Eliminada con Éxito | NovaSats',
       '/proveedores': 'Panel Principal | Portal Proveedores',
       '/proveedores/dashboard': 'Panel de Control | Portal Proveedores',
       '/proveedores/productos': 'Mis Productos & Inventario | Portal Proveedores',
@@ -52,13 +52,13 @@ const RouteTitleUpdater: React.FC = () => {
     if (titleMap[path]) {
       document.title = titleMap[path];
     } else if (path.startsWith('/producto/')) {
-      if (!document.title.includes(' | NexCoin Marketplace')) {
-        document.title = 'Detalle de Producto | NexCoin';
+      if (!document.title.includes(' | NovaSats Marketplace')) {
+        document.title = 'Detalle de Producto | NovaSats';
       }
     } else if (path.startsWith('/proveedores/')) {
-      document.title = 'Portal Proveedores | NexCoin';
+      document.title = 'Portal Proveedores | NovaSats';
     } else {
-      document.title = 'NexCoin | Marketplace Web3 & Pagos Bitcoin';
+      document.title = 'NovaSats | Marketplace Web3 & Pagos Bitcoin';
     }
   }, [location]);
 

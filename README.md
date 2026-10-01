@@ -1,6 +1,6 @@
-# 🪙 NexCoin — Ecosistema de Comercio Descentralizado On-Chain
+# 🪙 NovaSats — Ecosistema de Comercio Descentralizado On-Chain
 
-NexCoin es una plataforma de comercio electrónico descentralizado (Web3 Marketplace) que permite la compra y venta de productos tecnológicos y hardware cripto con liquidación directa entre compradores y proveedores, sin intermediarios bancarios ni custodios centralizados.
+NovaSats es una plataforma de comercio electrónico descentralizado (Web3 Marketplace) que permite la compra y venta de productos tecnológicos y hardware cripto con liquidación directa entre compradores y proveedores, sin intermediarios bancarios ni custodios centralizados.
 
 ---
 
@@ -178,6 +178,6 @@ npm run preview
 
 ## 🔒 4. Privacidad y Seguridad Non-Custodial
 
-- **Sin custodia de fondos:** NexCoin no almacena claves privadas ni retiene fondos de usuarios. Las transacciones son P2P y directas a las billeteras de los proveedores.
+- **Sin custodia de fondos:** NovaSats no almacena claves privadas ni retiene fondos de usuarios. Las transacciones son P2P y directas a las billeteras de los proveedores.
 - **Transparencia on-chain:** Cada orden genera un registro inmutable con comprobante criptográfico verificable.
 - **Cumplimiento legal y protección:** Dispone de Libro de Reclamaciones digital, Términos y Condiciones y Políticas de Privacidad transparentes.

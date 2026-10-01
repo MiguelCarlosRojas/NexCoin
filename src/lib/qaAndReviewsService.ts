@@ -34,7 +34,7 @@ if (typeof window !== 'undefined' && window.localStorage) {
     const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && (key.startsWith('nexcoin_qa_') || key.startsWith('nexcoin_reviews_'))) {
+      if (key && (key.startsWith('novasats_qa_') || key.startsWith('novasats_reviews_'))) {
         keysToRemove.push(key);
       }
     }

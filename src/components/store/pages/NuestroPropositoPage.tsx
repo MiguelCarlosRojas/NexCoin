@@ -66,7 +66,7 @@ export const NuestroPropositoPage: React.FC = () => {
               <Shield className="w-5 h-5 text-amber-400" />
               <h4 className="text-sm font-bold text-white">Seguridad de Código</h4>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Cada orden es respaldada por el Smart Contract NexCoin.sol v2.0 con validación criptográfica matemática.
+                Cada orden es respaldada por el Smart Contract NovaSats.sol v2.0 con validación criptográfica matemática.
               </p>
             </div>
           </div>

@@ -48,7 +48,7 @@ export const SupplierNotificationsProvider: React.FC<{ children: React.ReactNode
   const [readIds, setReadIds] = useState<string[]>(() => {
     if (!supplier?.id) return [];
     try {
-      const stored = localStorage.getItem(`nexcoin_read_notifs_${supplier.id}`);
+      const stored = localStorage.getItem(`novasats_read_notifs_${supplier.id}`);
       return stored ? JSON.parse(stored) : [];
     } catch {
       return [];
@@ -64,7 +64,7 @@ export const SupplierNotificationsProvider: React.FC<{ children: React.ReactNode
       return;
     }
     try {
-      const stored = localStorage.getItem(`nexcoin_read_notifs_${supplier.id}`);
+      const stored = localStorage.getItem(`novasats_read_notifs_${supplier.id}`);
       setReadIds(stored ? JSON.parse(stored) : []);
     } catch {
       setReadIds([]);
@@ -236,7 +236,7 @@ export const SupplierNotificationsProvider: React.FC<{ children: React.ReactNode
       if (prev.includes(id)) return prev;
       const next = [...prev, id];
       try {
-        localStorage.setItem(`nexcoin_read_notifs_${supplier.id}`, JSON.stringify(next));
+        localStorage.setItem(`novasats_read_notifs_${supplier.id}`, JSON.stringify(next));
       } catch (err) {
         console.error(err);
       }
@@ -250,7 +250,7 @@ export const SupplierNotificationsProvider: React.FC<{ children: React.ReactNode
     setReadIds((prev) => {
       const next = Array.from(new Set([...prev, ...catIds]));
       try {
-        localStorage.setItem(`nexcoin_read_notifs_${supplier.id}`, JSON.stringify(next));
+        localStorage.setItem(`novasats_read_notifs_${supplier.id}`, JSON.stringify(next));
       } catch (err) {
         console.error(err);
       }
@@ -264,7 +264,7 @@ export const SupplierNotificationsProvider: React.FC<{ children: React.ReactNode
     const combined = Array.from(new Set([...readIds, ...allIds]));
     setReadIds(combined);
     try {
-      localStorage.setItem(`nexcoin_read_notifs_${supplier.id}`, JSON.stringify(combined));
+      localStorage.setItem(`novasats_read_notifs_${supplier.id}`, JSON.stringify(combined));
     } catch (err) {
       console.error(err);
     }

@@ -15,7 +15,7 @@ export const SobreNosotrosPage: React.FC = () => {
             Liderazgo en Comercio Web3
           </div>
           <h1 className="text-3xl sm:text-4xl font-black text-white font-heading tracking-tight">
-            Sobre Nosotros • NexCoin
+            Sobre Nosotros • NovaSats
           </h1>
           <p className="text-sm sm:text-base text-slate-400 leading-relaxed max-w-3xl">
             Somos la infraestructura de comercio electrónico descentralizado de última generación, conectando a fabricantes independientes, marcas verificadas y consumidores globales mediante la red Bitcoin.
@@ -30,7 +30,7 @@ export const SobreNosotrosPage: React.FC = () => {
             </div>
             <h3 className="text-base font-bold text-white">Comercio P2P sin Intermediarios</h3>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              En NexCoin eliminamos las pasarelas bancarias tradicionales que cobran comisiones excesivas y aplican retenciones injustificadas. Los pagos en Bitcoin se liquidan directamente a la billetera de los proveedores con total transparencia on-chain.
+              En NovaSats eliminamos las pasarelas bancarias tradicionales que cobran comisiones excesivas y aplican retenciones injustificadas. Los pagos en Bitcoin se liquidan directamente a la billetera de los proveedores con total transparencia on-chain.
             </p>
           </div>
 
@@ -38,7 +38,7 @@ export const SobreNosotrosPage: React.FC = () => {
             <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
               <ShieldCheck className="w-5 h-5" />
             </div>
-            <h3 className="text-base font-bold text-white">Garantía Smart Contract NexCoin.sol</h3>
+            <h3 className="text-base font-bold text-white">Garantía Smart Contract NovaSats.sol</h3>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
               Cada transacción está protegida por contratos inteligentes que generan firmas criptográficas ECDSA inmutables. Tanto el comprador como el vendedor cuentan con un registro verificable en blockchain.
             </p>
@@ -49,7 +49,7 @@ export const SobreNosotrosPage: React.FC = () => {
         <div className="space-y-4 text-xs sm:text-sm text-slate-300 leading-relaxed pt-2">
           <h2 className="text-xl font-bold text-white font-heading">Nuestra Historia</h2>
           <p>
-            NexCoin nació con una visión clara: el dinero sólido (Bitcoin) debe ser el medio de intercambio fundamental en el comercio del siglo XXI. Desarrollamos una plataforma integral donde la experiencia de compra es tan fluida como la de las grandes plataformas convencionales, pero sin custodia forzosa ni intermediarios financieros.
+            NovaSats nació con una visión clara: el dinero sólido (Bitcoin) debe ser el medio de intercambio fundamental en el comercio del siglo XXI. Desarrollamos una plataforma integral donde la experiencia de compra es tan fluida como la de las grandes plataformas convencionales, pero sin custodia forzosa ni intermediarios financieros.
           </p>
           <p>
             Nuestros proveedores cuentan con herramientas avanzadas para la gestión de catálogos en tiempo real, control de stock y emisión de comprobantes digitales certificados con opción de descarga en PDF y envío directo a Gmail.

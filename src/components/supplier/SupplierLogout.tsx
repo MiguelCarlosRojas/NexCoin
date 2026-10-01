@@ -76,7 +76,7 @@ export const SupplierLogout: React.FC = () => {
               Sesión Finalizada Correctamente
             </h1>
             <p className="text-sm sm:text-base text-slate-400 max-w-lg mx-auto leading-relaxed">
-              Has salido del Portal de Proveedores de NexCoin. Tu token de autenticación y claves locales han sido eliminados de este navegador.
+              Has salido del Portal de Proveedores de NovaSats. Tu token de autenticación y claves locales han sido eliminados de este navegador.
             </p>
           </div>
 
@@ -137,8 +137,8 @@ export const SupplierLogout: React.FC = () => {
 
       {/* Footer */}
       <footer className="border-t border-white/[0.08] bg-[#04060c] py-6 px-6 sm:px-12 text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
-        <p>© NexCoin Technologies S.A.C. • Infraestructura de Comercio Bitcoin</p>
-        <span className="font-mono text-[11px] text-slate-600">Smart Contract: NexCoin.sol v2.0 • On-Chain Verificado</span>
+        <p>© NovaSats Technologies S.A.C. • Infraestructura de Comercio Bitcoin</p>
+        <span className="font-mono text-[11px] text-slate-600">Smart Contract: NovaSats.sol v2.0 • On-Chain Verificado</span>
       </footer>
 
     </div>

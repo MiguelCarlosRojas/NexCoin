@@ -15,7 +15,7 @@ export const TrabajaConNosotrosPage: React.FC = () => {
             Ecosistema de Oportunidades Web3
           </div>
           <h1 className="text-3xl sm:text-4xl font-black text-white font-heading tracking-tight">
-            Trabaja con Nosotros en NexCoin
+            Trabaja con Nosotros en NovaSats
           </h1>
           <p className="text-sm sm:text-base text-slate-400 leading-relaxed max-w-4xl">
             Únete a la plataforma pionera de comercio electrónico descentralizado sobre la red Bitcoin. Buscamos proveedores de productos, fabricantes de hardware crypto, operadores logísticos y desarrolladores blockchain para expandir el nuevo estándar del comercio digital.
@@ -50,14 +50,14 @@ export const TrabajaConNosotrosPage: React.FC = () => {
               </div>
               <h3 className="text-base font-bold text-white">Desarrolladores Web3</h3>
               <p className="text-xs text-slate-300 leading-relaxed">
-                Colabora en la evolución de nuestros contratos inteligentes <code className="text-amber-400">NexCoin.sol</code>, integración de APIs on-chain, oráculos de precios y microservicios de vouchers digitales.
+                Colabora en la evolución de nuestros contratos inteligentes <code className="text-amber-400">NovaSats.sol</code>, integración de APIs on-chain, oráculos de precios y microservicios de vouchers digitales.
               </p>
             </div>
             <a
-              href="mailto:devs@nexcoin.com"
+              href="mailto:devs@novasats.com"
               className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-blue-400 hover:text-blue-300 hover:underline"
             >
-              <span>devs@nexcoin.com</span>
+              <span>devs@novasats.com</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </a>
           </div>
@@ -73,10 +73,10 @@ export const TrabajaConNosotrosPage: React.FC = () => {
               </p>
             </div>
             <a
-              href="mailto:logistica@nexcoin.com"
+              href="mailto:logistica@novasats.com"
               className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:underline"
             >
-              <span>logistica@nexcoin.com</span>
+              <span>logistica@novasats.com</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </a>
           </div>
@@ -92,10 +92,10 @@ export const TrabajaConNosotrosPage: React.FC = () => {
               </p>
             </div>
             <a
-              href="mailto:comunidad@nexcoin.com"
+              href="mailto:comunidad@novasats.com"
               className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-purple-400 hover:text-purple-300 hover:underline"
             >
-              <span>comunidad@nexcoin.com</span>
+              <span>comunidad@novasats.com</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </a>
           </div>
@@ -103,7 +103,7 @@ export const TrabajaConNosotrosPage: React.FC = () => {
 
         {/* Benefits for Suppliers & Team */}
         <div className="space-y-4">
-          <h2 className="text-xl font-bold text-white font-heading">¿Por qué incorporarse al sistema NexCoin?</h2>
+          <h2 className="text-xl font-bold text-white font-heading">¿Por qué incorporarse al sistema NovaSats?</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="p-5 rounded-2xl bg-[#0b1020] border border-white/[0.08] space-y-2">
               <div className="flex items-center gap-2 text-emerald-400">
@@ -131,7 +131,7 @@ export const TrabajaConNosotrosPage: React.FC = () => {
                 <h4 className="text-sm font-bold text-white">Vouchers Firmados On-Chain</h4>
               </div>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Cada orden genera comprobantes digitales con hash criptográfico respaldado por el Smart Contract NexCoin.sol v2.0, descargable en PDF y auditable en la red.
+                Cada orden genera comprobantes digitales con hash criptográfico respaldado por el Smart Contract NovaSats.sol v2.0, descargable en PDF y auditable en la red.
               </p>
             </div>
           </div>

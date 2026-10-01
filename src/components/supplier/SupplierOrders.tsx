@@ -192,7 +192,7 @@ export const SupplierOrders: React.FC = () => {
 
     exportLandscapePdfTable({
       title: 'Reporte Oficial de Ventas & Vouchers Bitcoin',
-      supplierName: supplier?.company_name || 'NexCoin Partner',
+      supplierName: supplier?.company_name || 'NovaSats Partner',
       stats: [
         { label: 'Total Órdenes', value: `${filteredOrders.length}` },
         { label: 'Total Recaudado (USD)', value: `$${totalUsd.toFixed(2)}` },

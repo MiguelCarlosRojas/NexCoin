@@ -24,7 +24,7 @@ export const ProteccionDatosPage: React.FC = () => {
           <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-2">
             <h3 className="text-sm font-bold text-white uppercase tracking-wider">1. Responsable del Banco de Datos</h3>
             <p>
-              El banco de datos personales derivado de las operaciones de compra y registro es gestionado por <strong>NEXCOIN TECHNOLOGIES S.A.C.</strong>, con domicilio en Av. Javier Prado Este 4200, Santiago de Surco, Lima - Perú.
+              El banco de datos personales derivado de las operaciones de compra y registro es gestionado por <strong>NOVASATS TECHNOLOGIES S.A.C.</strong>, con domicilio en Av. Javier Prado Este 4200, Santiago de Surco, Lima - Perú.
             </p>
           </div>
 
@@ -40,13 +40,13 @@ export const ProteccionDatosPage: React.FC = () => {
             <p>
               En cualquier momento, los titulares de los datos pueden ejercer sus derechos de <strong>Acceso, Rectificación, Cancelación y Oposición (ARCO)</strong> enviando una comunicación escrita con el asunto "Derechos ARCO" a nuestro correo de privacidad:
             </p>
-            <p className="font-mono text-amber-400 text-xs">privacidad@nexcoin.com</p>
+            <p className="font-mono text-amber-400 text-xs">privacidad@novasats.com</p>
           </div>
 
           <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-2">
             <h3 className="text-sm font-bold text-white uppercase tracking-wider">4. Privacidad Criptográfica de la Billetera</h3>
             <p>
-              NexCoin preserva la naturaleza descentralizada de Bitcoin. Tu dirección de billetera pública solo interactúa con el contrato inteligente `NexCoin.sol` para registrar la orden de compra y la firma criptográfica del voucher sin transferir datos bancarios a servidores centrales.
+              NovaSats preserva la naturaleza descentralizada de Bitcoin. Tu dirección de billetera pública solo interactúa con el contrato inteligente `NovaSats.sol` para registrar la orden de compra y la firma criptográfica del voucher sin transferir datos bancarios a servidores centrales.
             </p>
           </div>
         </div>

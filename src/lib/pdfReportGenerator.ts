@@ -22,7 +22,7 @@ export interface PdfReportOptions {
 
 /**
  * Generate a professional, horizontally oriented (Landscape A4) PDF report
- * with tabular data using jspdf-autotable and official NexCoin styling.
+ * with tabular data using jspdf-autotable and official NovaSats styling.
  */
 export function exportLandscapePdfTable(options: PdfReportOptions) {
   const doc = new jsPDF({
@@ -46,7 +46,7 @@ export function exportLandscapePdfTable(options: PdfReportOptions) {
   doc.setTextColor(245, 158, 11);
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text('NexCoin', 14, 12);
+  doc.text('NovaSats', 14, 12);
 
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(10);
@@ -66,7 +66,7 @@ export function exportLandscapePdfTable(options: PdfReportOptions) {
   const nowStr = new Date().toLocaleString();
   doc.text(`Proveedor: ${options.supplierName || 'Proveedor Verificado'}`, pageWidth - 14, 11, { align: 'right' });
   doc.text(`Fecha de Emisión: ${nowStr}`, pageWidth - 14, 17, { align: 'right' });
-  doc.text('Smart Contract: NexCoin.sol v2.0 (On-Chain)', pageWidth - 14, 23, { align: 'right' });
+  doc.text('Smart Contract: NovaSats.sol v2.0 (On-Chain)', pageWidth - 14, 23, { align: 'right' });
 
   let startY = 34;
 
@@ -130,7 +130,7 @@ export function exportLandscapePdfTable(options: PdfReportOptions) {
       doc.setFontSize(7.5);
       doc.setTextColor(148, 163, 184);
       doc.text(
-        'NexCoin Marketplace - Reporte Oficial generado horizontalmente (Landscape A4)',
+        'NovaSats Marketplace - Reporte Oficial generado horizontalmente (Landscape A4)',
         14,
         pageHeight - 6
       );

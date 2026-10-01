@@ -17,13 +17,13 @@ export function getSupplierVerification(supplierId?: string): SupplierVerificati
       legalName: 'TechGlobal Hardware & Cryptowear S.A.C.',
       country: 'Perú',
       businessAddress: 'Av. Blockchain 404, San Isidro, Lima',
-      website: 'https://nex-coin-rho.vercel.app',
+      website: 'https://novasats.vercel.app',
       verifiedAt: '2026-01-15T10:00:00Z',
       verificationHash: '0x7f9a2b8c4d1e3f5a6b7c8d9e0f1a2b3c4d5e6f7a',
     };
   }
   try {
-    const raw = localStorage.getItem(`nexcoin_supplier_verification_${supplierId}`);
+    const raw = localStorage.getItem(`novasats_supplier_verification_${supplierId}`);
     if (raw) {
       return JSON.parse(raw);
     }
@@ -34,7 +34,7 @@ export function getSupplierVerification(supplierId?: string): SupplierVerificati
     legalName: 'TechGlobal Hardware & Cryptowear S.A.C.',
     country: 'Perú',
     businessAddress: 'Av. Blockchain 404, San Isidro, Lima',
-    website: 'https://nex-coin-rho.vercel.app',
+    website: 'https://novasats.vercel.app',
     verifiedAt: '2026-01-15T10:00:00Z',
     verificationHash: '0x7f9a2b8c4d1e3f5a6b7c8d9e0f1a2b3c4d5e6f7a',
   };
@@ -42,7 +42,7 @@ export function getSupplierVerification(supplierId?: string): SupplierVerificati
 
 export function saveSupplierVerification(supplierId: string, data: SupplierVerificationInfo) {
   try {
-    localStorage.setItem(`nexcoin_supplier_verification_${supplierId}`, JSON.stringify(data));
+    localStorage.setItem(`novasats_supplier_verification_${supplierId}`, JSON.stringify(data));
   } catch (err) {
     console.error('Error saving supplier verification:', err);
   }

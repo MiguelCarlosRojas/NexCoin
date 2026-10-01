@@ -12,7 +12,7 @@ import {
 
 export const SupplierAccountDeletedPage: React.FC = () => {
   useEffect(() => {
-    document.title = 'Cuenta Eliminada con Éxito | Muchas Gracias - NexCoin';
+    document.title = 'Cuenta Eliminada con Éxito | Muchas Gracias - NovaSats';
   }, []);
 
   return (
@@ -69,7 +69,7 @@ export const SupplierAccountDeletedPage: React.FC = () => {
               ¡Muchas Gracias por Trabajar con Nosotros!
             </h1>
             <p className="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto leading-relaxed">
-              Ha sido un auténtico privilegio contar con tu empresa como aliado comercial en <strong className="text-white">NexCoin Marketplace</strong>. 
+              Ha sido un auténtico privilegio contar con tu empresa como aliado comercial en <strong className="text-white">NovaSats Marketplace</strong>. 
               Valoramos enormemente cada producto publicado, cada orden atendida y la confianza que depositaste en nuestro ecosistema de pagos Bitcoin.
             </p>
           </div>
@@ -101,7 +101,7 @@ export const SupplierAccountDeletedPage: React.FC = () => {
           <div className="p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-transparent border border-amber-500/20 text-slate-300 text-xs sm:text-sm italic">
             "El futuro del comercio electrónico descentralizado se construye paso a paso con empresas valientes y comprometidas. Te deseamos el mayor de los éxitos en todos tus proyectos presentes y futuros."
             <span className="block mt-2 font-mono font-semibold text-amber-400 not-italic text-xs">
-              — El Equipo de NexCoin Marketplace
+              — El Equipo de NovaSats Marketplace
             </span>
           </div>
 
@@ -112,7 +112,7 @@ export const SupplierAccountDeletedPage: React.FC = () => {
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-xl shadow-amber-500/20 transition active:scale-95"
             >
               <Store className="w-4 h-4" />
-              <span>Explorar Tienda NexCoin</span>
+              <span>Explorar Tienda NovaSats</span>
             </Link>
 
             <Link
@@ -137,7 +137,7 @@ export const SupplierAccountDeletedPage: React.FC = () => {
 
       {/* Footer */}
       <footer className="h-16 border-t border-white/[0.08] bg-[#0a0f1d]/50 px-6 sm:px-12 flex items-center justify-between text-xs text-slate-500">
-        <p>© {new Date().getFullYear()} NexCoin. Todos los derechos reservados.</p>
+        <p>© {new Date().getFullYear()} NovaSats. Todos los derechos reservados.</p>
         <div className="flex items-center gap-4">
           <Link to="/privacidad" className="hover:text-slate-300 transition">Privacidad</Link>
           <Link to="/terminos-y-condiciones" className="hover:text-slate-300 transition">Términos</Link>
