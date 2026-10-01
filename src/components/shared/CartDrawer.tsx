@@ -5,7 +5,7 @@ import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
 import { supabase } from '../../lib/supabaseClient';
 import { VoucherModal } from './VoucherModal';
 import { Order } from '../../types/store';
-import { signPurchaseWithNovaSats, NOVASATS_CONTRACT_ADDRESS } from '../../utils/nexCoinSignature';
+import { signPurchaseWithNovaSats, NOVASATS_CONTRACT_ADDRESS } from '../../utils/novaSatsSignature';
 import confetti from 'canvas-confetti';
 import {
   X,

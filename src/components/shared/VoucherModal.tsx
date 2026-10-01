@@ -15,18 +15,21 @@ import {
   Smartphone,
   Building2
 } from 'lucide-react';
-import { NOVASATS_CONTRACT_ADDRESS } from '../../utils/nexCoinSignature';
+import { NOVASATS_CONTRACT_ADDRESS } from '../../utils/novaSatsSignature';
 import { getSupplierVoucherConfig } from '../../lib/voucherConfigHelper';
+import { getSupplierVerification, SupplierVerificationInfo } from '../../lib/supplierVerificationHelper';
+import { getSupplierSession } from '../../lib/cookieSession';
+import { supabase } from '../../lib/supabaseClient';
 
-// INFORMACIÓN FISCAL Y DATOS COMERCIALES DE LA EMPRESA / MARCA
+// INFORMACIÓN FISCAL Y DATOS COMERCIALES BASE / FALLBACK
 export const NOVASATS_FISCAL_INFO = {
-  razonSocial: 'NOVASATS TECHNOLOGIES S.A.C.',
-  nombreComercial: 'NovaSats Marketplace · Web3 & Pagos Bitcoin',
-  ruc: '20612849501',
-  direccionFiscal: 'Av. Javier Prado Este 4200, Edificio Capital, Piso 18, San Isidro, Lima - Perú',
-  telefono: '+51 (01) 748-9200',
+  razonSocial: 'TechGlobal Hardware & Cryptowear S.A.C.',
+  nombreComercial: 'TechGlobal Hardware & Cryptowear',
+  ruc: '20601234567',
+  direccionFiscal: 'Av. Blockchain 404, San Isidro, Lima - Perú',
+  telefono: '+51 987 654 321',
   whatsapp: '+51 987 654 321',
-  emailFacturacion: 'facturacion@novasats.com',
+  emailFacturacion: 'proveedor@novasats.com',
   emailSoporte: 'soporte@novasats.com',
   web: 'https://novasats.vercel.app',
   giroComercial: 'Venta de Hardware Cripto, Nodos y Plataforma de Pasarela Web3',
@@ -51,9 +54,68 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
 
-  // Supplier permissions config for vouchers
-  const supplierId = order?.items?.[0]?.supplier_id;
-  const voucherConfig = getSupplierVoucherConfig(supplierId);
+  // Supplier permissions and fiscal config for vouchers
+  const sessionSupplier = getSupplierSession();
+  const resolvedSupplierId = order?.items?.[0]?.supplier_id || (order as any)?.supplier_id || sessionSupplier?.id;
+  const voucherConfig = getSupplierVoucherConfig(resolvedSupplierId);
+
+  // Supplier Verification & Commercial Profile from "Mi Perfil & Icono"
+  const [supplierVerification, setSupplierVerification] = useState<SupplierVerificationInfo>(() =>
+    getSupplierVerification(resolvedSupplierId)
+  );
+  const [supplierProfile, setSupplierProfile] = useState<any>(() => {
+    if (sessionSupplier && (!resolvedSupplierId || sessionSupplier.id === resolvedSupplierId)) {
+      return sessionSupplier;
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadSupplierFiscalData = async () => {
+      const currentId = resolvedSupplierId;
+      if (!currentId) return;
+
+      const verif = getSupplierVerification(currentId);
+      if (isMounted) setSupplierVerification(verif);
+
+      if (!supplierProfile || supplierProfile.id !== currentId) {
+        try {
+          const { data } = await supabase
+            .from('suppliers')
+            .select('*')
+            .eq('id', currentId)
+            .maybeSingle();
+          if (data && isMounted) {
+            setSupplierProfile(data);
+          }
+        } catch (err) {
+          console.error('Error fetching supplier fiscal profile:', err);
+        }
+      }
+    };
+
+    loadSupplierFiscalData();
+    return () => {
+      isMounted = false;
+    };
+  }, [resolvedSupplierId]);
+
+  // Dynamic fiscal & commercial data from "Mi Perfil & Icono"
+  const fiscalInfo = {
+    razonSocial: supplierVerification?.legalName || supplierProfile?.company_name || NOVASATS_FISCAL_INFO.razonSocial,
+    nombreComercial: supplierProfile?.company_name || supplierVerification?.legalName || NOVASATS_FISCAL_INFO.nombreComercial,
+    ruc: supplierVerification?.taxId || NOVASATS_FISCAL_INFO.ruc,
+    direccionFiscal: supplierVerification?.businessAddress || NOVASATS_FISCAL_INFO.direccionFiscal,
+    telefono: supplierProfile?.phone || NOVASATS_FISCAL_INFO.telefono,
+    whatsapp: supplierProfile?.phone || NOVASATS_FISCAL_INFO.whatsapp,
+    emailFacturacion: supplierProfile?.email || NOVASATS_FISCAL_INFO.emailFacturacion,
+    emailSoporte: supplierProfile?.email || NOVASATS_FISCAL_INFO.emailSoporte,
+    web: supplierVerification?.website || NOVASATS_FISCAL_INFO.web,
+    giroComercial: NOVASATS_FISCAL_INFO.giroComercial,
+    autorizacionSunat: NOVASATS_FISCAL_INFO.autorizacionSunat,
+    tipoComprobante: NOVASATS_FISCAL_INFO.tipoComprobante,
+  };
 
   const [viewMode, setViewMode] = useState<'preview80mm' | 'standard'>(() => {
     if (!voucherConfig.allow80mm && voucherConfig.allowDigital) return 'standard';
@@ -119,26 +181,29 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
     let y = 7;
     doc.setTextColor(0, 0, 0);
 
-    // 1. Cabecera Fiscal y Datos Comerciales
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9.5);
-    doc.text(NOVASATS_FISCAL_INFO.razonSocial, 40, y, { align: 'center' });
-    y += 4;
-
+    // 1. Cabecera Fiscal y Datos Comerciales desde "Mi Perfil & Icono"
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.5);
-    doc.text(`R.U.C. ${NOVASATS_FISCAL_INFO.ruc}`, 40, y, { align: 'center' });
-    y += 3.8;
+    const legalLines = doc.splitTextToSize(fiscalInfo.razonSocial, 72);
+    doc.text(legalLines, 40, y, { align: 'center' });
+    y += legalLines.length * 3.4 + 0.6;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.text(`R.U.C. ${fiscalInfo.ruc}`, 40, y, { align: 'center' });
+    y += 3.5;
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(6.5);
-    doc.text('Av. Javier Prado Este 4200, Piso 18, San Isidro, Lima - Perú', 40, y, { align: 'center' });
-    y += 3.2;
-    doc.text(`Tel: ${NOVASATS_FISCAL_INFO.telefono} | WA: ${NOVASATS_FISCAL_INFO.whatsapp}`, 40, y, { align: 'center' });
-    y += 3.2;
-    doc.text(`Email: ${NOVASATS_FISCAL_INFO.emailFacturacion}`, 40, y, { align: 'center' });
-    y += 3.2;
-    doc.text(`Web: ${NOVASATS_FISCAL_INFO.web}`, 40, y, { align: 'center' });
+    doc.setFontSize(6.2);
+    const addrLines = doc.splitTextToSize(fiscalInfo.direccionFiscal, 72);
+    doc.text(addrLines, 40, y, { align: 'center' });
+    y += addrLines.length * 2.8 + 0.6;
+
+    doc.text(`Tel: ${fiscalInfo.telefono} | WA: ${fiscalInfo.whatsapp}`, 40, y, { align: 'center' });
+    y += 3;
+    doc.text(`Email: ${fiscalInfo.emailFacturacion}`, 40, y, { align: 'center' });
+    y += 3;
+    doc.text(`Web: ${fiscalInfo.web}`, 40, y, { align: 'center' });
     y += 4;
 
     // Línea separadora limpia
@@ -252,33 +317,33 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
     const taxes = calculateTaxes(currentOrder.total_usd);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7);
+    doc.setFontSize(6.8);
     doc.text('SUBTOTAL GRAVADO (USD):', 4, y);
     doc.text(`$${taxes.subtotal}`, 76, y, { align: 'right' });
-    y += 3.5;
+    y += 3.3;
 
     doc.text('I.G.V. (18.00%):', 4, y);
     doc.text(`$${taxes.igv}`, 76, y, { align: 'right' });
-    y += 4;
+    y += 3.3;
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8.5);
+    doc.setFontSize(6.8);
     doc.text('TOTAL IMPORTE (USD):', 4, y);
     doc.text(`$${taxes.total} USD`, 76, y, { align: 'right' });
-    y += 4.5;
+    y += 3.4;
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6.8);
     const btcPriceRef = Number(currentOrder.total_usd) / (Number(currentOrder.total_btc) || 1);
     doc.text('TASA DE CAMBIO REF.:', 4, y);
     doc.text(`$${btcPriceRef.toFixed(2)} USD/BTC`, 76, y, { align: 'right' });
-    y += 3.5;
+    y += 3.3;
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7.5);
+    doc.setFontSize(6.8);
     doc.text('TOTAL BITCOIN LIQUIDADO:', 4, y);
     doc.text(`${Number(currentOrder.total_btc).toFixed(8)} BTC`, 76, y, { align: 'right' });
-    y += 5;
+    y += 4.5;
 
     doc.line(4, y, 76, y);
     y += 4;
@@ -291,15 +356,21 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(5.8);
-    const txShort = currentOrder.payment_tx_hash ? `${currentOrder.payment_tx_hash.substring(0, 42)}...` : '0x...';
-    doc.text(`TX: ${txShort}`, 4, y);
-    y += 3;
-    const contractShort = `${(currentOrder.contract_address || NOVASATS_CONTRACT_ADDRESS).substring(0, 40)}...`;
-    doc.text(`CONTRATO: ${contractShort} (NovaSats.sol)`, 4, y);
-    y += 3;
-    const sigShort = `${(currentOrder.signature_novasats || '0x3a4b9c8d...').substring(0, 42)}...`;
-    doc.text(`FIRMA ECDSA: ${sigShort}`, 4, y);
-    y += 4.5;
+    const txText = `TX: ${currentOrder.payment_tx_hash || '0x...'}`;
+    const txLines = doc.splitTextToSize(txText, 72);
+    doc.text(txLines, 4, y);
+    y += txLines.length * 2.8 + 0.6;
+
+    const contractFull = currentOrder.contract_address || NOVASATS_CONTRACT_ADDRESS;
+    const contractText = `CONTRATO: ${contractFull} (NovaSats.sol)`;
+    const contractLines = doc.splitTextToSize(contractText, 72);
+    doc.text(contractLines, 4, y);
+    y += contractLines.length * 2.8 + 0.6;
+
+    const sigText = `FIRMA ECDSA: ${currentOrder.signature_novasats || '0x3a4b9c8d...'}`;
+    const sigLines = doc.splitTextToSize(sigText, 72);
+    doc.text(sigLines, 4, y);
+    y += sigLines.length * 2.8 + 1;
 
     doc.line(4, y, 76, y);
     y += 4;
@@ -320,12 +391,12 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
     y += 3.5;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6.5);
-    doc.text('www.novasats.com', 40, y, { align: 'center' });
+    doc.text('https://novasats.vercel.app', 40, y, { align: 'center' });
 
     return doc;
   };
 
-  // Re-generate 80mm PDF blob url whenever order changes
+  // Re-generate 80mm PDF blob url whenever order or fiscal data changes
   useEffect(() => {
     if (!order) {
       setPdf80mmUrl(null);
@@ -344,7 +415,7 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
     } catch (e) {
       console.error('Error generating 80mm preview:', e);
     }
-  }, [order]);
+  }, [order, fiscalInfo.razonSocial, fiscalInfo.ruc, fiscalInfo.direccionFiscal, fiscalInfo.telefono, fiscalInfo.emailFacturacion, fiscalInfo.web]);
 
   if (!isOpen || !order) return null;
 
@@ -376,7 +447,7 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
       doc.setTextColor(251, 191, 36);
       doc.text('Plataforma Web3 & Pasarela de Pagos Bitcoin On-Chain', 14, 23);
       doc.setTextColor(203, 213, 225);
-      doc.text(NOVASATS_FISCAL_INFO.web, 14, 29);
+      doc.text(fiscalInfo.web, 14, 29);
 
       // Fiscal Box on Top Right
       doc.setDrawColor(203, 213, 225);
@@ -386,7 +457,7 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
       doc.setTextColor(15, 23, 42);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);
-      doc.text(`R.U.C. ${NOVASATS_FISCAL_INFO.ruc}`, 161, 13, { align: 'center' });
+      doc.text(`R.U.C. ${fiscalInfo.ruc}`, 161, 13, { align: 'center' });
       doc.setFontSize(8);
       doc.text('COMPROBANTE ELECTRÓNICO', 161, 19, { align: 'center' });
       doc.setFontSize(9);
@@ -409,11 +480,11 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.5);
       doc.setTextColor(71, 85, 105);
-      doc.text(`Razón Social: ${NOVASATS_FISCAL_INFO.razonSocial}`, 18, y + 12);
-      doc.text(`R.U.C.: ${NOVASATS_FISCAL_INFO.ruc}`, 18, y + 17);
-      doc.text(`Dirección: ${NOVASATS_FISCAL_INFO.direccionFiscal.substring(0, 40)}...`, 18, y + 22);
-      doc.text(`Tel: ${NOVASATS_FISCAL_INFO.telefono}`, 18, y + 27);
-      doc.text(`Email: ${NOVASATS_FISCAL_INFO.emailFacturacion}`, 18, y + 32);
+      doc.text(`Razón Social: ${fiscalInfo.razonSocial.substring(0, 36)}`, 18, y + 12);
+      doc.text(`R.U.C.: ${fiscalInfo.ruc}`, 18, y + 17);
+      doc.text(`Dirección: ${fiscalInfo.direccionFiscal.substring(0, 38)}...`, 18, y + 22);
+      doc.text(`Tel: ${fiscalInfo.telefono}`, 18, y + 27);
+      doc.text(`Email: ${fiscalInfo.emailFacturacion}`, 18, y + 32);
 
       // Cliente / Adquiriente
       doc.setFont('helvetica', 'bold');
@@ -512,7 +583,7 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
       doc.setFontSize(7.5);
       doc.setTextColor(148, 163, 184);
       doc.text('Este documento es una representación impresa de Comprobante de Pago Electrónico generado bajo protocolo Web3.', 14, 280);
-      doc.text('Para consultas o reclamos tributarios contactar a facturacion@novasats.com. Garantía de 12 meses respaldada on-chain.', 14, 285);
+      doc.text(`Para consultas o reclamos tributarios contactar a ${fiscalInfo.emailFacturacion}. Garantía de 12 meses respaldada on-chain.`, 14, 285);
 
       doc.save(`Comprobante_NovaSats_${order.order_number}.pdf`);
     } catch (e) {
@@ -544,11 +615,11 @@ Aquí tienes el comprobante electrónico oficial de tu compra realizada con Bitc
 ------------------------------------------------
 INFORMACIÓN FISCAL DEL EMISOR
 ------------------------------------------------
-Razón Social: ${NOVASATS_FISCAL_INFO.razonSocial}
-R.U.C.: ${NOVASATS_FISCAL_INFO.ruc}
-Dirección Fiscal: ${NOVASATS_FISCAL_INFO.direccionFiscal}
-Teléfono: ${NOVASATS_FISCAL_INFO.telefono} | WhatsApp: ${NOVASATS_FISCAL_INFO.whatsapp}
-Email Fiscal: ${NOVASATS_FISCAL_INFO.emailFacturacion}
+Razón Social: ${fiscalInfo.razonSocial}
+R.U.C.: ${fiscalInfo.ruc}
+Dirección Fiscal: ${fiscalInfo.direccionFiscal}
+Teléfono: ${fiscalInfo.telefono} | WhatsApp: ${fiscalInfo.whatsapp}
+Email Fiscal: ${fiscalInfo.emailFacturacion}
 
 ------------------------------------------------
 DETALLES DEL COMPROBANTE
@@ -577,7 +648,7 @@ Total Bitcoin Liquidado: ${Number(order.total_btc).toFixed(8)} BTC
 
 Estado del Pago: CONFIRMADO EN BLOCKCHAIN
 Gracias por comprar en NovaSats Marketplace.
-${NOVASATS_FISCAL_INFO.web}`;
+${fiscalInfo.web}`;
 
     const encodedBody = encodeURIComponent(bodyText);
     const toEmail = encodeURIComponent(order.customer_email);
@@ -820,20 +891,20 @@ ${NOVASATS_FISCAL_INFO.web}`;
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div>
                   <span className="text-slate-400 block text-[11px]">Razón Social:</span>
-                  <p className="font-bold text-white">{NOVASATS_FISCAL_INFO.razonSocial}</p>
+                  <p className="font-bold text-white">{fiscalInfo.razonSocial}</p>
                   <span className="text-slate-400 block text-[11px] mt-1.5">R.U.C. Fiscal:</span>
-                  <p className="font-mono font-bold text-amber-400">{NOVASATS_FISCAL_INFO.ruc}</p>
+                  <p className="font-mono font-bold text-amber-400">{fiscalInfo.ruc}</p>
                   <span className="text-slate-400 block text-[11px] mt-1.5">Dirección Fiscal:</span>
-                  <p className="text-slate-300 text-[11px] leading-relaxed">{NOVASATS_FISCAL_INFO.direccionFiscal}</p>
+                  <p className="text-slate-300 text-[11px] leading-relaxed">{fiscalInfo.direccionFiscal}</p>
                 </div>
 
                 <div>
                   <span className="text-slate-400 block text-[11px]">Contacto Comercial:</span>
-                  <p className="text-slate-200 font-mono text-[11px]">{NOVASATS_FISCAL_INFO.telefono} | WA: {NOVASATS_FISCAL_INFO.whatsapp}</p>
+                  <p className="text-slate-200 font-mono text-[11px]">{fiscalInfo.telefono} | WA: {fiscalInfo.whatsapp}</p>
                   <span className="text-slate-400 block text-[11px] mt-1.5">Facturación & Soporte:</span>
-                  <p className="text-slate-200 font-mono text-[11px]">{NOVASATS_FISCAL_INFO.emailFacturacion}</p>
+                  <p className="text-slate-200 font-mono text-[11px]">{fiscalInfo.emailFacturacion}</p>
                   <span className="text-slate-400 block text-[11px] mt-1.5">Régimen & Autorización:</span>
-                  <p className="text-slate-300 text-[11px] leading-relaxed">{NOVASATS_FISCAL_INFO.autorizacionSunat}</p>
+                  <p className="text-slate-300 text-[11px] leading-relaxed">{fiscalInfo.autorizacionSunat}</p>
                 </div>
               </div>
             </div>
