@@ -273,7 +273,7 @@ export async function fetchSupplierReviews(supplierId: string): Promise<ProductR
 
     return (data || []).map((r) => ({
       ...r,
-      product_name: prodNameMap[r.product_id] || r.product_name || 'Producto del Catálogo',
+      product_name: prodNameMap[r.product_id] || (r as any).product_name || 'Producto del Catálogo',
     }));
   } catch (err) {
     console.error('Error de red en fetchSupplierReviews:', err);

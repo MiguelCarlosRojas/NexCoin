@@ -361,8 +361,9 @@ export const SupplierReviews: React.FC = () => {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {paginatedReviews.map((r) => (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {paginatedReviews.map((r) => (
                   <div
                     key={r.id}
                     className="p-5 rounded-2xl bg-[#090d19] border border-white/[0.08] hover:border-amber-500/40 transition-all flex flex-col justify-between space-y-3 shadow-lg"
@@ -460,6 +461,7 @@ export const SupplierReviews: React.FC = () => {
                   </div>
                 </div>
               )}
+              </>
             )}
           </>
         )}
