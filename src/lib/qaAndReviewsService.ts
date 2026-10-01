@@ -28,8 +28,22 @@ export interface ProductReview {
   created_at: string;
 }
 
+// Limpiar inmediatamente cualquier rastro previo en localStorage (datos solo en Supabase)
+if (typeof window !== 'undefined' && window.localStorage) {
+  try {
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('nexcoin_qa_') || key.startsWith('nexcoin_reviews_'))) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((k) => localStorage.removeItem(k));
+  } catch {}
+}
+
 // -------------------------------------------------------------
-// QUESTIONS (Q&A)
+// QUESTIONS (Q&A) - 100% SUPABASE (SIN LOCAL STORAGE)
 // -------------------------------------------------------------
 
 export async function fetchProductQuestions(productId: string): Promise<ProductQuestion[]> {
@@ -40,18 +54,13 @@ export async function fetchProductQuestions(productId: string): Promise<ProductQ
       .eq('product_id', productId)
       .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      return data;
+    if (error) {
+      console.error('Error al consultar product_questions en Supabase:', error);
+      return [];
     }
+    return data || [];
   } catch (err) {
-    console.warn('Supabase product_questions query fallback:', err);
-  }
-
-  // Graceful local cache fallback
-  try {
-    const cached = localStorage.getItem(`nexcoin_qa_${productId}`);
-    return cached ? JSON.parse(cached) : [];
-  } catch {
+    console.error('Error de red al consultar preguntas:', err);
     return [];
   }
 }
@@ -64,48 +73,30 @@ export async function submitProductQuestion(payload: {
   userEmail?: string;
   question: string;
 }): Promise<ProductQuestion> {
-  const newQuestion: ProductQuestion = {
-    id: `qa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+  const insertPayload = {
     product_id: payload.productId,
-    supplier_id: payload.supplierId,
+    supplier_id: payload.supplierId || null,
     product_name: payload.productName,
-    user_name: payload.userName.trim(),
-    user_email: payload.userEmail?.trim() || '',
+    user_name: payload.userName.trim() || 'Comprador Web3',
+    user_email: payload.userEmail?.trim() || null,
     question: payload.question.trim(),
     answer: null,
     answered_at: null,
     created_at: new Date().toISOString(),
   };
 
-  try {
-    const { data, error } = await supabase
-      .from('product_questions')
-      .insert([
-        {
-          product_id: payload.productId,
-          supplier_id: payload.supplierId,
-          product_name: payload.productName,
-          user_name: payload.userName.trim(),
-          user_email: payload.userEmail?.trim() || null,
-          question: payload.question.trim(),
-          created_at: newQuestion.created_at,
-        },
-      ])
-      .select()
-      .maybeSingle();
+  const { data, error } = await supabase
+    .from('product_questions')
+    .insert([insertPayload])
+    .select()
+    .single();
 
-    if (!error && data) {
-      // Save locally as well for offline resilience
-      syncQuestionToLocalStorage(data);
-      return data;
-    }
-  } catch (err) {
-    console.warn('Supabase product_questions insert fallback:', err);
+  if (error) {
+    console.error('Error al insertar pregunta en Supabase:', error);
+    throw new Error(error.message || 'No se pudo guardar la pregunta en la base de datos');
   }
 
-  // Fallback to local storage
-  syncQuestionToLocalStorage(newQuestion);
-  return newQuestion;
+  return data;
 }
 
 export async function fetchSupplierQuestions(supplierId: string): Promise<ProductQuestion[]> {
@@ -116,29 +107,15 @@ export async function fetchSupplierQuestions(supplierId: string): Promise<Produc
       .eq('supplier_id', supplierId)
       .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      return data;
+    if (error) {
+      console.error('Error al obtener preguntas del proveedor desde Supabase:', error);
+      return [];
     }
+    return data || [];
   } catch (err) {
-    console.warn('Supabase fetchSupplierQuestions fallback:', err);
+    console.error('Error de red en fetchSupplierQuestions:', err);
+    return [];
   }
-
-  // Fallback: search all local storage keys
-  const results: ProductQuestion[] = [];
-  try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('nexcoin_qa_')) {
-        const items: ProductQuestion[] = JSON.parse(localStorage.getItem(key) || '[]');
-        items.forEach((it) => {
-          if (it.supplier_id === supplierId || !it.supplier_id) {
-            results.push(it);
-          }
-        });
-      }
-    }
-  } catch {}
-  return results.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 }
 
 export async function answerProductQuestion(
@@ -147,66 +124,24 @@ export async function answerProductQuestion(
 ): Promise<boolean> {
   const answeredAt = new Date().toISOString();
 
-  try {
-    const { error } = await supabase
-      .from('product_questions')
-      .update({
-        answer: answerText.trim(),
-        answered_at: answeredAt,
-      })
-      .eq('id', questionId);
+  const { error } = await supabase
+    .from('product_questions')
+    .update({
+      answer: answerText.trim(),
+      answered_at: answeredAt,
+    })
+    .eq('id', questionId);
 
-    if (!error) {
-      updateLocalQuestionAnswer(questionId, answerText.trim(), answeredAt);
-      return true;
-    }
-  } catch (err) {
-    console.warn('Supabase answerProductQuestion fallback:', err);
+  if (error) {
+    console.error('Error al registrar respuesta en Supabase:', error);
+    throw new Error(error.message || 'No se pudo actualizar la respuesta en la base de datos');
   }
 
-  // Update in local storage
-  updateLocalQuestionAnswer(questionId, answerText.trim(), answeredAt);
   return true;
 }
 
-function syncQuestionToLocalStorage(item: ProductQuestion) {
-  try {
-    const key = `nexcoin_qa_${item.product_id}`;
-    const list: ProductQuestion[] = JSON.parse(localStorage.getItem(key) || '[]');
-    const existingIdx = list.findIndex((q) => q.id === item.id);
-    if (existingIdx >= 0) {
-      list[existingIdx] = item;
-    } else {
-      list.unshift(item);
-    }
-    localStorage.setItem(key, JSON.stringify(list));
-  } catch {}
-}
-
-function updateLocalQuestionAnswer(questionId: string, answer: string, answeredAt: string) {
-  try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('nexcoin_qa_')) {
-        const list: ProductQuestion[] = JSON.parse(localStorage.getItem(key) || '[]');
-        let updated = false;
-        list.forEach((q) => {
-          if (q.id === questionId) {
-            q.answer = answer;
-            q.answered_at = answeredAt;
-            updated = true;
-          }
-        });
-        if (updated) {
-          localStorage.setItem(key, JSON.stringify(list));
-        }
-      }
-    }
-  } catch {}
-}
-
 // -------------------------------------------------------------
-// REVIEWS & RATINGS (OPINIONES)
+// REVIEWS & RATINGS (OPINIONES) - 100% SUPABASE (SIN LOCAL STORAGE)
 // -------------------------------------------------------------
 
 export async function fetchProductReviews(productId: string): Promise<ProductReview[]> {
@@ -217,17 +152,13 @@ export async function fetchProductReviews(productId: string): Promise<ProductRev
       .eq('product_id', productId)
       .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      return data;
+    if (error) {
+      console.error('Error al consultar product_reviews en Supabase:', error);
+      return [];
     }
+    return data || [];
   } catch (err) {
-    console.warn('Supabase product_reviews query fallback:', err);
-  }
-
-  try {
-    const cached = localStorage.getItem(`nexcoin_reviews_${productId}`);
-    return cached ? JSON.parse(cached) : [];
-  } catch {
+    console.error('Error de red al consultar opiniones:', err);
     return [];
   }
 }
@@ -243,73 +174,50 @@ export async function submitProductReview(payload: {
   voucherCode?: string;
   verifiedPurchase?: boolean;
 }): Promise<ProductReview> {
-  const newReview: ProductReview = {
-    id: `rev-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+  const insertPayload = {
     product_id: payload.productId,
-    supplier_id: payload.supplierId,
-    user_name: payload.userName.trim(),
-    user_email: payload.userEmail?.trim() || '',
-    user_wallet: payload.userWallet?.trim() || '',
+    supplier_id: payload.supplierId || null,
+    user_name: payload.userName.trim() || 'Comprador Bitcoin',
+    user_email: payload.userEmail?.trim() || null,
+    user_wallet: payload.userWallet?.trim() || null,
     rating: Math.max(1, Math.min(5, Math.round(payload.rating))),
     comment: payload.comment.trim(),
-    voucher_code: payload.voucherCode?.trim() || '',
+    voucher_code: payload.voucherCode?.trim() || null,
     verified_purchase: Boolean(payload.verifiedPurchase || payload.voucherCode),
     created_at: new Date().toISOString(),
   };
 
-  try {
-    const { data, error } = await supabase
-      .from('product_reviews')
-      .insert([
-        {
-          product_id: payload.productId,
-          supplier_id: payload.supplierId,
-          user_name: payload.userName.trim(),
-          user_email: payload.userEmail?.trim() || null,
-          user_wallet: payload.userWallet?.trim() || null,
-          rating: newReview.rating,
-          comment: payload.comment.trim(),
-          voucher_code: payload.voucherCode?.trim() || null,
-          verified_purchase: newReview.verified_purchase,
-          created_at: newReview.created_at,
-        },
-      ])
-      .select()
-      .maybeSingle();
+  const { data, error } = await supabase
+    .from('product_reviews')
+    .insert([insertPayload])
+    .select()
+    .single();
 
-    if (!error && data) {
-      syncReviewToLocalStorage(data);
-      await recalculateProductRating(payload.productId);
-      return data;
-    }
-  } catch (err) {
-    console.warn('Supabase product_reviews insert fallback:', err);
+  if (error) {
+    console.error('Error al registrar opinión en Supabase:', error);
+    throw new Error(error.message || 'No se pudo guardar la calificación en la base de datos');
   }
 
-  syncReviewToLocalStorage(newReview);
+  // Recalcular calificación promedio real del producto directamente en la base de datos
   await recalculateProductRating(payload.productId);
-  return newReview;
+
+  return data;
 }
 
-function syncReviewToLocalStorage(item: ProductReview) {
+export async function recalculateProductRating(productId: string) {
   try {
-    const key = `nexcoin_reviews_${item.product_id}`;
-    const list: ProductReview[] = JSON.parse(localStorage.getItem(key) || '[]');
-    const existingIdx = list.findIndex((r) => r.id === item.id);
-    if (existingIdx >= 0) {
-      list[existingIdx] = item;
-    } else {
-      list.unshift(item);
+    const { data: reviews, error } = await supabase
+      .from('product_reviews')
+      .select('rating')
+      .eq('product_id', productId);
+
+    if (error) {
+      console.error('Error al obtener opiniones para recalcular promedio:', error);
+      return;
     }
-    localStorage.setItem(key, JSON.stringify(list));
-  } catch {}
-}
 
-async function recalculateProductRating(productId: string) {
-  try {
-    const reviews = await fetchProductReviews(productId);
-    if (reviews.length > 0) {
-      const avg = reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length;
+    if (reviews && reviews.length > 0) {
+      const avg = reviews.reduce((acc, r) => acc + Number(r.rating), 0) / reviews.length;
       await supabase
         .from('products')
         .update({
@@ -318,13 +226,25 @@ async function recalculateProductRating(productId: string) {
           updated_at: new Date().toISOString(),
         })
         .eq('id', productId);
+    } else {
+      // Si no tiene opiniones de compradores reales, la calificación es estrictamente 0.0
+      await supabase
+        .from('products')
+        .update({
+          rating: 0.0,
+          reviews_count: 0,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', productId);
     }
-  } catch {}
+  } catch (err) {
+    console.error('Error al actualizar rating del producto en Supabase:', err);
+  }
 }
 
 export async function fetchSupplierReviews(supplierId: string): Promise<ProductReview[]> {
   try {
-    // 1. First get all products belonging to this supplier
+    // 1. Obtener productos pertenecientes al proveedor
     const { data: prods } = await supabase
       .from('products')
       .select('id, name')
@@ -336,49 +256,27 @@ export async function fetchSupplierReviews(supplierId: string): Promise<ProductR
       prodNameMap[p.id] = p.name;
     });
 
+    let query = supabase.from('product_reviews').select('*');
+
     if (productIds.length > 0) {
-      const { data, error } = await supabase
-        .from('product_reviews')
-        .select('*')
-        .or(`supplier_id.eq.${supplierId},product_id.in.(${productIds.join(',')})`)
-        .order('created_at', { ascending: false });
-
-      if (!error && data) {
-        return data.map((r) => ({
-          ...r,
-          product_name: prodNameMap[r.product_id] || 'Producto',
-        }));
-      }
+      query = query.or(`supplier_id.eq.${supplierId},product_id.in.(${productIds.join(',')})`);
     } else {
-      const { data, error } = await supabase
-        .from('product_reviews')
-        .select('*')
-        .eq('supplier_id', supplierId)
-        .order('created_at', { ascending: false });
-
-      if (!error && data) return data;
+      query = query.eq('supplier_id', supplierId);
     }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error al consultar opiniones del proveedor en Supabase:', error);
+      return [];
+    }
+
+    return (data || []).map((r) => ({
+      ...r,
+      product_name: prodNameMap[r.product_id] || r.product_name || 'Producto del Catálogo',
+    }));
   } catch (err) {
-    console.warn('Supabase fetchSupplierReviews fallback:', err);
-  }
-
-  // Local storage scan fallback
-  try {
-    const results: ProductReview[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('nexcoin_reviews_')) {
-        const list: ProductReview[] = JSON.parse(localStorage.getItem(key) || '[]');
-        list.forEach((r) => {
-          if (r.supplier_id === supplierId || !r.supplier_id) {
-            results.push(r);
-          }
-        });
-      }
-    }
-    return results.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  } catch {
+    console.error('Error de red en fetchSupplierReviews:', err);
     return [];
   }
 }
-

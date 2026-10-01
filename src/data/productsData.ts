@@ -55,7 +55,7 @@ export async function fetchAllStoreProducts(): Promise<Product[]> {
           original_price_usd: meta.original_price_usd ?? (item.original_price_usd || item.price_usd),
           free_shipping: freeShippingEligible,
           shipping_type: freeShippingEligible && rawShippingType === 'standard' ? 'free' : rawShippingType,
-          rating: meta.rating ?? (item.rating || 5.0),
+          rating: meta.rating !== undefined && meta.rating !== null ? Number(meta.rating) : (item.rating !== undefined && item.rating !== null ? Number(item.rating) : 0.0),
           reviews_count: meta.reviews_count ?? (item.reviews_count || 0),
           warranty: meta.warranty ?? (item.warranty || 'Garantía del Proveedor'),
           condition: meta.condition ?? (item.condition || 'Nuevo')
@@ -103,7 +103,7 @@ export async function getProductById(id: string): Promise<Product | null> {
         original_price_usd: meta.original_price_usd ?? (data.original_price_usd || data.price_usd),
         free_shipping: freeShippingEligible,
         shipping_type: freeShippingEligible && rawShippingType === 'standard' ? 'free' : rawShippingType,
-        rating: meta.rating ?? (data.rating || 5.0),
+        rating: meta.rating !== undefined && meta.rating !== null ? Number(meta.rating) : (data.rating !== undefined && data.rating !== null ? Number(data.rating) : 0.0),
         reviews_count: meta.reviews_count ?? (data.reviews_count || 0),
         warranty: meta.warranty ?? (data.warranty || 'Garantía del Proveedor'),
         condition: meta.condition ?? (data.condition || 'Nuevo')
@@ -136,7 +136,7 @@ export async function getProductById(id: string): Promise<Product | null> {
         original_price_usd: meta.original_price_usd ?? (skuData.original_price_usd || skuData.price_usd),
         free_shipping: freeShippingEligible,
         shipping_type: freeShippingEligible && rawShippingType === 'standard' ? 'free' : rawShippingType,
-        rating: meta.rating ?? (skuData.rating || 5.0),
+        rating: meta.rating !== undefined && meta.rating !== null ? Number(meta.rating) : (skuData.rating !== undefined && skuData.rating !== null ? Number(skuData.rating) : 0.0),
         reviews_count: meta.reviews_count ?? (skuData.reviews_count || 0),
         warranty: meta.warranty ?? (skuData.warranty || 'Garantía del Proveedor'),
         condition: meta.condition ?? (skuData.condition || 'Nuevo')

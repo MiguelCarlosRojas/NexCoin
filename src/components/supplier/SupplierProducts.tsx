@@ -237,8 +237,8 @@ export const SupplierProducts: React.FC = () => {
           original_price_usd: meta.original_price_usd ?? (p.original_price_usd ?? p.price_usd),
           free_shipping: meta.free_shipping ?? (meta.shipping_type === 'free' || p.price_usd >= 100),
           shipping_type: meta.shipping_type ?? (p.shipping_type ?? 'free'),
-          rating: meta.rating ?? (p.rating ?? 4.9),
-          reviews_count: meta.reviews_count ?? (p.reviews_count ?? 18)
+          rating: meta.rating !== undefined && meta.rating !== null ? Number(meta.rating) : (p.rating !== undefined && p.rating !== null ? Number(p.rating) : 0.0),
+          reviews_count: meta.reviews_count ?? (p.reviews_count ?? 0)
         };
       });
 
@@ -426,8 +426,8 @@ export const SupplierProducts: React.FC = () => {
         ...additionalImages.filter(Boolean)
       ];
 
-      // Real rating and reviews from verified buyer opinions (never fake/hardcoded)
-      const realRating = editingProduct ? (editingProduct.rating ?? 5.0) : 5.0;
+      // Real rating and reviews from verified buyer opinions (never fake/hardcoded, starts at 0.0)
+      const realRating = editingProduct ? (editingProduct.rating ?? 0.0) : 0.0;
       const realReviewsCount = editingProduct ? (editingProduct.reviews_count ?? 0) : 0;
 
       // Encode extended metadata into description
@@ -1622,9 +1622,9 @@ export const SupplierProducts: React.FC = () => {
                               <p className="text-xs font-bold text-white">Calificación por Compradores Reales</p>
                               <p className="text-[11px] text-slate-400">
                                 {editingProduct ? (
-                                  <>Promedio actual: <strong className="text-amber-400 font-mono">{editingProduct.rating ? editingProduct.rating.toFixed(1) : '5.0'} ★</strong> ({editingProduct.reviews_count || 0} opiniones de clientes)</>
+                                  <>Promedio actual: <strong className="text-amber-400 font-mono">{editingProduct.rating !== undefined && editingProduct.rating !== null ? Number(editingProduct.rating).toFixed(1) : '0.0'} ★</strong> ({editingProduct.reviews_count || 0} opiniones de clientes)</>
                                 ) : (
-                                  'Las calificaciones se calcularán automáticamente conforme los compradores califiquen este producto.'
+                                  'Todo producto nuevo inicia con calificación de 0.0 ★ (0 opiniones). Las calificaciones se actualizarán automáticamente cuando los compradores reales califiquen el producto.'
                                 )}
                               </p>
                             </div>

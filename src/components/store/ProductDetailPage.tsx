@@ -130,7 +130,9 @@ export const ProductDetailPage: React.FC = () => {
   }, [product, allProducts]);
 
   const averageRating = useMemo(() => {
-    if (reviewsList.length === 0) return product?.rating || 5.0;
+    if (reviewsList.length === 0) {
+      return product?.rating !== undefined && product?.rating !== null ? Number(product.rating) : 0.0;
+    }
     const sum = reviewsList.reduce((acc, r) => acc + r.rating, 0);
     return Number((sum / reviewsList.length).toFixed(1));
   }, [reviewsList, product]);
@@ -434,15 +436,23 @@ export const ProductDetailPage: React.FC = () => {
                 </span>
 
                 <div className="flex items-center gap-2 text-xs">
-                  {product.rating && (
-                    <div className="flex items-center gap-1 font-bold text-amber-400">
-                      <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                      <span>{product.rating.toFixed(1)}</span>
-                      {product.reviews_count && (
-                        <span className="text-slate-500 font-normal">({product.reviews_count} opiniones)</span>
-                      )}
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1 font-bold">
+                    {averageRating > 0 ? (
+                      <>
+                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                        <span className="text-amber-400">{averageRating.toFixed(1)}</span>
+                        <span className="text-slate-500 font-normal">
+                          ({totalReviewsCount} {totalReviewsCount === 1 ? 'opinión' : 'opiniones'})
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Star className="w-3.5 h-3.5 text-slate-600" />
+                        <span className="text-slate-400">0.0</span>
+                        <span className="text-slate-500 font-normal">(0 opiniones)</span>
+                      </>
+                    )}
+                  </div>
 
                   <span className="text-slate-600">•</span>
 

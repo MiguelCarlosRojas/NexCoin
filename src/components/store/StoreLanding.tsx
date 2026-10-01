@@ -1040,10 +1040,15 @@ export const StoreLanding: React.FC = () => {
                       </div>
 
                       {/* Rating */}
-                      {product.rating && (
+                      {product.rating !== undefined && product.rating !== null && product.rating > 0 ? (
                         <div className="flex items-center gap-1 text-[11px] font-bold text-amber-400 shrink-0">
                           <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
                           <span>{product.rating.toFixed(1)}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 text-[11px] font-bold text-slate-500 shrink-0" title="Sin opiniones de compradores aún">
+                          <Star className="w-3 h-3 text-slate-600" />
+                          <span>0.0</span>
                         </div>
                       )}
                     </div>
