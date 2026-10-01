@@ -210,9 +210,9 @@ export const SupplierLayout: React.FC<SupplierLayoutProps> = ({ children, title,
 
             {/* Supplier Info Box in top-right corner (Non-clickable, Large Blobatar on the Left) */}
             {supplier && (() => {
-              const parsed = parseBlobatar(supplier.avatar_url, supplier.company_name || 'TechGlobal Hardware & Cryptowear');
+              const parsed = parseBlobatar(supplier.avatar_url, supplier.company_name || 'Comercio Proveedor');
               const verification = getSupplierVerification(supplier.id);
-              const isVerified = verification?.isVerified ?? true;
+              const isVerified = verification?.isVerified ?? false;
               return (
                 <div
                   className="flex items-center gap-3 py-1 px-2.5 rounded-2xl bg-transparent select-none"
@@ -231,10 +231,10 @@ export const SupplierLayout: React.FC<SupplierLayoutProps> = ({ children, title,
                   {/* Información a la Derecha (Alineada a la Izquierda, No Clickeable) */}
                   <div className="text-left hidden md:block">
                     <p className="text-xs font-bold text-white truncate max-w-[210px]">
-                      {supplier.company_name || 'TechGlobal Hardware & Cryptowear'}
+                      {supplier.company_name || 'Mi Comercio'}
                     </p>
                     <p className="text-[10px] text-slate-400 truncate max-w-[210px] -mt-0.5">
-                      {supplier.email || 'proveedor@novasats.com'}
+                      {supplier.email || ''}
                     </p>
                     {isVerified ? (
                       <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-emerald-400 mt-0.5">

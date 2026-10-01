@@ -27,7 +27,7 @@ export interface SupplierVerificationInfo {
 }
 
 export const DEFAULT_SUPPLIER_VERIFICATION: SupplierVerificationInfo = {
-  isVerified: true,
+  isVerified: false,
   taxId: DEFAULT_KYC_FISCAL.tax_id,
   legalName: DEFAULT_KYC_FISCAL.legal_name,
   nombreComercial: DEFAULT_COMMERCIAL_PROFILE.brand_name,
@@ -41,8 +41,8 @@ export const DEFAULT_SUPPLIER_VERIFICATION: SupplierVerificationInfo = {
   giroComercial: DEFAULT_COMMERCIAL_PROFILE.commercial_activity,
   autorizacionSunat: DEFAULT_KYC_FISCAL.tax_resolution,
   tipoComprobante: DEFAULT_KYC_FISCAL.official_receipt_type,
-  verifiedAt: DEFAULT_KYC_FISCAL.verified_at || '2026-01-15T10:00:00Z',
-  verificationHash: DEFAULT_KYC_FISCAL.verification_hash || '0x7f9a2b8c4d1e3f5a6b7c8d9e0f1a2b3c4d5e6f7a',
+  verifiedAt: DEFAULT_KYC_FISCAL.verified_at || undefined,
+  verificationHash: DEFAULT_KYC_FISCAL.verification_hash || undefined,
 };
 
 // In-memory runtime cache (Zero localStorage)

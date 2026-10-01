@@ -240,10 +240,10 @@ export const SupplierProfile: React.FC = () => {
     official_receipt_type: DEFAULT_KYC_FISCAL.official_receipt_type,
     fiscal_email: supplier?.email || DEFAULT_KYC_FISCAL.fiscal_email,
     fiscal_phone: supplier?.phone || DEFAULT_KYC_FISCAL.fiscal_phone,
-    is_verified: true,
-    terms_accepted: true,
-    verified_at: '2026-01-15T10:00:00Z',
-    verification_hash: DEFAULT_KYC_FISCAL.verification_hash,
+    is_verified: false,
+    terms_accepted: false,
+    verified_at: null,
+    verification_hash: null,
   });
   const [initialKycFiscal, setInitialKycFiscal] = useState<SupplierKycFiscal>(kycFiscal);
   const [isSavingKyc, setIsSavingKyc] = useState(false);
@@ -1584,7 +1584,7 @@ export const SupplierProfile: React.FC = () => {
                       required
                       value={kycFiscal.legal_name}
                       onChange={(e) => setKycFiscal({ ...kycFiscal, legal_name: e.target.value })}
-                      placeholder="Ej: TechGlobal Hardware & Cryptowear S.A.C."
+                      placeholder="Ej: Razón Social de la Empresa S.A.C."
                       className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
@@ -1601,7 +1601,7 @@ export const SupplierProfile: React.FC = () => {
                       required
                       value={kycFiscal.tax_id}
                       onChange={(e) => setKycFiscal({ ...kycFiscal, tax_id: e.target.value })}
-                      placeholder="Ej: 20601234567 o RFC / NIF"
+                      placeholder="Ej: RUC / Tax ID / NIF"
                       className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
@@ -1635,7 +1635,7 @@ export const SupplierProfile: React.FC = () => {
                       required
                       value={kycFiscal.business_address}
                       onChange={(e) => setKycFiscal({ ...kycFiscal, business_address: e.target.value })}
-                      placeholder="Ej: Av. Blockchain 404, San Isidro, Lima - Perú"
+                      placeholder="Ej: Av. Principal 123, Oficina 404, Lima - Perú"
                       className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
@@ -1651,7 +1651,7 @@ export const SupplierProfile: React.FC = () => {
                       type="text"
                       value={kycFiscal.legal_representative_name}
                       onChange={(e) => setKycFiscal({ ...kycFiscal, legal_representative_name: e.target.value })}
-                      placeholder="Ej: Carlos Morales"
+                      placeholder="Ej: Juan Pérez"
                       className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
@@ -1667,7 +1667,7 @@ export const SupplierProfile: React.FC = () => {
                       type="text"
                       value={kycFiscal.legal_representative_id_doc}
                       onChange={(e) => setKycFiscal({ ...kycFiscal, legal_representative_id_doc: e.target.value })}
-                      placeholder="Ej: 47829104"
+                      placeholder="Ej: 12345678"
                       className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
@@ -1805,7 +1805,7 @@ export const SupplierProfile: React.FC = () => {
                       required
                       value={commercialProfile.brand_name}
                       onChange={(e) => setCommercialProfile({ ...commercialProfile, brand_name: e.target.value })}
-                      placeholder="Ej: TechGlobal Hardware & Cryptowear"
+                      placeholder="Ej: Nombre Comercial de la Marca"
                       className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                     />
                   </div>
@@ -1822,7 +1822,7 @@ export const SupplierProfile: React.FC = () => {
                       required
                       value={commercialProfile.commercial_activity}
                       onChange={(e) => setCommercialProfile({ ...commercialProfile, commercial_activity: e.target.value })}
-                      placeholder="Ej: Venta de Hardware Cripto, Nodos y Pasarela Web3"
+                      placeholder="Ej: Venta de productos, tecnología y servicios"
                       className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                     />
                   </div>

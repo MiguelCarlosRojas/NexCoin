@@ -1,183 +1,171 @@
-# 🪙 NovaSats — Ecosistema de Comercio Descentralizado On-Chain
+# 🪙 NovaSats — Ecosistema de Comercio Descentralizado Web3 & Pagos On-Chain
 
-NovaSats es una plataforma de comercio electrónico descentralizado (Web3 Marketplace) que permite la compra y venta de productos tecnológicos y hardware cripto con liquidación directa entre compradores y proveedores, sin intermediarios bancarios ni custodios centralizados.
+[![Vercel Production](https://img.shields.io/badge/Production-novasats.vercel.app-10b981?style=flat-square&logo=vercel)](https://novasats.vercel.app)
+[![Supabase](https://img.shields.io/badge/Database-Supabase%20PostgreSQL-3ECF8E?style=flat-square&logo=supabase)](https://supabase.com)
+[![Web3 WalletConnect](https://img.shields.io/badge/Web3-Reown%20AppKit%20v1.8-3b82f6?style=flat-square)](https://cloud.reown.com)
+[![Smart Contract](https://img.shields.io/badge/Contract-Sepolia%200x71C2...C3a9-f59e0b?style=flat-square&logo=ethereum)](https://sepolia.etherscan.io)
 
----
+**NovaSats** es una plataforma de comercio electrónico descentralizado (*Web3 Non-Custodial Marketplace*) de alto rendimiento diseñada para la compra y venta de hardware cripto, billeteras frías, nodos y tecnología blockchain. Permite la liquidación peer-to-peer (P2P) directa a las billeteras de los comercios y proveedores sin intermediarios bancarios ni custodios centralizados.
 
-## 🚀 Arquitectura Tecnológica
-
-- **Frontend:** React 18, TypeScript, Tailwind CSS, Lucide Icons, Canvas Confetti.
-- **Web3 & WalletConnect:** `@reown/appkit` y `@reown/appkit-adapter-wagmi` (Reown AppKit v1.8+) sobre redes Ethereum, Polygon, Arbitrum, Base, Optimism, Sepolia y Bitcoin.
-- **Base de Datos en Tiempo Real:** Supabase (PostgreSQL) con tablas relacionales (`products`, `suppliers`, `orders`, `order_items`).
-- **Identidad Generativa:** Generador de avatares geométricos reactivos con `@blobatar/react` y `blobatar/expression`.
-- **Generación de Comprobantes:** `jspdf` para vouchers y reportes oficiales en PDF; `xlsx` para reportes contables en Excel.
+Cuenta con integración nativa a contratos inteligentes (`NovaSats.sol`), verificación de pagos en Bitcoin (L1) y redes EVM, emisión de comprobantes electrónicos duales homologados (Ticket Térmico POS 80mm y Boleta/Factura Tributaria A4), y un portal integral para proveedores respaldado al 100% en una base de datos relacional de Supabase.
 
 ---
 
-## 🛒 1. Flujo de Compra para el Cliente (Paso a Paso)
+## 🏗️ 1. Arquitectura Tecnológica
 
-### Paso 1: Explorar el Catálogo
-1. Ingresa a la tienda principal (`/`).
-2. Utiliza la barra de búsqueda y los filtros avanzados:
-   - **Categorías:** Billeteras Frías, Minería ASIC, Seguridad & Seed, Merchandising & Arte, Hardware & Nodos, Accesorios Cripto.
-   - **Rango de Precios:** Filtrado por presupuesto en dólares USD o satoshis BTC.
-   - **Descuentos:** Filtrar productos con ofertas activas.
-   - **Modalidad de Envío:** Envío Gratis y Entrega Express 24h.
-   - **Arrastrar Producto (Drag & Drop):** Al arrastrar cualquier producto hacia una nueva pestaña o ventana, se transfiere limpiamente el título del producto y su enlace directo sin texto residual.
-
-### Paso 2: Ficha Detallada del Producto
-1. Al hacer clic en un producto se genera su URL única (`/producto/:id`).
-2. Podrás visualizar:
-   - Galería de imágenes en alta resolución con carrusel interactivo y zoom.
-   - Especificaciones técnicas, stock disponible y tiempo de entrega.
-   - Información y reputación del proveedor verificado con su avatar Blobatar animado.
-   - Opciones para compartir el producto en WhatsApp, Facebook, X (Twitter), Telegram, Correo o Copiar Enlace.
-   - Sección interactiva de Preguntas & Respuestas y Opiniones verificadas.
-   - Módulos de productos recomendados ("Quienes vieron este producto también compraron").
-
-### Paso 3: Agregar al Carrito Flotante
-1. Pulsa **"Agregar al carrito"** o **"Comprar ahora"**.
-2. El **Carrito de Compras Flotante** se ubica en el lateral derecho de la pantalla, permitiendo consultar en cualquier momento la cantidad de artículos, el subtotal en USD y el total equivalente en Bitcoin (calculado en tiempo real según el precio spot).
-
-### Paso 4: Conectar Billetera con WalletConnect (Reown AppKit)
-1. Dentro del carrito, pulsa en el botón **"Conectar Wallet (Reown AppKit)"**.
-2. Se desplegará el modal oficial de Reown AppKit / WalletConnect:
-   - **Opción Móvil:** Escanea el código QR desde tu billetera favorita (MetaMask, Trust Wallet, Phantom, Rainbow, Coinbase Wallet, etc.).
-   - **Opción Extensión de Navegador:** Conecta en 1 clic Rabby, MetaMask o cualquier billetera inyectada en tu navegador.
-3. Tu dirección pública aparecerá vinculada de forma segura.
-
-### Paso 5: Pago y Liquidación
-1. Pulsa **"Autorizar Pago y Emitir Voucher"**.
-2. El comprador firma la autorización de pago criptográfica.
-3. Los fondos se transfieren de manera directa a la billetera de cobro principal del proveedor sin custodia central.
-
-### Paso 6: Comprobante Criptográfico Oficial (Voucher)
-1. Se genera inmediatamente el comprobante de compra con:
-   - Código único de voucher inmutable (ej. `VOUCH-172767-9481`).
-   - Hash de la transacción verificable en el explorador blockchain.
-   - Dirección de la wallet que emitió el pago y billetera que recibió los fondos.
-   - Desglose de productos, cantidades, precios unitarios y total liquidado en USD y BTC.
-   - Código QR criptográfico para verificación de autenticidad.
-2. Opciones de descarga:
-   - **Descargar Voucher Oficial en PDF** con diseño timbrado.
-   - **Exportar en Excel (.xlsx)** para control contable del comprador.
-   - Copiar número de orden y hash de transacción.
+- **Frontend Core:** React 18, TypeScript, Vite, Tailwind CSS, Lucide React, Canvas Confetti.
+- **Web3 & Conectividad Multi-Chain:** `@reown/appkit` y `@reown/appkit-adapter-wagmi` sobre redes Ethereum, Arbitrum, Optimism, Polygon, Base, Sepolia y Bitcoin On-Chain.
+- **Capa de Contrato Inteligente:** Smart Contract `NovaSats.sol` desplegado en Sepolia (`0x71C260B543D75aF4D4B12DDe9B1D6F094593C3a9`) para el registro de órdenes, firmas digitales y garantía on-chain de 12 meses.
+- **Backend & Base de Datos Relacional:** Supabase (PostgreSQL) con esquemas completos para persistencia sin almacenamiento en caché local.
+- **Identidad Generativa:** `@blobatar/react` y `blobatar/expression` para la generación de avatares reactivos y firmas de marca.
+- **Motor de Comprobantes & Reportes:** `jspdf` para generación instantánea de tickets térmicos de 80mm y documentos tributarios A4; `xlsx` para la exportación de libros contables en Excel.
 
 ---
 
-## 🏢 2. Flujo del Proveedor / Vendedor (Paso a Paso)
+## 🗄️ 2. Modelo Relacional de Base de Datos (Supabase)
 
-### Paso 1: Registro e Inicio de Sesión
-1. Dirígete al portal de proveedores (`/proveedores/login`).
-2. Inicia sesión con tus credenciales o registra tu empresa indicando:
-   - Nombre de la empresa o marca.
-   - Nombre de contacto, teléfono y correo electrónico.
-   - Conexión de tu billetera Web3 mediante WalletConnect / Reown AppKit para asignarla como billetera de cobro.
+Toda la persistencia de datos del sistema está centralizada en Supabase:
 
-### Paso 2: Personalizador de Identidad Web3 con Blobatar Pro
-En la sección **"Mi Perfil & Icono"** (`/proveedores/perfil`):
-1. **Semilla Base Generativa:** Escribe el nombre de tu marca o pulsa **"Aleatorio"** para generar una identidad única mediante algoritmos de hashing visual.
-2. **Expresión Facial (10 variantes):**
-   - 😄 Feliz / Radiante
-   - 😍 Enamorado / Fan
-   - 😉 Pícaro / Guiño
-   - 🤔 Analítico / Trader
-   - 😏 Seguro / Triunfante
-   - 😲 Sorprendido / Bullish
-   - 😊 Modesto / Reservado
-   - 😤 Decidido / Feroz
-   - 😴 Relajado / Zen
-   - 😐 Clásico / Neutral
-3. **Silueta y Geometría del Marco:**
-   - Círculo Perfecto (`rounded-full`)
-   - Squircle Moderno (`rounded-3xl`)
-   - Cuadrado Suave (`rounded-2xl`)
-   - Compacto (`rounded-xl`)
-4. **Tono de Acento & Brillo Neón (Glow):**
-   - 🟡 Bitcoin Amber
-   - 🟢 Web3 Emerald
-   - 🔵 Ethereum Blue
-   - 🟣 Solana Purple
-   - 🔷 Cyber Cyan
-   - ⚪ Minimalista
-5. **Comportamiento de Animación:**
-   - Interactivo al pasar el cursor (Hover)
-   - Movimiento orgánico constante (Always)
-   - Fijo sin movimiento (Static)
-6. **Previsualización en Tiempo Real:** Visualiza tu identidad en 4 escalas reales antes de guardar (Barra lateral 48px, Ficha de producto 40px, Voucher 32px, Catálogo 24px).
-7. Al guardar, el icono se propaga automáticamente a todos los productos del proveedor en la tienda.
-
-### Paso 3: Gestión de Múltiples Billeteras de Cobro (Multi-Wallet P2P)
-1. Conecta billeteras adicionales en 1 clic utilizando el botón integrado de Reown AppKit / WalletConnect.
-2. O agrega manualmente direcciones seleccionando la red (`Ethereum / EVM`, `Polygon`, `Arbitrum`, `Base`, `Optimism`, `Bitcoin Native`, `BNB Chain`).
-3. Marca en cualquier momento cuál de tus billeteras es la **"Principal para Cobro"** mediante el selector radial. Los fondos de las compras se liquidarán automáticamente a la billetera seleccionada.
-
-### Paso 4: Publicación y Administración de Productos
-En la sección **"Mis Productos"** (`/proveedores/productos`):
-1. Pulsa **"Publicar Nuevo Producto"** para abrir el modal sincronizado con Supabase:
-   - **Nombre y Descripción:** Título comercial y detalles técnicos.
-   - **Categoría:** Billeteras Frías, Minería ASIC, Seguridad & Seed, Merchandising & Arte, Hardware & Nodos, Accesorios Cripto.
-   - **Precio USD:** Cálculo automático del equivalente en Bitcoin al tipo de cambio spot.
-   - **Inventario / Stock:** Cantidad física disponible.
-   - **Código SKU:** Identificador único de inventario.
-   - **Descuentos & Precio Original:** Porcentaje de descuento y precio tachado visible en la tienda.
-   - **Modalidad de Envío:** Gratuito o Entrega Express 24h.
-   - **Galería Multimedia:** URL de la foto principal y lista de URLs de imágenes adicionales para el carrusel de la página de detalle.
-   - **Estado:** Activo (visible en tienda), Borrador o Archivado.
-2. Edición rápida de stock inline directamente desde la tabla.
-3. Desactivación o reactivación en 1 clic.
-
-### Paso 5: Consultar Ventas y Emitir Vouchers
-En **"Ventas & Vouchers"** (`/proveedores/ventas`):
-- Listado de pedidos liquidados en tiempo real.
-- Búsqueda por número de orden, código de voucher, cliente o hash de pago.
-- Apertura del comprobante oficial con opción de reimpresión o descarga en PDF.
-
-### Paso 6: Reportes Analíticos Oficiales
-- **Reporte de Ventas (`/proveedores/reportes/ventas`):** Métricas de facturación bruta en USD y BTC, unidades vendidas, ticket promedio y exportación a Excel (.xlsx) y PDF.
-- **Reporte de Inventario (`/proveedores/reportes/inventario`):** Monitoreo de stock crítico, artículos agotados, valorización total de almacén y exportación a Excel y PDF con formato corporativo.
-- **Reporte de Clientes (`/proveedores/reportes/clientes`):** Listado de compradores con su dirección de wallet, pedidos acumulados y volumen total comprado, exportable a Excel.
+| Tabla | Descripción y Campos Principales |
+|---|---|
+| `suppliers` | Proveedores registrados, correo, contraseña cifrada, razón social, avatar URL, teléfono, verificación. |
+| `products` | Catálogo de productos, SKU, stock, precio USD, descuentos, categoría, estado y multimedia. |
+| `orders` | Registro inmutable de transacciones, hash de pago TX, contrato inteligente, total USD/BTC, código de voucher y firma digital. |
+| `order_items` | Detalle de artículos comprados por orden (producto, cantidad, precio unitario, subtotal). |
+| `supplier_kyc_fiscal` | Información legal para facturación: Razón Social, RUC / Tax ID, País, Domicilio Fiscal, Representante Legal, Documento de Identidad, Resolución Tributaria, Tipo de Comprobante, Teléfono y Correo Fiscal. |
+| `supplier_commercial_profiles` | Perfil de marca: Nombre Comercial, Giro / Actividad Económica, Sitio Web, Correo de Soporte, WhatsApp, Redes Sociales (Twitter/X, Telegram, Discord) y Descripción comercial. |
+| `supplier_wallets` | Billeteras de recaudación conectadas por el proveedor, red blockchain (`EVM` o `Bitcoin Native`), etiqueta personalizada y bandera de wallet principal. |
+| `supplier_voucher_configs` | Configuración de comprobantes permitidos para los compradores (Ticket 80mm / A4 Digital). |
+| `product_questions` | Sistema de preguntas de clientes y respuestas de proveedores vinculadas a cada producto. |
+| `product_reviews` | Valoraciones con estrellas (1-5), comentarios y testimonios verificados de compradores. |
 
 ---
 
-## 💻 3. Instalación y Configuración Local
+## 🛒 3. Flujo de Compra para Clientes (Storefront)
+
+1. **Catálogo & Búsqueda Avanzada:**
+   - Filtros por categorías (Billeteras Frías, Minería ASIC, Seguridad & Seed, Nodos & Hardware, Merchandising, Accesorios).
+   - Filtro por rango de precios en USD y satoshis BTC, ofertas y tipos de envío (Gratis / Express 24h).
+   - Arrastrar producto (*Drag & Drop*) a pestañas o ventanas transfiriendo el título y enlace limpio.
+
+2. **Ficha del Producto:**
+   - Galería interactiva con carrusel y zoom.
+   - Especificaciones técnicas, stock en tiempo real y reputación del proveedor con su avatar Blobatar animado.
+   - Módulos interactivos de Preguntas & Respuestas y Reseñas con estrellas.
+   - Botón para compartir en WhatsApp, Telegram, X (Twitter), Facebook y Correo.
+
+3. **Carrito Flotante & Checkout:**
+   - Panel lateral deslizante con cálculo automático del contravalor en satoshis y Bitcoin según el tipo de cambio spot.
+   - Conexión rápida con **Reown AppKit** mediante código QR móvil o extensión de navegador (MetaMask, Rabby, Coinbase Wallet, etc.).
+   - Selección de billetera pagadora y firma de pago directa hacia la billetera del proveedor.
+
+4. **Comprobante de Pago Criptográfico:**
+   - Asignación de Serie POS (`POS-001-...`), Voucher inmutable y Hash de la transacción.
+   - Modal con selección de vista previa:
+     - **Vista Previa del Voucher 80mm** (Ticket térmico estándar con código de barras y QR).
+     - **Vista Previa del A4** (Comprobante tributario oficial timbrado).
+   - Acciones directas de **Gmail**, **Imprimir** y descarga de PDF.
+
+---
+
+## 🏢 4. Portal Integral de Proveedores
+
+El portal de proveedores (`/proveedores`) ofrece una suite de administración empresarial:
+
+### 4.1. Mis Productos (`/proveedores/productos`)
+- Publicación de nuevos productos con formulario dinámico.
+- Ajuste rápido de stock en línea directamente sobre la tabla.
+- Activación, suspensión o archivado de publicaciones en 1 clic.
+
+### 4.2. Preguntas de Clientes (`/proveedores/preguntas`)
+- Bandeja de preguntas enviadas por los clientes desde las fichas de productos.
+- Formulario de respuesta en tiempo real que publica la contestación de inmediato en la tienda.
+
+### 4.3. Calificaciones & Reseñas (`/proveedores/calificaciones`)
+- Monitoreo del promedio de satisfacción y desglose de estrellas.
+- Respuestas públicas del comercio a las valoraciones de los compradores.
+
+### 4.4. Ventas & Vouchers (`/proveedores/ventas`)
+- Historial detallado de pedidos liquidados.
+- Visualización y reimpresión de comprobantes oficiales (Ticket 80mm y A4).
+- Filtrado por estado, cliente, número de orden o hash TX.
+
+### 4.5. Mi Perfil & Icono (`/proveedores/perfil`)
+Consta de 5 módulos principales organizados por pestañas:
+1. **Identidad Web3 & Blobatar Pro:**
+   - Generación de avatar geométrico reactivo a partir del nombre comercial o semilla criptográfica.
+   - 10 expresiones faciales (Radiante, Analítico, Bullish, Decidido, etc.), siluetas y colores de resplandor neón (*Glow*).
+   - Modos de animación (*Hover*, *Always*, *Static*).
+2. **Billeteras de Cobro:**
+   - Conexión vía WalletConnect / Reown AppKit o agregado manual indicando red y etiqueta.
+   - Marcador radial de **Billetera Principal de Recaudación** para liquidaciones directas.
+3. **Formatos de Voucher:**
+   - Activación o desactivación de formatos descargables (80mm y A4) para los clientes.
+4. **Verificación & KYC:**
+   - **Registro de Información Fiscal y Cumplimiento (KYC):** Razón Social, RUC / Tax ID, País, Domicilio Fiscal, Representante Legal, Documento de Identidad, Resolución Tributaria y Tipo de Comprobante.
+   - **Datos Comerciales de la Empresa / Marca:** Nombre Comercial, Giro / Actividad Económica, Sitio Web, WhatsApp, Correos de Soporte y Enlaces a redes sociales.
+5. **Zona de Seguridad:**
+   - Módulo para **Cambiar Contraseña del Proveedor** con verificación de clave actual y confirmación de seguridad.
+   - Auditoría de sesiones y llaves de acceso.
+
+### 4.6. Reportes Analíticos Oficiales
+- **Reporte de Ventas (`/proveedores/reportes/ventas`):** Facturación total, ticket promedio, ventas por categoría y exportación a Excel (.xlsx) y PDF.
+- **Reporte de Inventario (`/proveedores/reportes/inventario`):** Valoración de inventario, detección de stock bajo y exportación ejecutiva.
+- **Reporte de Clientes (`/proveedores/reportes/clientes`):** Listado de compradores con su dirección de wallet, pedidos acumulados y volumen total.
+
+---
+
+## ⚙️ 5. Instalación y Puesta en Marcha
 
 ### Requisitos Previos
-- Node.js 18.0 o superior
-- Gestor de paquetes npm o pnpm
+- **Node.js** >= 18.0.0
+- **npm** o **pnpm**
 
-### Configuración del Entorno
-Crea un archivo `.env` en la raíz del proyecto con tus credenciales:
+### Variables de Entorno
+Crea un archivo `.env` en la raíz del proyecto:
 
 ```env
-# Conexión con Supabase (Base de datos PostgreSQL)
-VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
+# Conexión Directa a Supabase
+VITE_SUPABASE_URL=https://mrshxjdvtnhsjtiiukiq.supabase.co
 VITE_SUPABASE_ANON_KEY=tu-anon-key-de-supabase
 
-# ID de Proyecto de Reown AppKit / WalletConnect Cloud (https://cloud.reown.com)
-VITE_REOWN_PROJECT_ID=tu-project-id-de-reown
+# Proyecto Reown AppKit / WalletConnect Cloud (https://cloud.reown.com)
+VITE_REOWN_PROJECT_ID=tu-reown-project-id
+
+# Smart Contract Oficial en Sepolia Testnet
+VITE_NOVASATS_CONTRACT_ADDRESS=0x71C260B543D75aF4D4B12DDe9B1D6F094593C3a9
 ```
 
-### Ejecutar el Proyecto
+> **Nota para Despliegues en Vercel:** Las variables de entorno en producción deben estar asignadas exclusivamente al entorno **Production**.
+
+### Comandos de Ejecución
 
 ```bash
-# Instalar dependencias optimizadas
+# Instalar dependencias
 npm install
 
-# Iniciar servidor de desarrollo local
+# Servidor de desarrollo
 npm run dev
 
-# Compilar para producción (TypeScript + Vite)
+# Verificación de tipos y compilación de producción
 npm run build
 
-# Previsualizar el build de producción
+# Vista previa local de la compilación
 npm run preview
 ```
 
 ---
 
-## 🔒 4. Privacidad y Seguridad Non-Custodial
+## 🛡️ 6. Seguridad y Cumplimiento
 
-- **Sin custodia de fondos:** NovaSats no almacena claves privadas ni retiene fondos de usuarios. Las transacciones son P2P y directas a las billeteras de los proveedores.
-- **Transparencia on-chain:** Cada orden genera un registro inmutable con comprobante criptográfico verificable.
-- **Cumplimiento legal y protección:** Dispone de Libro de Reclamaciones digital, Términos y Condiciones y Políticas de Privacidad transparentes.
+- **Transacciones Non-Custodial:** Los compradores transfieren directamente a los vendedores; la plataforma no custodia fondos ni almacena claves privadas.
+- **Garantía Digital On-Chain:** Comprobante respaldado por el contrato `NovaSats.sol` que certifica la fecha, monto y participantes.
+- **Cumplimiento Tributario:** Comprobantes homologados con campos oficiales de SUNAT / autoridades tributarias locales para facturación electrónica válida.
+- **Libro de Reclamaciones:** Módulo integrado para registro formal de quejas y reclamos conforme a normativas de protección al consumidor.
+
+---
+
+## 🌐 Enlaces Oficiales
+
+- **Sitio Web de Producción:** [https://novasats.vercel.app](https://novasats.vercel.app)
+- **Repositorio en GitHub:** [https://github.com/MiguelCarlosRojas/NovaSats](https://github.com/MiguelCarlosRojas/NovaSats)

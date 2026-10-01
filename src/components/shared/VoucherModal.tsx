@@ -19,17 +19,17 @@ import { supabase } from '../../lib/supabaseClient';
 
 // INFORMACIÓN FISCAL Y DATOS COMERCIALES BASE / FALLBACK
 export const NOVASATS_FISCAL_INFO = {
-  razonSocial: 'TechGlobal Hardware & Cryptowear S.A.C.',
-  nombreComercial: 'TechGlobal Hardware & Cryptowear',
-  ruc: '20601234567',
-  direccionFiscal: 'Av. Blockchain 404, San Isidro, Lima - Perú',
-  telefono: '+51 987 654 321',
-  whatsapp: '+51 987 654 321',
-  emailFacturacion: 'proveedor@novasats.com',
-  emailSoporte: 'soporte@novasats.com',
-  web: 'https://novasats.vercel.app',
-  giroComercial: 'Venta de Hardware Cripto, Nodos y Plataforma de Pasarela Web3',
-  autorizacionSunat: 'Resolución de Superintendencia N° 097-2012/SUNAT',
+  razonSocial: '',
+  nombreComercial: '',
+  ruc: '',
+  direccionFiscal: '',
+  telefono: '',
+  whatsapp: '',
+  emailFacturacion: '',
+  emailSoporte: '',
+  web: '',
+  giroComercial: '',
+  autorizacionSunat: '',
   tipoComprobante: 'COMPROBANTE ELECTRÓNICO DE PAGO BITCOIN ON-CHAIN',
 };
 
@@ -97,18 +97,18 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
 
   // Dynamic fiscal & commercial data from "Mi Perfil & Icono"
   const fiscalInfo = {
-    razonSocial: supplierVerification?.legalName || supplierProfile?.company_name || NOVASATS_FISCAL_INFO.razonSocial,
-    nombreComercial: supplierVerification?.nombreComercial || supplierProfile?.company_name || supplierVerification?.legalName || NOVASATS_FISCAL_INFO.nombreComercial,
-    ruc: supplierVerification?.taxId || NOVASATS_FISCAL_INFO.ruc,
-    direccionFiscal: supplierVerification?.businessAddress || NOVASATS_FISCAL_INFO.direccionFiscal,
-    telefono: supplierVerification?.telefono || supplierProfile?.phone || NOVASATS_FISCAL_INFO.telefono,
-    whatsapp: supplierVerification?.whatsapp || supplierProfile?.phone || NOVASATS_FISCAL_INFO.whatsapp,
-    emailFacturacion: supplierVerification?.emailFacturacion || supplierProfile?.email || NOVASATS_FISCAL_INFO.emailFacturacion,
-    emailSoporte: supplierVerification?.emailSoporte || supplierProfile?.email || NOVASATS_FISCAL_INFO.emailSoporte,
-    web: supplierVerification?.website || NOVASATS_FISCAL_INFO.web,
-    giroComercial: supplierVerification?.giroComercial || NOVASATS_FISCAL_INFO.giroComercial,
-    autorizacionSunat: supplierVerification?.autorizacionSunat || NOVASATS_FISCAL_INFO.autorizacionSunat,
-    tipoComprobante: supplierVerification?.tipoComprobante || NOVASATS_FISCAL_INFO.tipoComprobante,
+    razonSocial: supplierVerification?.legalName || supplierProfile?.company_name || 'Comercio Asociado NovaSats',
+    nombreComercial: supplierVerification?.nombreComercial || supplierProfile?.company_name || supplierVerification?.legalName || 'NovaSats Marketplace',
+    ruc: supplierVerification?.taxId || '',
+    direccionFiscal: supplierVerification?.businessAddress || '',
+    telefono: supplierVerification?.telefono || supplierProfile?.phone || '',
+    whatsapp: supplierVerification?.whatsapp || supplierProfile?.phone || '',
+    emailFacturacion: supplierVerification?.emailFacturacion || supplierProfile?.email || '',
+    emailSoporte: supplierVerification?.emailSoporte || supplierProfile?.email || '',
+    web: supplierVerification?.website || '',
+    giroComercial: supplierVerification?.giroComercial || '',
+    autorizacionSunat: supplierVerification?.autorizacionSunat || '',
+    tipoComprobante: supplierVerification?.tipoComprobante || 'COMPROBANTE ELECTRÓNICO DE PAGO BITCOIN ON-CHAIN',
   };
 
   const [viewMode, setViewMode] = useState<'preview80mm' | 'standard'>(() => {
@@ -218,8 +218,10 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6);
-    doc.text(NOVASATS_FISCAL_INFO.autorizacionSunat, 40, y, { align: 'center' });
-    y += 3.5;
+    if (fiscalInfo.autorizacionSunat) {
+      doc.text(fiscalInfo.autorizacionSunat, 40, y, { align: 'center' });
+      y += 3.5;
+    }
 
     doc.line(4, y, 76, y);
     y += 4.5;
@@ -833,7 +835,7 @@ ${fiscalInfo.web}`;
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-semibold transition"
                     >
                       <Download className="w-3.5 h-3.5" />
-                      <span>Descargar 80mm</span>
+                      <span>Descargar Ticket 80mm</span>
                     </button>
                   </div>
                 </div>
@@ -859,32 +861,8 @@ ${fiscalInfo.web}`;
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={handleDownload80mmPdf}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-bold rounded-xl text-xs shadow-md hover:from-amber-400 hover:to-orange-400 transition"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Descargar Ticket 80mm</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('standard')}
-                  className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 border border-blue-500/30 rounded-xl text-xs font-semibold transition"
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  <span>Ver Vista Previa A4</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDownloadStandardPdf}
-                  className="flex items-center gap-2 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold transition"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Descargar A4</span>
-                </button>
-                <button
-                  type="button"
                   onClick={handleOpenGmail}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition"
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition shadow-sm"
                 >
                   <Mail className="w-3.5 h-3.5" />
                   <span>Gmail</span>
@@ -892,7 +870,7 @@ ${fiscalInfo.web}`;
                 <button
                   type="button"
                   onClick={handlePrint}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl text-xs font-medium transition"
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl text-xs font-medium transition"
                 >
                   <Printer className="w-3.5 h-3.5" />
                   <span>Imprimir</span>
@@ -970,7 +948,7 @@ ${fiscalInfo.web}`;
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-500/40 text-xs font-semibold transition"
                     >
                       <Download className="w-3.5 h-3.5" />
-                      <span>Descargar A4</span>
+                      <span>Descargar PDF A4</span>
                     </button>
                   </div>
                 </div>
@@ -996,35 +974,8 @@ ${fiscalInfo.web}`;
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={handleDownloadStandardPdf}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl text-xs shadow-md hover:from-blue-500 hover:to-indigo-500 transition"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Descargar PDF A4</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setViewMode('preview80mm')}
-                  className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-semibold transition"
-                >
-                  <Receipt className="w-3.5 h-3.5" />
-                  <span>Ver Voucher 80mm</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleDownload80mmPdf}
-                  className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-xl text-xs font-semibold transition"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Descargar 80mm</span>
-                </button>
-
-                <button
-                  type="button"
                   onClick={handleOpenGmail}
-                  className="flex items-center gap-1.5 px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition"
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition shadow-sm"
                   title="Abrir en Gmail para enviar o respaldar este comprobante"
                 >
                   <Mail className="w-3.5 h-3.5" />
