@@ -28,7 +28,9 @@ import {
   Plus,
   Layers,
   FileText,
-  FileSpreadsheet
+  FileSpreadsheet,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { exportLandscapePdfTable } from '../../lib/pdfReportGenerator';
@@ -122,13 +124,79 @@ export const SupplierProducts: React.FC = () => {
   const [formError, setFormError] = useState('');
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const sampleImages = [
-    { label: 'Hardware Wallet', url: 'https://images.unsplash.com/photo-1622979135225-d2ba269bc1df?w=800&auto=format&fit=crop' },
-    { label: 'Minería Crypto', url: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800&auto=format&fit=crop' },
-    { label: 'Placa Titanio', url: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&auto=format&fit=crop' },
-    { label: 'Crypto Wear', url: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=800&auto=format&fit=crop' },
-    { label: 'Nodo & Red', url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop' },
-  ];
+  const [initialFormJson, setInitialFormJson] = useState('');
+
+  const currentFormJson = useMemo(() => {
+    return JSON.stringify({
+      name: name.trim(),
+      description: description.trim(),
+      category,
+      priceUsd: priceUsd.trim(),
+      priceBtc: priceBtc.trim(),
+      stock: stock.trim(),
+      imageUrl: imageUrl.trim(),
+      additionalImages,
+      sku: sku.trim(),
+      condition,
+      warranty: warranty.trim(),
+      formStatus,
+      discountPercent: discountPercent.trim(),
+      originalPriceUsd: originalPriceUsd.trim(),
+      shippingType,
+    });
+  }, [
+    name,
+    description,
+    category,
+    priceUsd,
+    priceBtc,
+    stock,
+    imageUrl,
+    additionalImages,
+    sku,
+    condition,
+    warranty,
+    formStatus,
+    discountPercent,
+    originalPriceUsd,
+    shippingType,
+  ]);
+
+  const isProductFormDirty = editingProduct ? currentFormJson !== initialFormJson : true;
+
+  const handleNextStep = () => {
+    setFormError('');
+    if (modalTab === 'general') {
+      if (!name.trim()) {
+        setFormError('Por favor ingresa el título del producto antes de continuar.');
+        return;
+      }
+      setModalTab('pricing');
+    } else if (modalTab === 'pricing') {
+      if (!priceUsd || parseFloat(priceUsd) <= 0) {
+        setFormError('Por favor ingresa un precio USD válido antes de continuar.');
+        return;
+      }
+      if (!stock || parseInt(stock) < 0) {
+        setFormError('Por favor ingresa un stock válido antes de continuar.');
+        return;
+      }
+      setModalTab('gallery');
+    } else if (modalTab === 'gallery') {
+      if (!imageUrl.trim()) {
+        setFormError('Por favor ingresa la foto principal de portada antes de continuar.');
+        return;
+      }
+      setModalTab('shipping');
+    }
+  };
+
+  const handlePrevStep = () => {
+    setFormError('');
+    if (modalTab === 'shipping') setModalTab('gallery');
+    else if (modalTab === 'gallery') setModalTab('pricing');
+    else if (modalTab === 'pricing') setModalTab('general');
+  };
 
   const categories = [
     'Hardware Wallets',
@@ -189,6 +257,7 @@ export const SupplierProducts: React.FC = () => {
 
   // Open modal for Adding new product
   const handleOpenAddModal = () => {
+    const defaultSku = `NEX-${Math.floor(1000 + Math.random() * 9000)}`;
     setEditingProduct(null);
     setModalTab('general');
     setName('');
@@ -200,7 +269,7 @@ export const SupplierProducts: React.FC = () => {
     setImageUrl('');
     setAdditionalImages([]);
     setNewImageUrlInput('');
-    setSku(`NEX-${Math.floor(1000 + Math.random() * 9000)}`);
+    setSku(defaultSku);
     setCondition('Nuevo');
     setWarranty('Garantía del Proveedor');
     setFormStatus('active');
@@ -208,6 +277,26 @@ export const SupplierProducts: React.FC = () => {
     setOriginalPriceUsd('');
     setShippingType('standard');
     setFormError('');
+
+    setInitialFormJson(
+      JSON.stringify({
+        name: '',
+        description: '',
+        category: 'General',
+        priceUsd: '',
+        priceBtc: '',
+        stock: '0',
+        imageUrl: '',
+        additionalImages: [],
+        sku: defaultSku,
+        condition: 'Nuevo',
+        warranty: 'Garantía del Proveedor',
+        formStatus: 'active',
+        discountPercent: '0',
+        originalPriceUsd: '',
+        shippingType: 'standard',
+      })
+    );
     setIsModalOpen(true);
   };
 
@@ -217,26 +306,59 @@ export const SupplierProducts: React.FC = () => {
     setModalTab('general');
     const { cleanDescription, meta } = parseProductDescription(p.description);
     
-    setName(p.name);
-    setDescription(cleanDescription || p.description || '');
-    setCategory(p.category || 'General');
-    setPriceUsd(String(p.price_usd));
-    setPriceBtc(String(p.price_btc));
-    setStock(String(p.stock));
-    setImageUrl(p.image_url || '');
-    
-    const extraImgs = (meta.images || p.images || []).filter(img => img !== p.image_url);
+    const initialName = p.name || '';
+    const initialDesc = cleanDescription || p.description || '';
+    const initialCat = p.category || 'General';
+    const initialPUsd = String(p.price_usd || '');
+    const initialPBtc = String(p.price_btc || '');
+    const initialStk = String(p.stock ?? 0);
+    const initialImg = p.image_url || '';
+    const extraImgs = (meta.images || p.images || []).filter((img: string) => img !== p.image_url);
+    const initialSku = p.sku || `NEX-${Math.floor(1000 + Math.random() * 9000)}`;
+    const initialCond = meta.condition || 'Nuevo en Caja Sellada';
+    const initialWarr = meta.warranty || '12 Meses con NexCoin.sol';
+    const initialStat = p.status || 'active';
+    const initialDisc = String(meta.discount_percent ?? (p.discount_percent ?? 0));
+    const initialOrigP = String(meta.original_price_usd ? meta.original_price_usd : p.price_usd);
+    const initialShip = meta.shipping_type || (p.shipping_type || (p.free_shipping ? 'free' : 'standard'));
+
+    setName(initialName);
+    setDescription(initialDesc);
+    setCategory(initialCat);
+    setPriceUsd(initialPUsd);
+    setPriceBtc(initialPBtc);
+    setStock(initialStk);
+    setImageUrl(initialImg);
     setAdditionalImages(extraImgs);
     setNewImageUrlInput('');
-
-    setSku(p.sku || `NEX-${Math.floor(1000 + Math.random() * 9000)}`);
-    setCondition(meta.condition || 'Nuevo en Caja Sellada');
-    setWarranty(meta.warranty || '12 Meses con NexCoin.sol');
-    setFormStatus(p.status || 'active');
-    setDiscountPercent(String(meta.discount_percent ?? (p.discount_percent ?? 0)));
-    setOriginalPriceUsd(meta.original_price_usd ? String(meta.original_price_usd) : String(p.price_usd));
-    setShippingType(meta.shipping_type || (p.shipping_type || (p.free_shipping ? 'free' : 'standard')));
+    setSku(initialSku);
+    setCondition(initialCond);
+    setWarranty(initialWarr);
+    setFormStatus(initialStat);
+    setDiscountPercent(initialDisc);
+    setOriginalPriceUsd(initialOrigP);
+    setShippingType(initialShip);
     setFormError('');
+
+    setInitialFormJson(
+      JSON.stringify({
+        name: initialName.trim(),
+        description: initialDesc.trim(),
+        category: initialCat,
+        priceUsd: initialPUsd.trim(),
+        priceBtc: initialPBtc.trim(),
+        stock: initialStk.trim(),
+        imageUrl: initialImg.trim(),
+        additionalImages: extraImgs,
+        sku: initialSku.trim(),
+        condition: initialCond,
+        warranty: initialWarr.trim(),
+        formStatus: initialStat,
+        discountPercent: initialDisc.trim(),
+        originalPriceUsd: initialOrigP.trim(),
+        shippingType: initialShip,
+      })
+    );
     setIsModalOpen(true);
   };
 
@@ -1378,21 +1500,6 @@ export const SupplierProducts: React.FC = () => {
                         onChange={(e) => setImageUrl(e.target.value)}
                         className="w-full bg-[#060911] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
                       />
-
-                      {/* Plantillas de Unsplash */}
-                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                        <span className="text-[11px] text-slate-500">Plantillas rápidas:</span>
-                        {sampleImages.map((s, idx) => (
-                          <button
-                            key={idx}
-                            type="button"
-                            onClick={() => setImageUrl(s.url)}
-                            className="text-[10px] px-2 py-0.5 bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 rounded border border-white/[0.06] transition"
-                          >
-                            {s.label}
-                          </button>
-                        ))}
-                      </div>
                     </div>
 
                     {/* Lista Dinámica de Fotos Secundarias para el Carrusel */}
@@ -1544,28 +1651,85 @@ export const SupplierProducts: React.FC = () => {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 sm:p-5 border-t border-white/[0.08] bg-[#0c1322] flex items-center justify-between gap-3">
-              <div className="text-xs text-slate-400">
-                Pestaña actual: <strong className="text-amber-400 font-mono uppercase">{modalTab}</strong>
-              </div>
-
-              <div className="flex items-center gap-2.5">
+            <div className="p-4 sm:p-5 border-t border-white/[0.08] bg-[#0c1322] flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition"
+                  className="px-4 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition"
                 >
                   Cancelar
                 </button>
-                <button
-                  form="productForm"
-                  type="submit"
-                  disabled={formSubmitting}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-amber-500/25 transition disabled:opacity-50 active:scale-95"
-                >
-                  <Save className="w-4 h-4 stroke-[2.5]" />
-                  <span>{formSubmitting ? 'Guardando en Blockchain...' : editingProduct ? 'Actualizar Producto' : 'Publicar Producto'}</span>
-                </button>
+                <span className="hidden sm:inline text-xs text-slate-500 font-mono">
+                  Paso: <strong className="text-amber-400 uppercase font-semibold">
+                    {modalTab === 'general' ? '1 / 4' : modalTab === 'pricing' ? '2 / 4' : modalTab === 'gallery' ? '3 / 4' : '4 / 4'}
+                  </strong>
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2.5">
+                {modalTab !== 'general' && (
+                  <button
+                    type="button"
+                    onClick={handlePrevStep}
+                    className="flex items-center gap-1.5 px-4 py-2.5 bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 hover:text-white text-xs font-bold rounded-xl transition active:scale-95"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <span>Anterior</span>
+                  </button>
+                )}
+
+                {modalTab === 'general' && (
+                  <button
+                    type="button"
+                    onClick={handleNextStep}
+                    className="flex items-center gap-1.5 px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-amber-500/20 transition active:scale-95"
+                  >
+                    <span>Siguiente: Precios & Promociones</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                )}
+
+                {modalTab === 'pricing' && (
+                  <button
+                    type="button"
+                    onClick={handleNextStep}
+                    className="flex items-center gap-1.5 px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-amber-500/20 transition active:scale-95"
+                  >
+                    <span>Siguiente: Galería de Fotos</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                )}
+
+                {modalTab === 'gallery' && (
+                  <button
+                    type="button"
+                    onClick={handleNextStep}
+                    className="flex items-center gap-1.5 px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-amber-500/20 transition active:scale-95"
+                  >
+                    <span>Siguiente: Logística & Garantía</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                )}
+
+                {modalTab === 'shipping' && (
+                  <button
+                    form="productForm"
+                    type="submit"
+                    disabled={formSubmitting || (editingProduct ? !isProductFormDirty : false)}
+                    title={editingProduct && !isProductFormDirty ? 'Modifica algún campo para habilitar la actualización' : ''}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-amber-500/25 transition disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none active:scale-95"
+                  >
+                    <Save className="w-4 h-4 stroke-[2.5]" />
+                    <span>
+                      {formSubmitting
+                        ? 'Guardando en Blockchain...'
+                        : editingProduct
+                        ? 'Actualizar Producto'
+                        : 'Publicar Producto'}
+                    </span>
+                  </button>
+                )}
               </div>
             </div>
 

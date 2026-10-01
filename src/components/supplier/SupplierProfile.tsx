@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SupplierLayout } from './SupplierLayout';
 import { useSupplier } from '../../context/SupplierContext';
 import { supabase } from '../../lib/supabaseClient';
 import { Blobatar } from '../ui/blobatar';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import {
   User,
@@ -39,7 +39,8 @@ import {
   Globe,
   FileText,
   MapPin,
-  ExternalLink
+  ExternalLink,
+  X
 } from 'lucide-react';
 import {
   getSupplierVerification,
@@ -187,9 +188,25 @@ export const SupplierProfile: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Tab navigation state
-  type ProfileTab = 'identity' | 'wallets' | 'verification' | 'vouchers' | 'security';
-  const [activeTab, setActiveTab] = useState<ProfileTab>('identity');
+  // Tab navigation state synced with ?filtro=
+  type ProfileTab = 'identidad' | 'billeteras' | 'verificacion' | 'vouchers' | 'seguridad';
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentFilter = searchParams.get('filtro') as ProfileTab | null;
+  const validTabs: ProfileTab[] = ['identidad', 'billeteras', 'verificacion', 'vouchers', 'seguridad'];
+  const activeTab: ProfileTab = (currentFilter && validTabs.includes(currentFilter)) ? currentFilter : 'identidad';
+
+  const handleTabChange = (tab: ProfileTab) => {
+    setSearchParams({ filtro: tab });
+  };
+
+  useEffect(() => {
+    if (!currentFilter || !validTabs.includes(currentFilter)) {
+      setSearchParams({ filtro: 'identidad' }, { replace: true });
+    }
+  }, [currentFilter, setSearchParams]);
+
+  // Modal state for adding a wallet manually
+  const [isAddWalletModalOpen, setIsAddWalletModalOpen] = useState(false);
 
   // Supplier Verification state
   const [verificationData, setVerificationData] = useState<SupplierVerificationInfo>(() =>
@@ -202,6 +219,14 @@ export const SupplierProfile: React.FC = () => {
   const [websiteInput, setWebsiteInput] = useState(verificationData.website || '');
   const [termsAccepted, setTermsAccepted] = useState(verificationData.isVerified);
   const [isVerifying, setIsVerifying] = useState(false);
+
+  const isVerificationDirty =
+    taxIdInput.trim() !== (verificationData.taxId || '') ||
+    legalNameInput.trim() !== (verificationData.legalName || '') ||
+    countryInput.trim() !== (verificationData.country || '') ||
+    businessAddressInput.trim() !== (verificationData.businessAddress || '') ||
+    websiteInput.trim() !== (verificationData.website || '') ||
+    (!verificationData.isVerified && termsAccepted);
 
   const handleSaveVerification = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -250,6 +275,13 @@ export const SupplierProfile: React.FC = () => {
   const [voucherConfig, setVoucherConfig] = useState<SupplierVoucherConfig>(() =>
     getSupplierVoucherConfig(supplier?.id)
   );
+  const [initialVoucherConfig, setInitialVoucherConfig] = useState<SupplierVoucherConfig>(() =>
+    getSupplierVoucherConfig(supplier?.id)
+  );
+
+  const isVoucherDirty =
+    voucherConfig.allow80mm !== initialVoucherConfig.allow80mm ||
+    voucherConfig.allowDigital !== initialVoucherConfig.allowDigital;
 
   // Reown AppKit connection
   const { open } = useAppKit();
@@ -284,10 +316,29 @@ export const SupplierProfile: React.FC = () => {
   };
 
   const [wallets, setWallets] = useState<PayoutWalletItem[]>(getInitialWallets);
+  const [initialWalletsJson, setInitialWalletsJson] = useState<string>(() => JSON.stringify(getInitialWallets()));
   const [newWalletAddress, setNewWalletAddress] = useState('');
   const [newWalletLabel, setNewWalletLabel] = useState('');
   const [newWalletNetwork, setNewWalletNetwork] = useState('Ethereum / EVM');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const initialCompanyName = supplier?.company_name || '';
+  const initialContactName = supplier?.contact_name || '';
+  const initialPhone = supplier?.phone || '';
+  const initialWalletAddress = supplier?.wallet_address || '';
+
+  const isIdentityDirty =
+    companyName.trim() !== initialCompanyName.trim() ||
+    contactName.trim() !== initialContactName.trim() ||
+    phone.trim() !== initialPhone.trim() ||
+    walletAddress.trim() !== initialWalletAddress.trim() ||
+    avatarSeed !== initialBlob.seed ||
+    selectedExpression !== initialBlob.expressionKey ||
+    selectedShape !== initialBlob.shapeKey ||
+    selectedGlow !== initialBlob.glowKey ||
+    animationMode !== initialBlob.animMode;
+
+  const isWalletsDirty = JSON.stringify(wallets) !== initialWalletsJson || walletAddress !== initialWalletAddress;
 
   const persistWallets = (updatedWallets: PayoutWalletItem[]) => {
     if (supplier?.id) {
@@ -434,6 +485,8 @@ export const SupplierProfile: React.FC = () => {
 
       persistWallets(wallets);
       setSupplierVoucherConfig(supplier.id, voucherConfig);
+      setInitialWalletsJson(JSON.stringify(wallets));
+      setInitialVoucherConfig(voucherConfig);
       await refreshSupplier();
       setMessage({
         type: 'success',
@@ -478,9 +531,9 @@ export const SupplierProfile: React.FC = () => {
         <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-white/[0.08] scrollbar-none">
           <button
             type="button"
-            onClick={() => setActiveTab('identity')}
+            onClick={() => handleTabChange('identidad')}
             className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition ${
-              activeTab === 'identity'
+              activeTab === 'identidad'
                 ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20'
                 : 'bg-[#0a0f1d] text-slate-400 hover:text-white hover:bg-slate-800/80 border border-white/[0.06]'
             }`}
@@ -491,9 +544,9 @@ export const SupplierProfile: React.FC = () => {
 
           <button
             type="button"
-            onClick={() => setActiveTab('wallets')}
+            onClick={() => handleTabChange('billeteras')}
             className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition ${
-              activeTab === 'wallets'
+              activeTab === 'billeteras'
                 ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20'
                 : 'bg-[#0a0f1d] text-slate-400 hover:text-white hover:bg-slate-800/80 border border-white/[0.06]'
             }`}
@@ -501,7 +554,7 @@ export const SupplierProfile: React.FC = () => {
             <Wallet className="w-4 h-4" />
             <span>Billeteras & Cobros</span>
             <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full ${
-              activeTab === 'wallets' ? 'bg-black/25 text-black font-black' : 'bg-slate-800 text-slate-300'
+              activeTab === 'billeteras' ? 'bg-black/25 text-black font-black' : 'bg-slate-800 text-slate-300'
             }`}>
               {wallets.length}
             </span>
@@ -509,9 +562,9 @@ export const SupplierProfile: React.FC = () => {
 
           <button
             type="button"
-            onClick={() => setActiveTab('verification')}
+            onClick={() => handleTabChange('verificacion')}
             className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition ${
-              activeTab === 'verification'
+              activeTab === 'verificacion'
                 ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20'
                 : 'bg-[#0a0f1d] text-slate-400 hover:text-white hover:bg-slate-800/80 border border-white/[0.06]'
             }`}
@@ -520,8 +573,8 @@ export const SupplierProfile: React.FC = () => {
             <span>Verificación Oficial</span>
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
               verificationData.isVerified
-                ? activeTab === 'verification' ? 'bg-black/25 text-black font-black' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                : activeTab === 'verification' ? 'bg-black/25 text-black font-black' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                ? activeTab === 'verificacion' ? 'bg-black/25 text-black font-black' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                : activeTab === 'verificacion' ? 'bg-black/25 text-black font-black' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
             }`}>
               {verificationData.isVerified ? 'Verificado' : 'Pendiente'}
             </span>
@@ -529,7 +582,7 @@ export const SupplierProfile: React.FC = () => {
 
           <button
             type="button"
-            onClick={() => setActiveTab('vouchers')}
+            onClick={() => handleTabChange('vouchers')}
             className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition ${
               activeTab === 'vouchers'
                 ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20'
@@ -542,9 +595,9 @@ export const SupplierProfile: React.FC = () => {
 
           <button
             type="button"
-            onClick={() => setActiveTab('security')}
+            onClick={() => handleTabChange('seguridad')}
             className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition ${
-              activeTab === 'security'
+              activeTab === 'seguridad'
                 ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20'
                 : 'bg-[#0a0f1d] text-rose-400/80 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/20'
             }`}
@@ -555,13 +608,13 @@ export const SupplierProfile: React.FC = () => {
         </div>
 
         {/* TAB 1: IDENTIDAD & BLOBATAR */}
-        {activeTab === 'identity' && (
+        {activeTab === 'identidad' && (
           <form onSubmit={handleSave} className="space-y-8 w-full max-w-full">
 
             {/* SECTION 1: PERSONALIZADOR PROFESIONAL DE BLOBATAR */}
             <div className="bg-[#0a0f1d] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl space-y-8 w-full">
             
-            {/* Header with Title and Save Button */}
+            {/* Header with Title (Clean single save button at the bottom of the section) */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.08] pb-5">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-gradient-to-tr from-amber-500/20 to-orange-500/20 text-amber-400 rounded-2xl border border-amber-500/30 shadow-inner">
@@ -579,15 +632,6 @@ export const SupplierProfile: React.FC = () => {
                   </p>
                 </div>
               </div>
-
-              <button
-                type="submit"
-                disabled={isSaving}
-                className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-amber-500/20 transition flex items-center gap-2 self-start sm:self-auto disabled:opacity-50"
-              >
-                <Save className="w-4 h-4" />
-                <span>{isSaving ? 'Guardando...' : 'Guardar Cambios'}</span>
-              </button>
             </div>
 
             {/* LIVE PREVIEW HERO BANNER */}
@@ -1011,8 +1055,8 @@ export const SupplierProfile: React.FC = () => {
           <div className="flex items-center justify-end gap-3 pt-2">
             <button
               type="submit"
-              disabled={isSaving}
-              className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-xl shadow-amber-500/20 transition disabled:opacity-50 active:scale-95"
+              disabled={!isIdentityDirty || isSaving}
+              className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-xl shadow-amber-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
             >
               <Save className="w-4 h-4" />
               <span>{isSaving ? 'Guardando en Supabase...' : 'Guardar Perfil & Blobatar'}</span>
@@ -1022,7 +1066,7 @@ export const SupplierProfile: React.FC = () => {
       )}
 
       {/* TAB 2: BILLETERAS & COBROS */}
-      {activeTab === 'wallets' && (
+      {activeTab === 'billeteras' && (
         <form onSubmit={handleSave} className="space-y-8 w-full max-w-full">
           {/* SECTION 3: GESTIÓN DE MÚLTIPLES BILLETERAS DE COBRO (MULTI-WALLET PAYOUTS) */}
           <div className="bg-[#0a0f1d] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 w-full">
@@ -1044,8 +1088,17 @@ export const SupplierProfile: React.FC = () => {
                 </div>
               </div>
 
-              {/* Reown AppKit Connect Button embedded in profile */}
-              <div className="shrink-0">
+              {/* Action Buttons: Add Manual Wallet + Reown AppKit WalletConnect */}
+              <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsAddWalletModalOpen(true)}
+                  className="px-4 py-2 bg-[#0e1424] hover:bg-[#161f38] text-white font-bold text-xs rounded-xl border border-white/[0.1] hover:border-amber-500/40 transition flex items-center gap-1.5 active:scale-95 shadow-md"
+                >
+                  <Plus className="w-4 h-4 text-amber-400 stroke-[3]" />
+                  <span>Agregar Otra Billetera Manualmente</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => open()}
@@ -1175,76 +1228,6 @@ export const SupplierProfile: React.FC = () => {
               </div>
             </div>
 
-            {/* Form to add a new wallet manually */}
-            <div className="p-5 rounded-2xl bg-[#060911] border border-white/[0.06] space-y-3">
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                <Plus className="w-3.5 h-3.5 text-amber-400" />
-                <span>Agregar Otra Billetera Manualmente</span>
-              </h4>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="sm:col-span-1">
-                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">
-                    Etiqueta / Nombre
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Ej: Cold Storage BTC, Binance"
-                    value={newWalletLabel}
-                    onChange={(e) => setNewWalletLabel(e.target.value)}
-                    className="w-full bg-[#0a0f1d] border border-white/[0.1] rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
-
-                <div className="sm:col-span-1">
-                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">
-                    Red Blockchain
-                  </label>
-                  <select
-                    value={newWalletNetwork}
-                    onChange={(e) => setNewWalletNetwork(e.target.value)}
-                    className="w-full bg-[#0a0f1d] border border-white/[0.1] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  >
-                    <option value="Ethereum / EVM">Ethereum / EVM (0x...)</option>
-                    <option value="Polygon">Polygon (MATIC)</option>
-                    <option value="Arbitrum">Arbitrum One</option>
-                    <option value="Base">Base Network</option>
-                    <option value="Optimism">Optimism</option>
-                    <option value="Bitcoin Native">Bitcoin Native (bc1q / 1...)</option>
-                    <option value="BNB Chain">BNB Smart Chain</option>
-                  </select>
-                </div>
-
-                <div className="sm:col-span-1 flex flex-col justify-end">
-                  <button
-                    type="button"
-                    onClick={() => handleAddWallet()}
-                    className="w-full py-2 bg-[#0e1424] hover:bg-[#161f38] border border-white/[0.08] hover:border-amber-500/40 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5"
-                  >
-                    <Plus className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Añadir a la Lista</span>
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-400 mb-1">
-                  Dirección de la Billetera *
-                </label>
-                <div className="relative">
-                  <Wallet className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <input
-                    type="text"
-                    placeholder="0x... o bc1q..."
-                    value={newWalletAddress}
-                    onChange={(e) => setNewWalletAddress(e.target.value)}
-                    className="w-full bg-[#0a0f1d] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2 text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Informational security note */}
             {/* Informational security note */}
             <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-start gap-2.5 text-xs text-blue-300">
               <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
@@ -1258,8 +1241,8 @@ export const SupplierProfile: React.FC = () => {
           <div className="flex items-center justify-end gap-3 pt-2">
             <button
               type="submit"
-              disabled={isSaving}
-              className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-xl shadow-amber-500/20 transition disabled:opacity-50 active:scale-95"
+              disabled={!isWalletsDirty || isSaving}
+              className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-xl shadow-amber-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
             >
               <Save className="w-4 h-4" />
               <span>{isSaving ? 'Guardando en Supabase...' : 'Guardar Billeteras de Cobro'}</span>
@@ -1269,7 +1252,7 @@ export const SupplierProfile: React.FC = () => {
       )}
 
       {/* TAB 3: VERIFICACIÓN OFICIAL DE PROVEEDOR */}
-      {activeTab === 'verification' && (
+      {activeTab === 'verificacion' && (
         <div className="space-y-8 w-full max-w-full">
           
           {/* Header & Official Status Banner */}
@@ -1502,8 +1485,8 @@ export const SupplierProfile: React.FC = () => {
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 type="submit"
-                disabled={isVerifying}
-                className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-xl shadow-emerald-500/20 transition disabled:opacity-50 active:scale-95"
+                disabled={!isVerificationDirty || isVerifying}
+                className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-xl shadow-emerald-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
               >
                 <BadgeCheck className="w-4 h-4" />
                 <span>
@@ -1602,8 +1585,8 @@ export const SupplierProfile: React.FC = () => {
           <div className="flex items-center justify-end gap-3 pt-2">
             <button
               type="submit"
-              disabled={isSaving}
-              className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-xl shadow-amber-500/20 transition disabled:opacity-50 active:scale-95"
+              disabled={!isVoucherDirty || isSaving}
+              className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-xl shadow-amber-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
             >
               <Save className="w-4 h-4" />
               <span>{isSaving ? 'Guardando en Supabase...' : 'Guardar Preferencias de Voucher'}</span>
@@ -1613,7 +1596,7 @@ export const SupplierProfile: React.FC = () => {
       )}
 
       {/* TAB 5: ZONA DE SEGURIDAD */}
-      {activeTab === 'security' && (
+      {activeTab === 'seguridad' && (
         <div className="p-6 sm:p-8 rounded-3xl bg-[#13070b] border-2 border-rose-500/30 space-y-6">
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/40 flex items-center justify-center text-rose-400 shrink-0">
@@ -1728,6 +1711,108 @@ export const SupplierProfile: React.FC = () => {
                 <span>
                   {isDeletingAccount ? 'Eliminando Cuenta y Catálogo...' : 'Eliminar Cuenta Definitivamente'}
                 </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Agregar Billetera Manualmente */}
+      {isAddWalletModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-[#0a0f1d] border border-white/[0.1] rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-scale-in">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-white/[0.08] flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  <Wallet className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white font-heading">
+                    Agregar Billetera Manualmente
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Registra una nueva dirección para recibir pagos de ventas
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddWalletModalOpen(false)}
+                className="p-2 text-slate-400 hover:text-white hover:bg-white/[0.05] rounded-xl transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Etiqueta / Nombre Descriptivo
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ej: Cold Storage BTC, Binance, Trezor"
+                  value={newWalletLabel}
+                  onChange={(e) => setNewWalletLabel(e.target.value)}
+                  className="w-full bg-[#060911] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Red Blockchain
+                </label>
+                <select
+                  value={newWalletNetwork}
+                  onChange={(e) => setNewWalletNetwork(e.target.value)}
+                  className="w-full bg-[#060911] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                >
+                  <option value="Ethereum / EVM">Ethereum / EVM (0x...)</option>
+                  <option value="Polygon">Polygon (MATIC)</option>
+                  <option value="Arbitrum">Arbitrum One</option>
+                  <option value="Base">Base Network</option>
+                  <option value="Optimism">Optimism</option>
+                  <option value="Bitcoin Native">Bitcoin Native (bc1q / 1...)</option>
+                  <option value="BNB Chain">BNB Smart Chain</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Dirección Pública de la Billetera *
+                </label>
+                <div className="relative">
+                  <Wallet className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <input
+                    type="text"
+                    placeholder="0x... o bc1q..."
+                    value={newWalletAddress}
+                    onChange={(e) => setNewWalletAddress(e.target.value)}
+                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-6 border-t border-white/[0.08] bg-[#060911]/50 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setIsAddWalletModalOpen(false)}
+                className="px-4 py-2.5 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/[0.05] rounded-xl transition"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => handleAddWallet()}
+                disabled={!newWalletAddress.trim()}
+                className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-lg transition disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 flex items-center gap-1.5"
+              >
+                <Plus className="w-4 h-4 stroke-[3]" />
+                <span>Guardar Billetera</span>
               </button>
             </div>
           </div>
