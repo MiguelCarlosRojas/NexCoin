@@ -60,7 +60,7 @@ export const StorePageLayout: React.FC<StorePageLayoutProps> = ({
             </div>
             <div>
               <span className="text-xl font-black tracking-tight text-white flex items-center gap-1 font-heading">
-                Nex<span className="text-amber-500">Coin</span>
+                Nova<span className="text-amber-500">Sats</span>
               </span>
               <span className="text-[10px] text-amber-400/90 font-bold uppercase tracking-widest block -mt-1 font-mono">
                 Store Marketplace
@@ -128,7 +128,7 @@ export const StorePageLayout: React.FC<StorePageLayoutProps> = ({
                 <Bitcoin className="w-5 h-5 text-black stroke-[2.5]" />
               </div>
               <span className="text-lg font-black tracking-tight text-white font-heading">
-                Nex<span className="text-amber-500">Coin</span>
+                Nova<span className="text-amber-500">Sats</span>
               </span>
             </div>
             <p className="text-[11px] text-slate-400 leading-relaxed">

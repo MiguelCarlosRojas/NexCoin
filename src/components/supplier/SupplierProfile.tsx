@@ -208,24 +208,40 @@ export const SupplierProfile: React.FC = () => {
   // Modal state for adding a wallet manually
   const [isAddWalletModalOpen, setIsAddWalletModalOpen] = useState(false);
 
-  // Supplier Verification state
+  // Supplier Verification & Fiscal Accreditation state
   const [verificationData, setVerificationData] = useState<SupplierVerificationInfo>(() =>
     getSupplierVerification(supplier?.id)
   );
-  const [taxIdInput, setTaxIdInput] = useState(verificationData.taxId || '');
-  const [legalNameInput, setLegalNameInput] = useState(verificationData.legalName || supplier?.company_name || '');
+  const [taxIdInput, setTaxIdInput] = useState(verificationData.taxId || '20601234567');
+  const [legalNameInput, setLegalNameInput] = useState(verificationData.legalName || supplier?.company_name || 'TechGlobal Hardware & Cryptowear S.A.C.');
+  const [nombreComercialInput, setNombreComercialInput] = useState(verificationData.nombreComercial || supplier?.company_name || 'TechGlobal Hardware & Cryptowear');
   const [countryInput, setCountryInput] = useState(verificationData.country || 'Perú');
-  const [businessAddressInput, setBusinessAddressInput] = useState(verificationData.businessAddress || '');
-  const [websiteInput, setWebsiteInput] = useState(verificationData.website || '');
+  const [businessAddressInput, setBusinessAddressInput] = useState(verificationData.businessAddress || 'Av. Blockchain 404, San Isidro, Lima - Perú');
+  const [telefonoInput, setTelefonoInput] = useState(verificationData.telefono || supplier?.phone || '+51 987 654 321');
+  const [whatsappInput, setWhatsappInput] = useState(verificationData.whatsapp || supplier?.phone || '+51 987 654 321');
+  const [emailFacturacionInput, setEmailFacturacionInput] = useState(verificationData.emailFacturacion || supplier?.email || 'proveedor@novasats.com');
+  const [emailSoporteInput, setEmailSoporteInput] = useState(verificationData.emailSoporte || supplier?.email || 'soporte@novasats.com');
+  const [websiteInput, setWebsiteInput] = useState(verificationData.website || 'https://novasats.vercel.app');
+  const [giroComercialInput, setGiroComercialInput] = useState(verificationData.giroComercial || 'Venta de Hardware Cripto, Nodos y Plataforma de Pasarela Web3');
+  const [autorizacionSunatInput, setAutorizacionSunatInput] = useState(verificationData.autorizacionSunat || 'Resolución de Superintendencia N° 097-2012/SUNAT');
+  const [tipoComprobanteInput, setTipoComprobanteInput] = useState(verificationData.tipoComprobante || 'COMPROBANTE ELECTRÓNICO DE PAGO BITCOIN ON-CHAIN');
   const [termsAccepted, setTermsAccepted] = useState(verificationData.isVerified);
   const [isVerifying, setIsVerifying] = useState(false);
 
   const isVerificationDirty =
     taxIdInput.trim() !== (verificationData.taxId || '') ||
     legalNameInput.trim() !== (verificationData.legalName || '') ||
+    nombreComercialInput.trim() !== (verificationData.nombreComercial || '') ||
     countryInput.trim() !== (verificationData.country || '') ||
     businessAddressInput.trim() !== (verificationData.businessAddress || '') ||
+    telefonoInput.trim() !== (verificationData.telefono || '') ||
+    whatsappInput.trim() !== (verificationData.whatsapp || '') ||
+    emailFacturacionInput.trim() !== (verificationData.emailFacturacion || '') ||
+    emailSoporteInput.trim() !== (verificationData.emailSoporte || '') ||
     websiteInput.trim() !== (verificationData.website || '') ||
+    giroComercialInput.trim() !== (verificationData.giroComercial || '') ||
+    autorizacionSunatInput.trim() !== (verificationData.autorizacionSunat || '') ||
+    tipoComprobanteInput.trim() !== (verificationData.tipoComprobante || '') ||
     (!verificationData.isVerified && termsAccepted);
 
   const handleSaveVerification = (e?: React.FormEvent) => {
@@ -252,9 +268,17 @@ export const SupplierProfile: React.FC = () => {
         isVerified: true,
         taxId: taxIdInput.trim(),
         legalName: legalNameInput.trim(),
+        nombreComercial: nombreComercialInput.trim(),
         country: countryInput.trim(),
         businessAddress: businessAddressInput.trim(),
+        telefono: telefonoInput.trim(),
+        whatsapp: whatsappInput.trim(),
+        emailFacturacion: emailFacturacionInput.trim(),
+        emailSoporte: emailSoporteInput.trim(),
         website: websiteInput.trim(),
+        giroComercial: giroComercialInput.trim(),
+        autorizacionSunat: autorizacionSunatInput.trim(),
+        tipoComprobante: tipoComprobanteInput.trim(),
         verifiedAt: verificationData.verifiedAt || new Date().toISOString(),
         verificationHash: verificationData.verificationHash || `0x${Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}`,
       };
@@ -1401,6 +1425,23 @@ export const SupplierProfile: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Nombre Comercial de la Marca *
+                </label>
+                <div className="relative">
+                  <Building className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <input
+                    type="text"
+                    required
+                    value={nombreComercialInput}
+                    onChange={(e) => setNombreComercialInput(e.target.value)}
+                    placeholder="Ej: TechGlobal Hardware & Cryptowear"
+                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
                   RUC / Tax ID / Número de Identificación Tributaria *
                 </label>
                 <div className="relative">
@@ -1433,6 +1474,91 @@ export const SupplierProfile: React.FC = () => {
                 </div>
               </div>
 
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Domicilio Fiscal / Dirección Comercial *
+                </label>
+                <div className="relative">
+                  <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <input
+                    type="text"
+                    required
+                    value={businessAddressInput}
+                    onChange={(e) => setBusinessAddressInput(e.target.value)}
+                    placeholder="Ej: Av. Blockchain 404, San Isidro, Lima - Perú"
+                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Teléfono Comercial *
+                </label>
+                <div className="relative">
+                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <input
+                    type="text"
+                    required
+                    value={telefonoInput}
+                    onChange={(e) => setTelefonoInput(e.target.value)}
+                    placeholder="+51 987 654 321"
+                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  WhatsApp de Contacto Directo *
+                </label>
+                <div className="relative">
+                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <input
+                    type="text"
+                    required
+                    value={whatsappInput}
+                    onChange={(e) => setWhatsappInput(e.target.value)}
+                    placeholder="+51 987 654 321"
+                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Email Fiscal / Facturación *
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <input
+                    type="email"
+                    required
+                    value={emailFacturacionInput}
+                    onChange={(e) => setEmailFacturacionInput(e.target.value)}
+                    placeholder="proveedor@novasats.com"
+                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Email de Soporte al Cliente *
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <input
+                    type="email"
+                    required
+                    value={emailSoporteInput}
+                    onChange={(e) => setEmailSoporteInput(e.target.value)}
+                    placeholder="soporte@novasats.com"
+                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1">
                   Sitio Web Oficial o Perfil Empresarial
@@ -1443,23 +1569,55 @@ export const SupplierProfile: React.FC = () => {
                     type="url"
                     value={websiteInput}
                     onChange={(e) => setWebsiteInput(e.target.value)}
-                    placeholder="https://tudominio.com"
+                    placeholder="https://novasats.vercel.app"
                     className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
               </div>
 
-              <div className="sm:col-span-2">
+              <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Domicilio Fiscal / Dirección Comercial
+                  Giro Comercial / Actividad Económica
                 </label>
                 <div className="relative">
-                  <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <Building className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                   <input
                     type="text"
-                    value={businessAddressInput}
-                    onChange={(e) => setBusinessAddressInput(e.target.value)}
-                    placeholder="Ej: Av. Blockchain 404, San Isidro, Lima"
+                    value={giroComercialInput}
+                    onChange={(e) => setGiroComercialInput(e.target.value)}
+                    placeholder="Ej: Venta de Hardware Cripto, Nodos y Pasarela Web3"
+                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Resolución / Autorización Tributaria SUNAT
+                </label>
+                <div className="relative">
+                  <FileText className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <input
+                    type="text"
+                    value={autorizacionSunatInput}
+                    onChange={(e) => setAutorizacionSunatInput(e.target.value)}
+                    placeholder="Resolución de Superintendencia N° 097-2012/SUNAT"
+                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Tipo de Comprobante Oficial Emitido
+                </label>
+                <div className="relative">
+                  <FileText className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <input
+                    type="text"
+                    value={tipoComprobanteInput}
+                    onChange={(e) => setTipoComprobanteInput(e.target.value)}
+                    placeholder="COMPROBANTE ELECTRÓNICO DE PAGO BITCOIN ON-CHAIN"
                     className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
@@ -1551,7 +1709,7 @@ export const SupplierProfile: React.FC = () => {
                 </div>
               </label>
 
-              {/* Opción 2: Comprobante Digital Detallado */}
+              {/* Opción 2: Vista previa del A4 */}
               <label className={`p-4 rounded-xl border flex items-start gap-3.5 cursor-pointer transition select-none ${
                 voucherConfig.allowDigital 
                   ? 'bg-blue-500/10 border-blue-500/40 text-white' 
@@ -1572,9 +1730,9 @@ export const SupplierProfile: React.FC = () => {
                   className="w-4 h-4 mt-0.5 rounded border-white/20 bg-slate-900 text-blue-500 focus:ring-blue-500"
                 />
                 <div>
-                  <span className="font-bold text-xs block text-white">Comprobante Digital Detallado</span>
+                  <span className="font-bold text-xs block text-white">Vista previa del A4</span>
                   <span className="text-[11px] text-slate-400 leading-relaxed block mt-1">
-                    Comprobante digital completo en pantalla con verificación de contrato NovaSats.sol, firma ECDSA y envío a Gmail.
+                    Comprobante electrónico oficial en hoja tamaño A4 con información fiscal completa, cálculo de I.G.V., vista previa en Laptop/PC y descarga directa en celulares.
                   </span>
                 </div>
               </label>

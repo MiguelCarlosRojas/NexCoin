@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 
-export const NOVASATS_CONTRACT_ADDRESS = import.meta.env.VITE_NOVASATS_CONTRACT_ADDRESS || 'Protocolo NovaSats P2P On-Chain (NovaSats.sol)';
+export const NOVASATS_CONTRACT_ADDRESS = import.meta.env.VITE_NOVASATS_CONTRACT_ADDRESS;
 
 export interface NovaSatsSignatureResult {
   signature: string;

@@ -26,7 +26,7 @@ export const SupplierAccountDeletedPage: React.FC = () => {
           </div>
           <div>
             <span className="text-xl font-black tracking-tight text-white flex items-center gap-1">
-              Nex<span className="text-amber-500">Coin</span>
+              Nova<span className="text-amber-500">Sats</span>
             </span>
             <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider block -mt-1">
               Marketplace Web3
