@@ -1653,14 +1653,7 @@ export const SupplierProducts: React.FC = () => {
             {/* Modal Footer */}
             <div className="p-4 sm:p-5 border-t border-white/[0.08] bg-[#0c1322] flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition"
-                >
-                  Cancelar
-                </button>
-                <span className="hidden sm:inline text-xs text-slate-500 font-mono">
+                <span className="text-xs text-slate-400 font-mono">
                   Paso: <strong className="text-amber-400 uppercase font-semibold">
                     {modalTab === 'general' ? '1 / 4' : modalTab === 'pricing' ? '2 / 4' : modalTab === 'gallery' ? '3 / 4' : '4 / 4'}
                   </strong>

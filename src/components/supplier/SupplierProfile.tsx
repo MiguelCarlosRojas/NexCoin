@@ -44,7 +44,8 @@ import {
   ExternalLink,
   X,
   Share2,
-  MessageSquare
+  MessageSquare,
+  Store
 } from 'lucide-react';
 import {
   fetchSupplierKycFiscal,
@@ -193,11 +194,11 @@ export const SupplierProfile: React.FC = () => {
 
   const [companyName, setCompanyName] = useState(supplier?.company_name || '');
   const [contactName, setContactName] = useState(supplier?.contact_name || '');
-  const [phone, setPhone] = useState(supplier?.phone || '');
   const [walletAddress, setWalletAddress] = useState(supplier?.wallet_address || '');
   
   // Custom Blobatar configuration parsed from supplier.avatar_url
   const initialBlob = parseBlobatar(supplier?.avatar_url, supplier?.company_name || 'NovaSats Supplier');
+  const [initialBlobState, setInitialBlobState] = useState(initialBlob);
   const [avatarSeed, setAvatarSeed] = useState(initialBlob.seed);
   const [selectedExpression, setSelectedExpression] = useState(initialBlob.expressionKey);
   const [selectedShape, setSelectedShape] = useState(initialBlob.shapeKey);
@@ -207,22 +208,40 @@ export const SupplierProfile: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Tab navigation state synced with ?filtro=
+  // Tab navigation state synced with ?filtro= and ?sub=
   type ProfileTab = 'identidad' | 'billeteras' | 'verificacion' | 'vouchers' | 'seguridad';
+  type VerifSubTab = 'fiscal' | 'comercial';
+
   const [searchParams, setSearchParams] = useSearchParams();
   const currentFilter = searchParams.get('filtro') as ProfileTab | null;
+  const currentSub = (searchParams.get('sub') || searchParams.get('seccion') || searchParams.get('tipo') || '').toLowerCase();
   const validTabs: ProfileTab[] = ['identidad', 'billeteras', 'verificacion', 'vouchers', 'seguridad'];
   const activeTab: ProfileTab = (currentFilter && validTabs.includes(currentFilter)) ? currentFilter : 'identidad';
 
-  const handleTabChange = (tab: ProfileTab) => {
-    setSearchParams({ filtro: tab });
+  // Sub-view toggle inside Tab 3 (Datos Fiscales & Comerciales)
+  // Default is 'comercial' (2. Datos Comerciales de la Empresa / Marca) as requested
+  const verifSubTab: VerifSubTab = currentSub === 'fiscal' ? 'fiscal' : 'comercial';
+
+  const handleTabChange = (tab: ProfileTab, sub?: VerifSubTab) => {
+    if (tab === 'verificacion') {
+      const targetSub = sub || verifSubTab || 'comercial';
+      setSearchParams({ filtro: 'verificacion', sub: targetSub });
+    } else {
+      setSearchParams({ filtro: tab });
+    }
+  };
+
+  const handleSubTabChange = (sub: VerifSubTab) => {
+    setSearchParams({ filtro: 'verificacion', sub });
   };
 
   useEffect(() => {
     if (!currentFilter || !validTabs.includes(currentFilter)) {
       setSearchParams({ filtro: 'identidad' }, { replace: true });
+    } else if (currentFilter === 'verificacion' && !currentSub) {
+      setSearchParams({ filtro: 'verificacion', sub: 'comercial' }, { replace: true });
     }
-  }, [currentFilter, setSearchParams]);
+  }, [currentFilter, currentSub, setSearchParams]);
 
   // Modal state for adding a wallet manually
   const [isAddWalletModalOpen, setIsAddWalletModalOpen] = useState(false);
@@ -266,9 +285,6 @@ export const SupplierProfile: React.FC = () => {
   const [initialCommercialProfile, setInitialCommercialProfile] = useState<SupplierCommercialProfile>(commercialProfile);
   const [isSavingCommercial, setIsSavingCommercial] = useState(false);
 
-  // Sub-view toggle inside Tab 3 (Verificación & Fiscal / Comercial)
-  type VerifSubTab = 'fiscal' | 'comercial';
-  const [verifSubTab, setVerifSubTab] = useState<VerifSubTab>('fiscal');
 
   // 3. Password Change in Tab 5 (Zona de Seguridad)
   const [currentPassword, setCurrentPassword] = useState('');
@@ -281,7 +297,6 @@ export const SupplierProfile: React.FC = () => {
   const [passwordFeedback, setPasswordFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const isKycDirty = JSON.stringify(kycFiscal) !== JSON.stringify(initialKycFiscal);
-  const isCommercialDirty = JSON.stringify(commercialProfile) !== JSON.stringify(initialCommercialProfile);
 
   // 4. Voucher formats configuration for customers
   const [voucherConfig, setVoucherConfig] = useState<SupplierVoucherConfig>(() =>
@@ -380,21 +395,19 @@ export const SupplierProfile: React.FC = () => {
     };
   }, [supplier?.id]);
 
-  const initialCompanyName = supplier?.company_name || '';
-  const initialContactName = supplier?.contact_name || '';
-  const initialPhone = supplier?.phone || '';
+  const [initialContactName, setInitialContactName] = useState(supplier?.contact_name || '');
   const initialWalletAddress = supplier?.wallet_address || '';
 
   const isIdentityDirty =
-    companyName.trim() !== initialCompanyName.trim() ||
-    contactName.trim() !== initialContactName.trim() ||
-    phone.trim() !== initialPhone.trim() ||
-    walletAddress.trim() !== initialWalletAddress.trim() ||
-    avatarSeed !== initialBlob.seed ||
-    selectedExpression !== initialBlob.expressionKey ||
-    selectedShape !== initialBlob.shapeKey ||
-    selectedGlow !== initialBlob.glowKey ||
-    animationMode !== initialBlob.animMode;
+    avatarSeed !== initialBlobState.seed ||
+    selectedExpression !== initialBlobState.expressionKey ||
+    selectedShape !== initialBlobState.shapeKey ||
+    selectedGlow !== initialBlobState.glowKey ||
+    animationMode !== initialBlobState.animMode;
+
+  const isCommercialDirty =
+    JSON.stringify(commercialProfile) !== JSON.stringify(initialCommercialProfile) ||
+    contactName.trim() !== initialContactName.trim();
 
   const isWalletsDirty = JSON.stringify(wallets) !== initialWalletsJson || walletAddress !== initialWalletAddress;
 
@@ -424,7 +437,7 @@ export const SupplierProfile: React.FC = () => {
         setInitialKycFiscal(res.data);
         setMessage({
           type: 'success',
-          text: '¡Información fiscal y cumplimiento KYC guardados exitosamente en la base de datos de Supabase (tabla supplier_kyc_fiscal)!',
+          text: '¡Información fiscal y cumplimiento KYC guardados exitosamente en la base de datos de Supabase!',
         });
       } else {
         setMessage({ type: 'error', text: res.error || 'Error al guardar información fiscal.' });
@@ -440,19 +453,34 @@ export const SupplierProfile: React.FC = () => {
     e.preventDefault();
     if (!supplier) return;
     if (!commercialProfile.brand_name.trim()) {
-      setMessage({ type: 'error', text: 'El Nombre Comercial / Marca es obligatorio.' });
+      setMessage({ type: 'error', text: 'El Nombre Comercial de la Marca / Tienda es obligatorio.' });
       return;
     }
 
     setIsSavingCommercial(true);
     try {
       const res = await saveSupplierCommercialProfile(supplier.id, commercialProfile);
+
+      // Sincronizar en tiempo real con la tabla suppliers (marca, contacto, teléfono)
+      await supabase
+        .from('suppliers')
+        .update({
+          company_name: commercialProfile.brand_name.trim(),
+          contact_name: contactName.trim(),
+          phone: commercialProfile.whatsapp_number.trim() || commercialProfile.customer_phone.trim(),
+        })
+        .eq('id', supplier.id);
+
+      await refreshSupplier();
+
       if (res.success && res.data) {
         setCommercialProfile(res.data);
         setInitialCommercialProfile(res.data);
+        setInitialContactName(contactName.trim());
+        setCompanyName(commercialProfile.brand_name.trim());
         setMessage({
           type: 'success',
-          text: '¡Datos comerciales de la marca guardados exitosamente en la base de datos de Supabase (tabla supplier_commercial_profiles)!',
+          text: '¡Datos comerciales de la marca guardados exitosamente en la base de datos de Supabase!',
         });
       } else {
         setMessage({ type: 'error', text: res.error || 'Error al guardar datos comerciales.' });
@@ -601,64 +629,109 @@ export const SupplierProfile: React.FC = () => {
   const activeGlow = BLOBATAR_GLOWS.find((g) => g.id === selectedGlow) || BLOBATAR_GLOWS[0];
   const activeExpression = BLOBATAR_EXPRESSIONS[selectedExpression] || BLOBATAR_EXPRESSIONS.happy;
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSaveBlobatar = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!supplier) return;
-
-    if (!companyName.trim()) {
-      setMessage({ type: 'error', text: 'El nombre de la empresa es obligatorio.' });
-      return;
-    }
 
     setIsSaving(true);
     setMessage(null);
 
     try {
-      // Serialize full rich blobatar configuration
       const blobatarIdentifier = serializeBlobatar({
-        seed: avatarSeed.trim() || companyName.trim(),
+        seed: avatarSeed.trim() || commercialProfile.brand_name.trim() || companyName.trim() || 'NovaSats',
         expressionKey: selectedExpression,
         shapeKey: selectedShape,
         glowKey: selectedGlow,
         animMode: animationMode,
       });
 
-      // Ensure active primary wallet matches walletAddress
-      const primaryWallet = wallets.find((w) => w.isPrimary);
-      const activePayoutAddress = primaryWallet?.address || walletAddress.trim();
-
       const { error } = await supabase
         .from('suppliers')
         .update({
-          company_name: companyName.trim(),
-          contact_name: contactName.trim(),
-          phone: phone.trim(),
-          wallet_address: activePayoutAddress,
           avatar_url: blobatarIdentifier,
         })
         .eq('id', supplier.id);
 
       if (error) throw error;
 
-      await persistWallets(wallets);
-      await saveSupplierVoucherConfig(supplier.id, voucherConfig);
-      setSupplierVoucherConfig(supplier.id, voucherConfig);
-      setInitialWalletsJson(JSON.stringify(wallets));
-      setInitialVoucherConfig(voucherConfig);
+      setInitialBlobState(parseBlobatar(blobatarIdentifier, companyName || 'NovaSats'));
       await refreshSupplier();
       setMessage({
         type: 'success',
-        text: '¡Perfil, icono Blobatar personalizado, billeteras y permisos de voucher guardados con éxito!',
+        text: '¡Identidad Visual & Blobatar personalizado guardados exitosamente en la base de datos de Supabase!',
       });
     } catch (err: any) {
       setMessage({
         type: 'error',
-        text: err.message || 'Error al guardar los cambios en el perfil.',
+        text: err.message || 'Error al guardar el icono Blobatar en el servidor.',
       });
     } finally {
       setIsSaving(false);
     }
   };
+
+  const handleSaveWallets = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supplier) return;
+
+    setIsSaving(true);
+    setMessage(null);
+
+    try {
+      const primaryWallet = wallets.find((w) => w.isPrimary);
+      const activePayoutAddress = primaryWallet?.address || walletAddress.trim();
+
+      const { error } = await supabase
+        .from('suppliers')
+        .update({
+          wallet_address: activePayoutAddress,
+        })
+        .eq('id', supplier.id);
+
+      if (error) throw error;
+
+      await persistWallets(wallets);
+      setInitialWalletsJson(JSON.stringify(wallets));
+      await refreshSupplier();
+      setMessage({
+        type: 'success',
+        text: '¡Billeteras de cobro guardadas exitosamente en la base de datos de Supabase!',
+      });
+    } catch (err: any) {
+      setMessage({
+        type: 'error',
+        text: err.message || 'Error al guardar billeteras de cobro.',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveVouchers = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supplier) return;
+
+    setIsSaving(true);
+    setMessage(null);
+
+    try {
+      await saveSupplierVoucherConfig(supplier.id, voucherConfig);
+      setSupplierVoucherConfig(supplier.id, voucherConfig);
+      setInitialVoucherConfig(voucherConfig);
+      setMessage({
+        type: 'success',
+        text: '¡Preferencias de formatos de voucher guardadas exitosamente en la base de datos de Supabase!',
+      });
+    } catch (err: any) {
+      setMessage({
+        type: 'error',
+        text: err.message || 'Error al guardar configuración de vouchers.',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
 
   return (
     <SupplierLayout
@@ -697,7 +770,7 @@ export const SupplierProfile: React.FC = () => {
             }`}
           >
             <Sparkles className="w-4 h-4" />
-            <span>Identidad & Blobatar</span>
+            <span>Identidad Visual & Blobatar</span>
           </button>
 
           <button
@@ -720,7 +793,7 @@ export const SupplierProfile: React.FC = () => {
 
           <button
             type="button"
-            onClick={() => handleTabChange('verificacion')}
+            onClick={() => handleTabChange('verificacion', 'comercial')}
             className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition ${
               activeTab === 'verificacion'
                 ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20'
@@ -765,9 +838,9 @@ export const SupplierProfile: React.FC = () => {
           </button>
         </div>
 
-        {/* TAB 1: IDENTIDAD & BLOBATAR */}
+        {/* TAB 1: IDENTIDAD VISUAL & BLOBATAR */}
         {activeTab === 'identidad' && (
-          <form onSubmit={handleSave} className="space-y-8 w-full max-w-full">
+          <form onSubmit={handleSaveBlobatar} className="space-y-8 w-full max-w-full">
 
             {/* SECTION 1: PERSONALIZADOR PROFESIONAL DE BLOBATAR */}
             <div className="bg-[#0a0f1d] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl space-y-8 w-full">
@@ -1114,101 +1187,6 @@ export const SupplierProfile: React.FC = () => {
 
           </div>
 
-          {/* SECTION 2: DATOS COMERCIALES DE LA EMPRESA */}
-          <div className="bg-[#0a0f1d] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 w-full">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2 border-b border-white/[0.08] pb-4">
-              <Building className="w-4 h-4 text-amber-500" />
-              <span>Datos Comerciales de la Empresa / Marca</span>
-            </h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Nombre de la Empresa o Marca *
-                </label>
-                <div className="relative">
-                  <Building className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <input
-                    type="text"
-                    required
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Persona de Contacto
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <input
-                    type="text"
-                    value={contactName}
-                    onChange={(e) => setContactName(e.target.value)}
-                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Correo Electrónico (Registrado en el Sistema)
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <input
-                    type="email"
-                    disabled
-                    value={supplier?.email || ''}
-                    className="w-full bg-[#060911]/50 border border-white/[0.06] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-slate-400 cursor-not-allowed"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Teléfono / WhatsApp de Soporte
-                </label>
-                <div className="relative">
-                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <input
-                    type="text"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
-              </div>
-
-              <div className="sm:col-span-2">
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-semibold text-slate-300">
-                    Billetera Activa para recibir pagos de ventas
-                  </label>
-                  <span className="text-[10px] text-amber-400 font-mono font-bold">
-                    Sincronizada con Multi-Wallets
-                  </span>
-                </div>
-                <div className="relative">
-                  <Wallet className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500" />
-                  <input
-                    type="text"
-                    value={walletAddress}
-                    onChange={(e) => setWalletAddress(e.target.value)}
-                    placeholder="0x... o bc1q..."
-                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Esta es la billetera actual donde se transfieren los fondos de tus ventas. Puedes alternar o añadir más billeteras en la sección inferior.
-                </p>
-              </div>
-            </div>
-          </div>
-
           {/* Bottom Save Action Bar for Tab 1 */}
           <div className="flex items-center justify-end gap-3 pt-2">
             <button
@@ -1217,7 +1195,7 @@ export const SupplierProfile: React.FC = () => {
               className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-xl shadow-amber-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
             >
               <Save className="w-4 h-4" />
-              <span>{isSaving ? 'Guardando en el Servidor...' : 'Guardar Perfil & Blobatar'}</span>
+              <span>{isSaving ? 'Guardando en el Servidor...' : 'Guardar Identidad Visual & Blobatar'}</span>
             </button>
           </div>
         </form>
@@ -1225,7 +1203,7 @@ export const SupplierProfile: React.FC = () => {
 
       {/* TAB 2: BILLETERAS & COBROS */}
       {activeTab === 'billeteras' && (
-        <form onSubmit={handleSave} className="space-y-8 w-full max-w-full">
+        <form onSubmit={handleSaveWallets} className="space-y-8 w-full max-w-full">
           {/* SECTION 3: GESTIÓN DE MÚLTIPLES BILLETERAS DE COBRO (MULTI-WALLET PAYOUTS) */}
           <div className="bg-[#0a0f1d] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 w-full">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.08] pb-4">
@@ -1413,121 +1391,11 @@ export const SupplierProfile: React.FC = () => {
       {activeTab === 'verificacion' && (
         <div className="space-y-8 w-full max-w-full">
           
-          {/* Header & Official Status Banner */}
-          <div className={`p-6 sm:p-8 rounded-3xl border-2 transition relative overflow-hidden shadow-2xl ${
-            kycFiscal.is_verified
-              ? 'bg-gradient-to-br from-emerald-950/40 via-[#0a1b15] to-[#060911] border-emerald-500/40'
-              : 'bg-gradient-to-br from-amber-950/40 via-[#1a130a] to-[#060911] border-amber-500/40'
-          }`}>
-            <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
-
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative z-10">
-              <div className="flex items-start gap-4">
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border shadow-lg ${
-                  kycFiscal.is_verified
-                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-emerald-500/10'
-                    : 'bg-amber-500/20 text-amber-400 border-amber-500/40 shadow-amber-500/10'
-                }`}>
-                  {kycFiscal.is_verified ? (
-                    <BadgeCheck className="w-8 h-8" />
-                  ) : (
-                    <Award className="w-8 h-8" />
-                  )}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2.5 flex-wrap">
-                    <h3 className="text-xl font-black text-white font-heading">
-                      {kycFiscal.is_verified
-                        ? 'Proveedor Oficialmente Verificado & Acreditado'
-                        : 'Acreditación y Verificación de Proveedor'}
-                    </h3>
-                    <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
-                      kycFiscal.is_verified
-                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                        : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                    }`}>
-                      {kycFiscal.is_verified ? 'Acreditado Oficialmente' : 'Solicitud Pendiente'}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
-                    {kycFiscal.is_verified
-                      ? 'Tu comercio cuenta con la insignia de confianza de NovaSats. Tus productos, información fiscal y perfil de marca están respaldados en la base de datos de Supabase.'
-                      : 'Certifica tu identidad comercial y datos fiscales para activar la insignia de verificación oficial en tus productos y maximizar tus ventas.'}
-                  </p>
-                </div>
-              </div>
-
-              {kycFiscal.is_verified && (
-                <div className="p-3.5 rounded-2xl bg-black/40 border border-emerald-500/30 font-mono text-[11px] text-emerald-400 shrink-0">
-                  <span className="block text-[9px] uppercase tracking-wider text-slate-400">Hash de Verificación:</span>
-                  <span className="font-bold truncate block max-w-[200px]">{kycFiscal.verification_hash}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Data Summary if Verified */}
-            {kycFiscal.is_verified && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-6 border-t border-white/[0.08] relative z-10">
-                <div className="p-3 bg-black/30 rounded-xl border border-white/[0.06]">
-                  <span className="text-[10px] text-slate-400 block uppercase font-mono">Razón Social Legal</span>
-                  <span className="text-xs font-bold text-white truncate block mt-0.5">{kycFiscal.legal_name}</span>
-                </div>
-                <div className="p-3 bg-black/30 rounded-xl border border-white/[0.06]">
-                  <span className="text-[10px] text-slate-400 block uppercase font-mono">RUC / Tax ID</span>
-                  <span className="text-xs font-bold text-white truncate block mt-0.5">{kycFiscal.tax_id}</span>
-                </div>
-                <div className="p-3 bg-black/30 rounded-xl border border-white/[0.06]">
-                  <span className="text-[10px] text-slate-400 block uppercase font-mono">Jurisdicción / País</span>
-                  <span className="text-xs font-bold text-white truncate block mt-0.5">{kycFiscal.country}</span>
-                </div>
-                <div className="p-3 bg-black/30 rounded-xl border border-white/[0.06]">
-                  <span className="text-[10px] text-slate-400 block uppercase font-mono">Fecha de Validación</span>
-                  <span className="text-xs font-bold text-emerald-400 block mt-0.5">
-                    {new Date(kycFiscal.verified_at || Date.now()).toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Beneficios de la Verificación */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-5 rounded-2xl bg-[#0a0f1d] border border-white/[0.08] space-y-2">
-              <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
-                <BadgeCheck className="w-5 h-5" />
-              </div>
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Insignia Oficial de Confianza</h4>
-              <p className="text-[11px] text-slate-400 leading-relaxed">
-                Tu marca e ítems mostrarán el badge de verificación en el Header, en la tienda y en el comprobante, inspirando total seguridad al comprador.
-              </p>
-            </div>
-
-            <div className="p-5 rounded-2xl bg-[#0a0f1d] border border-white/[0.08] space-y-2">
-              <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                <Zap className="w-5 h-5" />
-              </div>
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Prioridad en el Algoritmo</h4>
-              <p className="text-[11px] text-slate-400 leading-relaxed">
-                Tus productos tienen preferencia en los resultados de búsqueda, filtros destacados y catálogo general del marketplace.
-              </p>
-            </div>
-
-            <div className="p-5 rounded-2xl bg-[#0a0f1d] border border-white/[0.08] space-y-2">
-              <div className="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Pagos Cripto Respaldados</h4>
-              <p className="text-[11px] text-slate-400 leading-relaxed">
-                Garantía de liquidación en Bitcoin y stablecoins con comprobantes digitales autoverificables sobre la blockchain.
-              </p>
-            </div>
-          </div>
-
           {/* Sub-navegación entre Información Fiscal vs Datos Comerciales */}
           <div className="flex flex-col sm:flex-row items-center gap-2 p-1.5 bg-[#060911] border border-white/[0.08] rounded-2xl">
             <button
               type="button"
-              onClick={() => setVerifSubTab('fiscal')}
+              onClick={() => handleSubTabChange('fiscal')}
               className={`flex-1 w-full flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider transition ${
                 verifSubTab === 'fiscal'
                   ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20'
@@ -1540,7 +1408,7 @@ export const SupplierProfile: React.FC = () => {
 
             <button
               type="button"
-              onClick={() => setVerifSubTab('comercial')}
+              onClick={() => handleSubTabChange('comercial')}
               className={`flex-1 w-full flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider transition ${
                 verifSubTab === 'comercial'
                   ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20'
@@ -1552,20 +1420,129 @@ export const SupplierProfile: React.FC = () => {
             </button>
           </div>
 
-          {/* FORMULARIO 1: REGISTRO DE INFORMACIÓN FISCAL Y CUMPLIMIENTO (KYC PROVEEDORES) */}
+          {/* VISTA 1: REGISTRO DE INFORMACIÓN FISCAL Y CUMPLIMIENTO (KYC PROVEEDORES) */}
           {verifSubTab === 'fiscal' && (
-            <form onSubmit={handleSaveKycFiscal} className="bg-[#0a0f1d] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
-              <div className="flex items-center gap-3 border-b border-white/[0.08] pb-4">
-                <div className="p-2.5 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
-                  <FileText className="w-6 h-6" />
+            <>
+              {/* Header & Official Status Banner */}
+              <div className={`p-6 sm:p-8 rounded-3xl border-2 transition relative overflow-hidden shadow-2xl ${
+                kycFiscal.is_verified
+                  ? 'bg-gradient-to-br from-emerald-950/40 via-[#0a1b15] to-[#060911] border-emerald-500/40'
+                  : 'bg-gradient-to-br from-amber-950/40 via-[#1a130a] to-[#060911] border-amber-500/40'
+              }`}>
+                <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
+
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative z-10">
+                  <div className="flex items-start gap-4">
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border shadow-lg ${
+                      kycFiscal.is_verified
+                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-emerald-500/10'
+                        : 'bg-amber-500/20 text-amber-400 border-amber-500/40 shadow-amber-500/10'
+                    }`}>
+                      {kycFiscal.is_verified ? (
+                        <BadgeCheck className="w-8 h-8" />
+                      ) : (
+                        <Award className="w-8 h-8" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <h3 className="text-xl font-black text-white font-heading">
+                          {kycFiscal.is_verified
+                            ? 'Proveedor Oficialmente Verificado & Acreditado'
+                            : 'Acreditación y Verificación de Proveedor'}
+                        </h3>
+                        <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
+                          kycFiscal.is_verified
+                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                            : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                        }`}>
+                          {kycFiscal.is_verified ? 'Acreditado Oficialmente' : 'Solicitud Pendiente'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                        {kycFiscal.is_verified
+                          ? 'Tu comercio cuenta con la insignia de confianza de NovaSats. Tus productos, información fiscal y perfil de marca están respaldados en la base de datos de Supabase.'
+                          : 'Certifica tu identidad comercial y datos fiscales para activar la insignia de verificación oficial en tus productos y maximizar tus ventas.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {kycFiscal.is_verified && (
+                    <div className="p-3.5 rounded-2xl bg-black/40 border border-emerald-500/30 font-mono text-[11px] text-emerald-400 shrink-0">
+                      <span className="block text-[9px] uppercase tracking-wider text-slate-400">Hash de Verificación:</span>
+                      <span className="font-bold truncate block max-w-[200px]">{kycFiscal.verification_hash}</span>
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <h3 className="text-base font-bold text-white flex items-center gap-2">
-                    <span>Registro de Información Fiscal y Cumplimiento (KYC Proveedores)</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                      Tabla: supplier_kyc_fiscal
-                    </span>
-                  </h3>
+
+                {/* Data Summary if Verified */}
+                {kycFiscal.is_verified && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-6 border-t border-white/[0.08] relative z-10">
+                    <div className="p-3 bg-black/30 rounded-xl border border-white/[0.06]">
+                      <span className="text-[10px] text-slate-400 block uppercase font-mono">Razón Social Legal</span>
+                      <span className="text-xs font-bold text-white truncate block mt-0.5">{kycFiscal.legal_name}</span>
+                    </div>
+                    <div className="p-3 bg-black/30 rounded-xl border border-white/[0.06]">
+                      <span className="text-[10px] text-slate-400 block uppercase font-mono">RUC / Tax ID</span>
+                      <span className="text-xs font-bold text-white truncate block mt-0.5">{kycFiscal.tax_id}</span>
+                    </div>
+                    <div className="p-3 bg-black/30 rounded-xl border border-white/[0.06]">
+                      <span className="text-[10px] text-slate-400 block uppercase font-mono">Jurisdicción / País</span>
+                      <span className="text-xs font-bold text-white truncate block mt-0.5">{kycFiscal.country}</span>
+                    </div>
+                    <div className="p-3 bg-black/30 rounded-xl border border-white/[0.06]">
+                      <span className="text-[10px] text-slate-400 block uppercase font-mono">Fecha de Validación</span>
+                      <span className="text-xs font-bold text-emerald-400 block mt-0.5">
+                        {new Date(kycFiscal.verified_at || Date.now()).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Beneficios de la Verificación (KYC) */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-5 rounded-2xl bg-[#0a0f1d] border border-white/[0.08] space-y-2">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                    <BadgeCheck className="w-5 h-5" />
+                  </div>
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">Insignia Oficial de Confianza</h4>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    Tu marca e ítems mostrarán el badge de verificación en el Header, en la tienda y en el comprobante, inspirando total seguridad al comprador.
+                  </p>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-[#0a0f1d] border border-white/[0.08] space-y-2">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                    <Zap className="w-5 h-5" />
+                  </div>
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">Prioridad en el Algoritmo</h4>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    Tus productos tienen preferencia en los resultados de búsqueda, filtros destacados y catálogo general del marketplace.
+                  </p>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-[#0a0f1d] border border-white/[0.08] space-y-2">
+                  <div className="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">Pagos Cripto Respaldados</h4>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    Garantía de liquidación en Bitcoin y stablecoins con comprobantes digitales autoverificables sobre la blockchain.
+                  </p>
+                </div>
+              </div>
+
+              {/* FORMULARIO 1: REGISTRO DE INFORMACIÓN FISCAL Y CUMPLIMIENTO (KYC PROVEEDORES) */}
+              <form onSubmit={handleSaveKycFiscal} className="bg-[#0a0f1d] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+                <div className="flex items-center gap-3 border-b border-white/[0.08] pb-4">
+                  <div className="p-2.5 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
+                    <FileText className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      <span>Registro de Información Fiscal y Cumplimiento (KYC Proveedores)</span>
+                    </h3>
                   <p className="text-xs text-slate-400">
                     Acreditación tributaria, personería jurídica y resolución fiscal ante SUNAT. Datos respaldados en Supabase.
                   </p>
@@ -1771,45 +1748,123 @@ export const SupplierProfile: React.FC = () => {
                 </button>
               </div>
             </form>
+          </>
           )}
 
-          {/* FORMULARIO 2: DATOS COMERCIALES DE LA EMPRESA / MARCA */}
+          {/* VISTA 2: DATOS COMERCIALES DE LA EMPRESA / MARCA */}
           {verifSubTab === 'comercial' && (
-            <form onSubmit={handleSaveCommercialProfile} className="bg-[#0a0f1d] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
-              <div className="flex items-center gap-3 border-b border-white/[0.08] pb-4">
-                <div className="p-2.5 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20">
-                  <Building className="w-6 h-6" />
+            <>
+              {/* Header & Commercial Status Banner */}
+              <div className="p-6 sm:p-8 rounded-3xl border-2 border-amber-500/40 bg-gradient-to-br from-amber-950/40 via-[#1a130a] to-[#060911] relative overflow-hidden shadow-2xl">
+                <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
+
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative z-10">
+                  <div className="flex items-start gap-4">
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border border-amber-500/40 bg-amber-500/20 text-amber-400 shadow-lg shadow-amber-500/10">
+                      <Store className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <h3 className="text-xl font-black text-white font-heading">
+                          Datos Comerciales & Presencia de Tienda
+                        </h3>
+                        <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border bg-amber-500/20 text-amber-300 border-amber-500/40">
+                          Perfil Público de Marca
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                        Configura la información comercial de tu tienda, canales oficiales de atención al cliente y enlaces para conectar con tus compradores en NovaSats Marketplace.
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-base font-bold text-white flex items-center gap-2">
-                    <span>Datos Comerciales de la Empresa / Marca</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                      Tabla: supplier_commercial_profiles
-                    </span>
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    Marca de tienda, canales de atención al cliente y redes sociales visibles para tus compradores en NovaSats.
+              </div>
+
+              {/* Beneficios Comerciales */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-5 rounded-2xl bg-[#0a0f1d] border border-white/[0.08] space-y-2">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                    <Store className="w-5 h-5" />
+                  </div>
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">Identidad de Marca & Confianza Comercial</h4>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    Tu nombre comercial, logotipo y descripción se exhiben de forma destacada en la tienda y en los productos, fortaleciendo tu reputación ante los compradores.
+                  </p>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-[#0a0f1d] border border-white/[0.08] space-y-2">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                    <Phone className="w-5 h-5" />
+                  </div>
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">Atención al Cliente & Canales Directos</h4>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    Comunícate directamente con tus clientes a través de WhatsApp de ventas, teléfono y correo de soporte para resolver dudas y aumentar tus conversiones.
+                  </p>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-[#0a0f1d] border border-white/[0.08] space-y-2">
+                  <div className="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                    <Globe className="w-5 h-5" />
+                  </div>
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">Presencia Digital & Comunidad Web3</h4>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    Enlaza tu tienda online oficial y tus comunidades en Twitter/X, Telegram y Discord para construir lealtad y expandir el alcance de tu marca.
                   </p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Nombre Comercial de la Marca / Tienda *
-                  </label>
-                  <div className="relative">
-                    <Building className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                    <input
-                      type="text"
-                      required
-                      value={commercialProfile.brand_name}
-                      onChange={(e) => setCommercialProfile({ ...commercialProfile, brand_name: e.target.value })}
-                      placeholder="Ej: Nombre Comercial de la Marca"
-                      className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    />
+              {/* FORMULARIO 2: DATOS COMERCIALES DE LA EMPRESA / MARCA */}
+              <form onSubmit={handleSaveCommercialProfile} className="bg-[#0a0f1d] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+                <div className="flex items-center gap-3 border-b border-white/[0.08] pb-4">
+                  <div className="p-2.5 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20">
+                    <Building className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      <span>Datos Comerciales de la Empresa / Marca</span>
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Marca de tienda, canales de atención al cliente y redes sociales visibles para tus compradores en NovaSats.
+                    </p>
                   </div>
                 </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Nombre Comercial de la Marca / Tienda *
+                    </label>
+                    <div className="relative">
+                      <Building className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                      <input
+                        type="text"
+                        required
+                        value={commercialProfile.brand_name}
+                        onChange={(e) => {
+                          setCommercialProfile({ ...commercialProfile, brand_name: e.target.value });
+                          setCompanyName(e.target.value);
+                        }}
+                        placeholder="Ej: SatoshiForge Official"
+                        className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Persona de Contacto
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                      <input
+                        type="text"
+                        value={contactName}
+                        onChange={(e) => setContactName(e.target.value)}
+                        placeholder="Ej: Carlos Rojas"
+                        className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+                  </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
@@ -1990,6 +2045,7 @@ export const SupplierProfile: React.FC = () => {
                 </button>
               </div>
             </form>
+          </>
           )}
 
         </div>
@@ -1997,7 +2053,7 @@ export const SupplierProfile: React.FC = () => {
 
       {/* TAB 4: FORMATOS DE VOUCHER */}
       {activeTab === 'vouchers' && (
-        <form onSubmit={handleSave} className="space-y-8 w-full max-w-full">
+        <form onSubmit={handleSaveVouchers} className="space-y-8 w-full max-w-full">
           {/* Configuración de Comprobantes & Vouchers para Clientes */}
           <div className="p-6 rounded-2xl bg-[#0c1222] border border-white/[0.08] space-y-4">
             <div className="flex items-center gap-3">
@@ -2105,9 +2161,6 @@ export const SupplierProfile: React.FC = () => {
               <div>
                 <h3 className="text-lg font-bold text-white font-heading flex items-center gap-2">
                   <span>Cambiar Contraseña de Acceso del Proveedor</span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                    Tabla: suppliers (Supabase)
-                  </span>
                 </h3>
                 <p className="text-xs text-slate-400 mt-1 leading-relaxed">
                   Actualiza tu contraseña secreta de inicio de sesión. La nueva clave se actualiza directamente en la base de datos de Supabase.
