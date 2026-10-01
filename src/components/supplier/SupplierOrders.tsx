@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { SupplierLayout } from './SupplierLayout';
 import { useSupplier } from '../../context/SupplierContext';
 import { supabase } from '../../lib/supabaseClient';
@@ -65,13 +65,13 @@ export const SupplierOrders: React.FC = () => {
   };
 
   const fetchOrders = async () => {
-    if (!supplier) return;
+    if (!supplier?.id) return;
     setLoading(true);
     try {
-      // Fetch order items belonging to this supplier
+      // Fetch only necessary order items and order fields
       const { data: itemsData, error: itemsErr } = await supabase
         .from('order_items')
-        .select('*, orders(*)')
+        .select('id, order_id, product_id, supplier_id, product_name, quantity, unit_price_usd, unit_price_btc, total_usd, total_btc, created_at, orders(id, order_number, customer_name, customer_email, customer_wallet, payment_tx_hash, payment_currency, total_usd, total_btc, status, voucher_code, signature_novasats, contract_address, created_at)')
         .eq('supplier_id', supplier.id);
 
       if (itemsErr) throw itemsErr;
@@ -104,8 +104,25 @@ export const SupplierOrders: React.FC = () => {
   };
 
   useEffect(() => {
+    if (!supplier?.id) return;
     fetchOrders();
-  }, [supplier]);
+
+    // Real-time socket subscription
+    const channel = supabase
+      .channel(`supplier-orders-rt-${supplier.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'order_items', filter: `supplier_id=eq.${supplier.id}` },
+        () => {
+          fetchOrders();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supplier?.id]);
 
   const handleOpenVoucher = (order: Order) => {
     setSelectedOrder(order);
@@ -142,6 +159,20 @@ export const SupplierOrders: React.FC = () => {
 
     return true;
   });
+
+  // Pagination: 10 records per page
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, dateFilter]);
+
+  const totalPages = Math.ceil(filteredOrders.length / ITEMS_PER_PAGE) || 1;
+  const paginatedOrders = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredOrders.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredOrders, currentPage]);
 
   const totalUsd = filteredOrders.reduce((sum, o) => sum + Number(o.total_usd), 0);
   const totalBtc = filteredOrders.reduce((sum, o) => sum + Number(o.total_btc), 0);
@@ -431,7 +462,7 @@ export const SupplierOrders: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.04] font-medium">
-                  {filteredOrders.map((order) => (
+                  {paginatedOrders.map((order) => (
                     <tr key={order.id} className="hover:bg-white/[0.02] transition">
                       
                       {/* Order and Voucher */}
@@ -499,6 +530,36 @@ export const SupplierOrders: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+
+              {/* Controles de paginación (10 registros por página) */}
+              {filteredOrders.length > 0 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-[#0a0f1d] border-t border-white/[0.08] text-xs text-slate-400">
+                  <div>
+                    Mostrando <span className="text-white font-bold">{Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filteredOrders.length)}</span> - <span className="text-white font-bold">{Math.min(currentPage * ITEMS_PER_PAGE, filteredOrders.length)}</span> de <span className="text-white font-bold">{filteredOrders.length}</span> órdenes (10 por página)
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/[0.1] hover:border-blue-500/50 text-white disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    >
+                      Anterior
+                    </button>
+                    <span className="font-mono text-xs px-2">
+                      Página <strong className="text-blue-400">{currentPage}</strong> de {totalPages}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage >= totalPages}
+                      className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/[0.1] hover:border-blue-500/50 text-white disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    >
+                      Siguiente
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

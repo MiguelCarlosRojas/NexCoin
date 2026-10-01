@@ -127,6 +127,20 @@ export const SupplierReviews: React.FC = () => {
     });
   }, [reviews, search, ratingFilter]);
 
+  // Pagination: 10 reviews per page
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, ratingFilter]);
+
+  const totalPages = Math.ceil(filteredReviews.length / ITEMS_PER_PAGE) || 1;
+  const paginatedReviews = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredReviews.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredReviews, currentPage]);
+
   return (
     <SupplierLayout
       title="Calificaciones & Reseñas de Clientes"
@@ -348,7 +362,7 @@ export const SupplierReviews: React.FC = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {filteredReviews.map((r) => (
+                {paginatedReviews.map((r) => (
                   <div
                     key={r.id}
                     className="p-5 rounded-2xl bg-[#090d19] border border-white/[0.08] hover:border-amber-500/40 transition-all flex flex-col justify-between space-y-3 shadow-lg"
@@ -416,6 +430,36 @@ export const SupplierReviews: React.FC = () => {
                   </div>
                 ))}
               </div>
+
+              {/* Controles de paginación (10 opiniones por página) */}
+              {filteredReviews.length > 0 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-[#0a0f1d]/90 border border-white/[0.08] text-xs text-slate-400 mt-5">
+                  <div>
+                    Mostrando <span className="text-white font-bold">{Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filteredReviews.length)}</span> - <span className="text-white font-bold">{Math.min(currentPage * ITEMS_PER_PAGE, filteredReviews.length)}</span> de <span className="text-white font-bold">{filteredReviews.length}</span> opiniones (10 por página)
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/[0.1] hover:border-amber-500/50 text-white disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    >
+                      Anterior
+                    </button>
+                    <span className="font-mono text-xs px-2">
+                      Página <strong className="text-amber-400">{currentPage}</strong> de {totalPages}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage >= totalPages}
+                      className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/[0.1] hover:border-amber-500/50 text-white disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    >
+                      Siguiente
+                    </button>
+                  </div>
+                </div>
+              )}
             )}
           </>
         )}

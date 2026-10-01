@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useSupplier } from '../../context/SupplierContext';
 import { Blobatar } from '../ui/blobatar';
 import {
@@ -8,7 +8,6 @@ import {
   Lock,
   Mail,
   Building,
-  User,
   Phone,
   Wallet,
   ArrowRight,
@@ -22,15 +21,16 @@ import {
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
 
 export const SupplierLogin: React.FC = () => {
-  const [isRegister, setIsRegister] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentFiltro = searchParams.get('filtro');
+  const isRegister = currentFiltro === 'registro';
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   
   // Registration fields
   const [companyName, setCompanyName] = useState('');
-  const [contactName, setContactName] = useState('');
   const [phone, setPhone] = useState('');
-  const [walletAddress, setWalletAddress] = useState('');
 
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -40,8 +40,20 @@ export const SupplierLogin: React.FC = () => {
   const { supplier, login, register } = useSupplier();
   const navigate = useNavigate();
 
+  // Keep URL ?filtro= synchronized by default
+  useEffect(() => {
+    if (!searchParams.get('filtro')) {
+      setSearchParams({ filtro: 'login' }, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  const handleTabChange = (targetTab: 'login' | 'registro') => {
+    setSearchParams({ filtro: targetTab });
+    setError('');
+  };
+
   // If already authenticated via cookies, redirect straight to dashboard
-  React.useEffect(() => {
+  useEffect(() => {
     if (supplier) {
       navigate('/proveedores/dashboard', { replace: true });
     }
@@ -70,19 +82,25 @@ export const SupplierLogin: React.FC = () => {
         return;
       }
 
-      if (!walletAddress.trim()) {
-        setError('Por favor conecta o ingresa tu dirección de billetera real para recibir pagos.');
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        setError('Por favor ingresa un correo electrónico válido (ejemplo: contacto@empresa.com).');
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (password.length < 8) {
+        setError('La contraseña debe tener un mínimo de 8 caracteres.');
         setIsSubmitting(false);
         return;
       }
 
       const res = await register({
         company_name: companyName.trim(),
-        contact_name: contactName.trim(),
         email: email.trim(),
         password,
         phone: phone.trim(),
-        wallet_address: walletAddress.trim(),
+        wallet_address: isAppKitConnected && appKitAddress ? appKitAddress : '',
       });
 
       if (res.success) {
@@ -253,10 +271,7 @@ export const SupplierLogin: React.FC = () => {
             <div className="grid grid-cols-2 p-1 bg-black/40 border border-white/[0.06] rounded-xl mb-6">
               <button
                 type="button"
-                onClick={() => {
-                  setIsRegister(false);
-                  setError('');
-                }}
+                onClick={() => handleTabChange('login')}
                 className={`py-2 text-xs font-black uppercase tracking-wider rounded-lg transition ${
                   !isRegister
                     ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
@@ -267,10 +282,7 @@ export const SupplierLogin: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setIsRegister(true);
-                  setError('');
-                }}
+                onClick={() => handleTabChange('registro')}
                 className={`py-2 text-xs font-black uppercase tracking-wider rounded-lg transition ${
                   isRegister
                     ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
@@ -308,53 +320,37 @@ export const SupplierLogin: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                        Contacto Responsable
-                      </label>
-                      <div className="relative">
-                        <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                        <input
-                          type="text"
-                          placeholder="Ej: Roberto Gómez"
-                          value={contactName}
-                          onChange={(e) => setContactName(e.target.value)}
-                          className="w-full bg-[#070b14] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                        Teléfono / WhatsApp
-                      </label>
-                      <div className="relative">
-                        <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                        <input
-                          type="text"
-                          placeholder="+51 987 654 321"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                          className="w-full bg-[#070b14] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition"
-                        />
-                      </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                      Teléfono / WhatsApp (Solo Números)
+                    </label>
+                    <div className="relative">
+                      <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                      <input
+                        type="tel"
+                        inputMode="numeric"
+                        placeholder="+51 987 654 321"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value.replace(/[^0-9+\s-]/g, ''))}
+                        className="w-full bg-[#070b14] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 font-mono transition"
+                      />
                     </div>
                   </div>
 
-                  {/* WalletConnect / Reown AppKit section */}
+                  {/* WalletConnect / Reown AppKit section (Opcional - Sin campo manual) */}
                   <div className="p-3.5 rounded-2xl bg-amber-500/[0.04] border border-amber-500/20 space-y-2.5">
                     <div className="flex items-center justify-between">
                       <label className="block text-[11px] font-bold text-amber-400 uppercase tracking-wider">
-                        Billetera de Cobro (WalletConnect / EVM / BTC)
+                        Billetera Web3 (Opcional)
                       </label>
                       <span className="text-[10px] text-slate-400 font-mono">Reown AppKit</span>
                     </div>
 
                     <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-black/40 border border-white/[0.06]">
                       <div className="text-xs">
-                        <span className="text-slate-400 block text-[11px]">Conectar con WalletConnect:</span>
+                        <span className="text-slate-400 block text-[11px]">Estado de Billetera:</span>
                         <span className="font-mono text-[11px] text-slate-200">
-                          {isAppKitConnected && appKitAddress ? `${appKitAddress.slice(0, 6)}...${appKitAddress.slice(-4)}` : 'No conectada'}
+                          {isAppKitConnected && appKitAddress ? `${appKitAddress.slice(0, 6)}...${appKitAddress.slice(-4)}` : 'No vinculada (puedes configurarla en el portal)'}
                         </span>
                       </div>
                       <button
@@ -366,31 +362,6 @@ export const SupplierLogin: React.FC = () => {
                         <span>{isAppKitConnected && appKitAddress ? 'Cambiar Wallet' : 'Conectar Wallet'}</span>
                       </button>
                     </div>
-
-                    {isAppKitConnected && appKitAddress && walletAddress !== appKitAddress && (
-                      <button
-                        type="button"
-                        onClick={() => setWalletAddress(appKitAddress)}
-                        className="w-full py-1.5 px-3 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1.5"
-                      >
-                        <Wallet className="w-3.5 h-3.5" />
-                        <span>Usar Wallet Conectada ({appKitAddress.slice(0, 6)}...{appKitAddress.slice(-4)})</span>
-                      </button>
-                    )}
-
-                    <div className="relative">
-                      <Wallet className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                      <input
-                        type="text"
-                        placeholder="0x... o bc1q... (o pega tu dirección)"
-                        value={walletAddress}
-                        onChange={(e) => setWalletAddress(e.target.value)}
-                        className="w-full bg-[#070b14] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 font-mono transition"
-                      />
-                    </div>
-                    <p className="text-[10px] text-slate-500">
-                      Conecta tu wallet real mediante WalletConnect / Reown AppKit o ingresa tu dirección de cobro directamente.
-                    </p>
                   </div>
                 </>
               )}

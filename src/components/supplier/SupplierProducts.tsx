@@ -216,12 +216,12 @@ export const SupplierProducts: React.FC = () => {
   };
 
   const fetchProducts = async () => {
-    if (!supplier) return;
+    if (!supplier?.id) return;
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('products')
-        .select('*')
+        .select('id, supplier_id, name, description, category, price_usd, price_btc, stock, image_url, images, status, sku, discount_percent, original_price_usd, free_shipping, shipping_type, rating, reviews_count, warranty, condition, is_featured, created_at')
         .eq('supplier_id', supplier.id)
         .order('created_at', { ascending: false });
 
@@ -252,8 +252,25 @@ export const SupplierProducts: React.FC = () => {
   };
 
   useEffect(() => {
+    if (!supplier?.id) return;
     fetchProducts();
-  }, [supplier]);
+
+    // Real-time socket subscription to avoid multiple HTTP requests
+    const channel = supabase
+      .channel(`supplier-products-rt-${supplier.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'products', filter: `supplier_id=eq.${supplier.id}` },
+        () => {
+          fetchProducts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supplier?.id]);
 
   // Open modal for Adding new product
   const handleOpenAddModal = () => {
@@ -582,6 +599,20 @@ export const SupplierProducts: React.FC = () => {
       return matchesSearch && matchesCategory && matchesTab;
     });
   }, [products, search, filterTab, selectedCategory]);
+
+  // Pagination: 10 records per page
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filterTab, selectedCategory]);
+
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE) || 1;
+  const paginatedProducts = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredProducts.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredProducts, currentPage]);
 
   const handleTabChange = (newTab: 'all' | 'active' | 'low_stock' | 'archived') => {
     setFilterTab(newTab);
@@ -1005,7 +1036,7 @@ export const SupplierProducts: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.06] font-medium">
-                  {filteredProducts.map((p) => {
+                  {paginatedProducts.map((p) => {
                     const isArchived = p.status === 'archived';
                     const hasDiscount = Boolean(p.discount_percent && p.discount_percent > 0);
                     const isFreeShipping = p.free_shipping || p.shipping_type === 'free';
@@ -1157,6 +1188,36 @@ export const SupplierProducts: React.FC = () => {
                   })}
                 </tbody>
               </table>
+
+              {/* Controles de paginación (10 registros por página) */}
+              {filteredProducts.length > 0 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-[#0a0f1d] border-t border-white/[0.08] text-xs text-slate-400">
+                  <div>
+                    Mostrando <span className="text-white font-bold">{Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filteredProducts.length)}</span> - <span className="text-white font-bold">{Math.min(currentPage * ITEMS_PER_PAGE, filteredProducts.length)}</span> de <span className="text-white font-bold">{filteredProducts.length}</span> productos (10 por página)
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/[0.1] hover:border-amber-500/50 text-white disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    >
+                      Anterior
+                    </button>
+                    <span className="font-mono text-xs px-2">
+                      Página <strong className="text-amber-400">{currentPage}</strong> de {totalPages}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage >= totalPages}
+                      className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/[0.1] hover:border-amber-500/50 text-white disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    >
+                      Siguiente
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

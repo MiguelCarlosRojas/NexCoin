@@ -103,7 +103,7 @@ export async function fetchSupplierQuestions(supplierId: string): Promise<Produc
   try {
     const { data, error } = await supabase
       .from('product_questions')
-      .select('*')
+      .select('id, product_id, supplier_id, product_name, user_name, user_email, question, answer, answered_at, created_at')
       .eq('supplier_id', supplierId)
       .order('created_at', { ascending: false });
 
@@ -256,7 +256,7 @@ export async function fetchSupplierReviews(supplierId: string): Promise<ProductR
       prodNameMap[p.id] = p.name;
     });
 
-    let query = supabase.from('product_reviews').select('*');
+    let query = supabase.from('product_reviews').select('id, product_id, supplier_id, user_name, user_email, user_wallet, rating, comment, voucher_code, verified_purchase, created_at');
 
     if (productIds.length > 0) {
       query = query.or(`supplier_id.eq.${supplierId},product_id.in.(${productIds.join(',')})`);

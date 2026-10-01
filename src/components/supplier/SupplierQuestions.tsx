@@ -122,6 +122,20 @@ export const SupplierQuestions: React.FC = () => {
     });
   }, [questions, search, filterTab]);
 
+  // Pagination: 10 records per page
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filterTab]);
+
+  const totalPages = Math.ceil(filteredQuestions.length / ITEMS_PER_PAGE) || 1;
+  const paginatedQuestions = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredQuestions.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredQuestions, currentPage]);
+
   const pendingCount = questions.filter((q) => !q.answer).length;
   const answeredCount = questions.filter((q) => Boolean(q.answer)).length;
 
@@ -265,7 +279,7 @@ export const SupplierQuestions: React.FC = () => {
               </p>
             </div>
           ) : (
-            filteredQuestions.map((q) => {
+            paginatedQuestions.map((q) => {
               const isAnswered = Boolean(q.answer);
               const draft = answerDrafts[q.id] ?? '';
 
@@ -362,6 +376,36 @@ export const SupplierQuestions: React.FC = () => {
             })
           )}
         </div>
+
+        {/* Controles de paginación (10 preguntas por página) */}
+        {filteredQuestions.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-[#0a0f1d]/90 border border-white/[0.08] text-xs text-slate-400">
+            <div>
+              Mostrando <span className="text-white font-bold">{Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filteredQuestions.length)}</span> - <span className="text-white font-bold">{Math.min(currentPage * ITEMS_PER_PAGE, filteredQuestions.length)}</span> de <span className="text-white font-bold">{filteredQuestions.length}</span> preguntas (10 por página)
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/[0.1] hover:border-amber-500/50 text-white disabled:opacity-40 disabled:cursor-not-allowed transition"
+              >
+                Anterior
+              </button>
+              <span className="font-mono text-xs px-2">
+                Página <strong className="text-amber-400">{currentPage}</strong> de {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                disabled={currentPage >= totalPages}
+                className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/[0.1] hover:border-amber-500/50 text-white disabled:opacity-40 disabled:cursor-not-allowed transition"
+              >
+                Siguiente
+              </button>
+            </div>
+          </div>
+        )}
 
       </div>
     </SupplierLayout>

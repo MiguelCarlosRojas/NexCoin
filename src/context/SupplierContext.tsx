@@ -26,12 +26,34 @@ export const SupplierProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [supplier]);
 
+  // Real-time socket subscription for supplier profile updates
+  useEffect(() => {
+    if (!supplier?.id) return;
+    const channel = supabase
+      .channel(`supplier-profile-socket-${supplier.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'suppliers', filter: `id=eq.${supplier.id}` },
+        (payload) => {
+          if (payload.new) {
+            const { password: _, ...supplierWithoutPass } = payload.new as any;
+            setSupplier(supplierWithoutPass as Supplier);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supplier?.id]);
+
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('suppliers')
-        .select('*')
+        .select('id, email, password, company_name, phone, wallet_address, avatar_url, blobatar_identifier, created_at')
         .eq('email', email.trim().toLowerCase())
         .single();
 
@@ -71,7 +93,7 @@ export const SupplierProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const { data: inserted, error } = await supabase
         .from('suppliers')
         .insert([newSupplier])
-        .select()
+        .select('id, email, company_name, phone, wallet_address, avatar_url, blobatar_identifier, created_at')
         .single();
 
       if (error) {
@@ -79,8 +101,7 @@ export const SupplierProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return { success: false, error: error.message };
       }
 
-      const { password: _, ...supplierWithoutPass } = inserted;
-      setSupplier(supplierWithoutPass as Supplier);
+      setSupplier(inserted as Supplier);
       setLoading(false);
       return { success: true };
     } catch (err: any) {
@@ -99,12 +120,11 @@ export const SupplierProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       const { data } = await supabase
         .from('suppliers')
-        .select('*')
+        .select('id, email, company_name, phone, wallet_address, avatar_url, blobatar_identifier, created_at')
         .eq('id', supplier.id)
         .single();
       if (data) {
-        const { password: _, ...supplierWithoutPass } = data;
-        setSupplier(supplierWithoutPass as Supplier);
+        setSupplier(data as Supplier);
       }
     } catch {
       // ignore

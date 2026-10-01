@@ -1432,7 +1432,7 @@ export const SupplierProfile: React.FC = () => {
                 <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
 
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative z-10">
-                  <div className="flex items-start gap-4">
+                  <div className="flex items-start gap-4 flex-1 min-w-0">
                     <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border shadow-lg ${
                       kycFiscal.is_verified
                         ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-emerald-500/10'
@@ -1444,7 +1444,7 @@ export const SupplierProfile: React.FC = () => {
                         <Award className="w-8 h-8" />
                       )}
                     </div>
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2.5 flex-wrap">
                         <h3 className="text-xl font-black text-white font-heading">
                           {kycFiscal.is_verified
@@ -1459,7 +1459,7 @@ export const SupplierProfile: React.FC = () => {
                           {kycFiscal.is_verified ? 'Acreditado Oficialmente' : 'Solicitud Pendiente'}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                      <p className="text-xs text-slate-300 mt-1 max-w-3xl leading-relaxed">
                         {kycFiscal.is_verified
                           ? 'Tu comercio cuenta con la insignia de confianza de NovaSats. Tus productos, información fiscal y perfil de marca están respaldados en la base de datos de Supabase.'
                           : 'Certifica tu identidad comercial y datos fiscales para activar la insignia de verificación oficial en tus productos y maximizar tus ventas.'}
@@ -1575,10 +1575,11 @@ export const SupplierProfile: React.FC = () => {
                     <FileText className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                     <input
                       type="text"
+                      inputMode="numeric"
                       required
                       value={kycFiscal.tax_id}
-                      onChange={(e) => setKycFiscal({ ...kycFiscal, tax_id: e.target.value })}
-                      placeholder="Ej: RUC / Tax ID / NIF"
+                      onChange={(e) => setKycFiscal({ ...kycFiscal, tax_id: e.target.value.replace(/[^0-9A-Za-z-]/g, '') })}
+                      placeholder="Ej: 20601234567"
                       className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
@@ -1642,8 +1643,9 @@ export const SupplierProfile: React.FC = () => {
                     <FileText className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                     <input
                       type="text"
+                      inputMode="numeric"
                       value={kycFiscal.legal_representative_id_doc}
-                      onChange={(e) => setKycFiscal({ ...kycFiscal, legal_representative_id_doc: e.target.value })}
+                      onChange={(e) => setKycFiscal({ ...kycFiscal, legal_representative_id_doc: e.target.value.replace(/[^0-9A-Za-z-]/g, '') })}
                       placeholder="Ej: 12345678"
                       className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
@@ -1660,7 +1662,7 @@ export const SupplierProfile: React.FC = () => {
                       type="email"
                       required
                       value={kycFiscal.fiscal_email}
-                      onChange={(e) => setKycFiscal({ ...kycFiscal, fiscal_email: e.target.value })}
+                      onChange={(e) => setKycFiscal({ ...kycFiscal, fiscal_email: e.target.value.trim() })}
                       placeholder="facturacion@empresa.com"
                       className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
@@ -1669,15 +1671,16 @@ export const SupplierProfile: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Teléfono Fiscal Oficial *
+                    Teléfono Fiscal Oficial (Solo Números) *
                   </label>
                   <div className="relative">
                     <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                     <input
-                      type="text"
+                      type="tel"
+                      inputMode="tel"
                       required
                       value={kycFiscal.fiscal_phone}
-                      onChange={(e) => setKycFiscal({ ...kycFiscal, fiscal_phone: e.target.value })}
+                      onChange={(e) => setKycFiscal({ ...kycFiscal, fiscal_phone: e.target.value.replace(/[^0-9+\s-]/g, '') })}
                       placeholder="+51 987 654 321"
                       className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
@@ -1759,11 +1762,11 @@ export const SupplierProfile: React.FC = () => {
                 <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
 
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative z-10">
-                  <div className="flex items-start gap-4">
+                  <div className="flex items-start gap-4 flex-1 min-w-0">
                     <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border border-amber-500/40 bg-amber-500/20 text-amber-400 shadow-lg shadow-amber-500/10">
                       <Store className="w-8 h-8" />
                     </div>
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2.5 flex-wrap">
                         <h3 className="text-xl font-black text-white font-heading">
                           Datos Comerciales & Presencia de Tienda
@@ -1772,7 +1775,7 @@ export const SupplierProfile: React.FC = () => {
                           Perfil Público de Marca
                         </span>
                       </div>
-                      <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                      <p className="text-xs text-slate-300 mt-1 max-w-3xl leading-relaxed">
                         Configura la información comercial de tu tienda, canales oficiales de atención al cliente y enlaces para conectar con tus compradores en NovaSats Marketplace.
                       </p>
                     </div>
@@ -1915,15 +1918,16 @@ export const SupplierProfile: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Teléfono Comercial de Atención al Cliente *
+                    Teléfono Comercial de Atención al Cliente (Solo Números) *
                   </label>
                   <div className="relative">
                     <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                     <input
-                      type="text"
+                      type="tel"
+                      inputMode="tel"
                       required
                       value={commercialProfile.customer_phone}
-                      onChange={(e) => setCommercialProfile({ ...commercialProfile, customer_phone: e.target.value })}
+                      onChange={(e) => setCommercialProfile({ ...commercialProfile, customer_phone: e.target.value.replace(/[^0-9+\s-]/g, '') })}
                       placeholder="+51 987 654 321"
                       className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                     />
@@ -1932,15 +1936,16 @@ export const SupplierProfile: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    WhatsApp Directo de Soporte y Ventas *
+                    WhatsApp Directo de Soporte y Ventas (Solo Números) *
                   </label>
                   <div className="relative">
                     <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                     <input
-                      type="text"
+                      type="tel"
+                      inputMode="tel"
                       required
                       value={commercialProfile.whatsapp_number}
-                      onChange={(e) => setCommercialProfile({ ...commercialProfile, whatsapp_number: e.target.value })}
+                      onChange={(e) => setCommercialProfile({ ...commercialProfile, whatsapp_number: e.target.value.replace(/[^0-9+\s-]/g, '') })}
                       placeholder="+51 987 654 321"
                       className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                     />
@@ -1957,7 +1962,7 @@ export const SupplierProfile: React.FC = () => {
                       type="email"
                       required
                       value={commercialProfile.support_email}
-                      onChange={(e) => setCommercialProfile({ ...commercialProfile, support_email: e.target.value })}
+                      onChange={(e) => setCommercialProfile({ ...commercialProfile, support_email: e.target.value.trim() })}
                       placeholder="soporte@empresa.com"
                       className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                     />
