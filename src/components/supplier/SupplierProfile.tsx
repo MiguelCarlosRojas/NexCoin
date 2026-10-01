@@ -437,7 +437,7 @@ export const SupplierProfile: React.FC = () => {
         setInitialKycFiscal(res.data);
         setMessage({
           type: 'success',
-          text: '¡Información fiscal y cumplimiento KYC guardados exitosamente en la base de datos de Supabase!',
+          text: '¡Información fiscal y cumplimiento KYC guardados exitosamente!',
         });
       } else {
         setMessage({ type: 'error', text: res.error || 'Error al guardar información fiscal.' });
@@ -480,7 +480,7 @@ export const SupplierProfile: React.FC = () => {
         setCompanyName(commercialProfile.brand_name.trim());
         setMessage({
           type: 'success',
-          text: '¡Datos comerciales de la marca guardados exitosamente en la base de datos de Supabase!',
+          text: '¡Datos comerciales de la marca guardados exitosamente!',
         });
       } else {
         setMessage({ type: 'error', text: res.error || 'Error al guardar datos comerciales.' });
@@ -516,7 +516,7 @@ export const SupplierProfile: React.FC = () => {
       if (res.success) {
         setPasswordFeedback({
           type: 'success',
-          text: '¡Contraseña actualizada exitosamente en Supabase! Ya puedes usar tu nueva clave en el próximo inicio de sesión.',
+          text: '¡Contraseña actualizada exitosamente! Ya puedes usar tu nueva clave en el próximo inicio de sesión.',
         });
         setCurrentPassword('');
         setNewPassword('');
@@ -658,7 +658,7 @@ export const SupplierProfile: React.FC = () => {
       await refreshSupplier();
       setMessage({
         type: 'success',
-        text: '¡Identidad Visual & Blobatar personalizado guardados exitosamente en la base de datos de Supabase!',
+        text: '¡Identidad Visual & Blobatar personalizado guardados exitosamente!',
       });
     } catch (err: any) {
       setMessage({
@@ -695,7 +695,7 @@ export const SupplierProfile: React.FC = () => {
       await refreshSupplier();
       setMessage({
         type: 'success',
-        text: '¡Billeteras de cobro guardadas exitosamente en la base de datos de Supabase!',
+        text: '¡Billeteras de cobro guardadas exitosamente!',
       });
     } catch (err: any) {
       setMessage({
@@ -720,7 +720,7 @@ export const SupplierProfile: React.FC = () => {
       setInitialVoucherConfig(voucherConfig);
       setMessage({
         type: 'success',
-        text: '¡Preferencias de formatos de voucher guardadas exitosamente en la base de datos de Supabase!',
+        text: '¡Preferencias de formatos de voucher guardadas exitosamente!',
       });
     } catch (err: any) {
       setMessage({
@@ -1461,7 +1461,7 @@ export const SupplierProfile: React.FC = () => {
                       </div>
                       <p className="text-xs text-slate-300 mt-1 max-w-3xl leading-relaxed">
                         {kycFiscal.is_verified
-                          ? 'Tu comercio cuenta con la insignia de confianza de NovaSats. Tus productos, información fiscal y perfil de marca están respaldados en la base de datos de Supabase.'
+                          ? 'Tu comercio cuenta con la insignia de confianza de NovaSats. Tus productos, información fiscal y perfil de marca están respaldados y certificados en la plataforma.'
                           : 'Certifica tu identidad comercial y datos fiscales para activar la insignia de verificación oficial en tus productos y maximizar tus ventas.'}
                       </p>
                     </div>
@@ -1544,7 +1544,7 @@ export const SupplierProfile: React.FC = () => {
                       <span>Registro de Información Fiscal y Cumplimiento (KYC Proveedores)</span>
                     </h3>
                   <p className="text-xs text-slate-400">
-                    Acreditación tributaria, personería jurídica y resolución fiscal ante SUNAT. Datos respaldados en Supabase.
+                    Acreditación tributaria, personería jurídica y resolución fiscal ante SUNAT.
                   </p>
                 </div>
               </div>
@@ -1745,7 +1745,7 @@ export const SupplierProfile: React.FC = () => {
                   <Save className="w-4 h-4" />
                   <span>
                     {isSavingKyc
-                      ? 'Guardando en Supabase...'
+                      ? 'Guardando...'
                       : 'Guardar Información Fiscal (KYC)'}
                   </span>
                 </button>
@@ -2044,7 +2044,7 @@ export const SupplierProfile: React.FC = () => {
                   <Save className="w-4 h-4" />
                   <span>
                     {isSavingCommercial
-                      ? 'Guardando en Supabase...'
+                      ? 'Guardando...'
                       : 'Guardar Datos Comerciales de la Marca'}
                   </span>
                 </button>
@@ -2168,7 +2168,7 @@ export const SupplierProfile: React.FC = () => {
                   <span>Cambiar Contraseña de Acceso del Proveedor</span>
                 </h3>
                 <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                  Actualiza tu contraseña secreta de inicio de sesión. La nueva clave se actualiza directamente en la base de datos de Supabase.
+                  Actualiza tu contraseña secreta de inicio de sesión. La nueva clave se actualiza directamente en tu cuenta.
                 </p>
               </div>
             </div>
@@ -2278,7 +2278,7 @@ export const SupplierProfile: React.FC = () => {
                 className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-xl shadow-amber-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
               >
                 <Lock className="w-4 h-4" />
-                <span>{isChangingPassword ? 'Actualizando Contraseña en Supabase...' : 'Actualizar Contraseña de Proveedor'}</span>
+                <span>{isChangingPassword ? 'Actualizando Contraseña...' : 'Actualizar Contraseña de Proveedor'}</span>
               </button>
             </div>
           </form>

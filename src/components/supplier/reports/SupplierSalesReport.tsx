@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { SupplierLayout } from '../SupplierLayout';
 import { useSupplier } from '../../../context/SupplierContext';
 import { supabase } from '../../../lib/supabaseClient';
@@ -103,6 +103,20 @@ export const SupplierSalesReport: React.FC = () => {
   const totalRevenueBtc = filteredItems.reduce((acc, cur) => acc + Number(cur.total_btc), 0);
   const totalUnits = filteredItems.reduce((acc, cur) => acc + Number(cur.quantity), 0);
   const averageTicket = filteredItems.length > 0 ? totalRevenueUsd / filteredItems.length : 0;
+
+  // Paginación: 10 registros por página
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, dateRange]);
+
+  const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE) || 1;
+  const paginatedItems = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredItems.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredItems, currentPage]);
 
   // Export to Horizontal Landscape PDF with autoTable
   const handleExportPdf = () => {
@@ -353,7 +367,8 @@ export const SupplierSalesReport: React.FC = () => {
           ) : filteredItems.length === 0 ? (
             <div className="p-16 text-center text-slate-500">No hay ventas registradas con los filtros actuales.</div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+              <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b border-white/[0.08] bg-white/[0.02] text-slate-400 uppercase tracking-wider font-bold text-[10px]">
@@ -368,7 +383,7 @@ export const SupplierSalesReport: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.04] font-medium">
-                  {filteredItems.map((item) => (
+                  {paginatedItems.map((item) => (
                     <tr key={item.id} className="hover:bg-white/[0.02] transition">
                       <td className="py-3 px-4 font-mono font-bold text-white">
                         {item.orders?.order_number || '—'}
@@ -400,6 +415,37 @@ export const SupplierSalesReport: React.FC = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Controles de paginación (10 registros por página) */}
+            {filteredItems.length > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-[#0a0f1d]/90 border border-white/[0.08] text-xs text-slate-400 mt-5">
+                <div>
+                  Mostrando <span className="text-white font-bold">{Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filteredItems.length)}</span> - <span className="text-white font-bold">{Math.min(currentPage * ITEMS_PER_PAGE, filteredItems.length)}</span> de <span className="text-white font-bold">{filteredItems.length}</span> ventas (10 por página)
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/[0.1] hover:border-amber-500/50 text-white disabled:opacity-40 disabled:cursor-not-allowed transition font-semibold"
+                  >
+                    Anterior
+                  </button>
+                  <span className="font-mono text-xs px-2">
+                    Página <strong className="text-amber-400">{currentPage}</strong> de {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage >= totalPages}
+                    className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/[0.1] hover:border-amber-500/50 text-white disabled:opacity-40 disabled:cursor-not-allowed transition font-semibold"
+                  >
+                    Siguiente
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
           )}
         </div>
 

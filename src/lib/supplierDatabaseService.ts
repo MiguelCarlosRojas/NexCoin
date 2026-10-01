@@ -369,7 +369,7 @@ export async function changeSupplierPassword(
       .single();
 
     if (fetchErr || !currentData) {
-      return { success: false, error: 'No se pudo verificar la cuenta del proveedor en Supabase.' };
+      return { success: false, error: 'No se pudo verificar la cuenta del proveedor en el sistema.' };
     }
 
     if (currentData.password !== currentPass) {
@@ -381,7 +381,7 @@ export async function changeSupplierPassword(
       return { success: false, error: 'La nueva contraseña debe tener un mínimo de 8 caracteres.' };
     }
 
-    // 3. Update password in Supabase
+    // 3. Update password in database
     const { error: updateErr } = await supabase
       .from('suppliers')
       .update({
@@ -391,7 +391,7 @@ export async function changeSupplierPassword(
       .eq('id', supplierId);
 
     if (updateErr) {
-      return { success: false, error: updateErr.message || 'Error al actualizar la contraseña en Supabase.' };
+      return { success: false, error: updateErr.message || 'Error al actualizar la contraseña en el sistema.' };
     }
 
     return { success: true };

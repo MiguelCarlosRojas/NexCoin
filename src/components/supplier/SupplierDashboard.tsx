@@ -433,7 +433,7 @@ export const SupplierDashboard: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.04] font-medium">
-                  {soldProducts.map((sp) => (
+                  {soldProducts.slice(0, 5).map((sp) => (
                     <tr key={sp.productId} className="hover:bg-white/[0.02] transition">
                       <td className="py-3.5 px-4 text-white font-bold max-w-xs truncate">
                         {sp.name}

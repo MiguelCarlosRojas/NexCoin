@@ -249,6 +249,28 @@ export const StoreLanding: React.FC = () => {
     (onlyOfficialWarranty ? 1 : 0) +
     (searchQuery.trim() ? 1 : 0);
 
+  // Paginación: 10 productos por página
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedCategory, activeCatalogFilter, priceRange, conditionFilter, minRating, onlyOfficialWarranty, sortBy]);
+
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE) || 1;
+  const paginatedProducts = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredProducts.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredProducts, currentPage]);
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    const el = document.getElementById('catalogo');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   const resetAllFilters = () => {
     setSearchQuery('');
     setSelectedCategory('Todas');
@@ -937,8 +959,9 @@ export const StoreLanding: React.FC = () => {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filteredProducts.map((product) => {
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+            {paginatedProducts.map((product) => {
               const inStock = product.stock > 0;
               const supplierName = product.suppliers?.company_name || 'Proveedor Verificado';
 
@@ -1116,6 +1139,37 @@ export const StoreLanding: React.FC = () => {
               );
             })}
           </div>
+
+          {/* Controles de paginación (10 productos por página) */}
+          {filteredProducts.length > 0 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-[#0a0f1d]/90 border border-white/[0.08] text-xs text-slate-400 mt-8 shadow-xl">
+              <div>
+                Mostrando <span className="text-white font-bold">{Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filteredProducts.length)}</span> - <span className="text-white font-bold">{Math.min(currentPage * ITEMS_PER_PAGE, filteredProducts.length)}</span> de <span className="text-white font-bold">{filteredProducts.length}</span> productos (10 por página)
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-3.5 py-1.5 rounded-xl bg-black/40 border border-white/[0.1] hover:border-amber-500/50 text-white disabled:opacity-40 disabled:cursor-not-allowed transition font-semibold"
+                >
+                  Anterior
+                </button>
+                <span className="font-mono text-xs px-2">
+                  Página <strong className="text-amber-400">{currentPage}</strong> de {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
+                  disabled={currentPage >= totalPages}
+                  className="px-3.5 py-1.5 rounded-xl bg-black/40 border border-white/[0.1] hover:border-amber-500/50 text-white disabled:opacity-40 disabled:cursor-not-allowed transition font-semibold"
+                >
+                  Siguiente
+                </button>
+              </div>
+            </div>
+          )}
+          </>
         )}
 
           </div>
