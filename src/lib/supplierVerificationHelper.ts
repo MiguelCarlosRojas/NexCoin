@@ -1,3 +1,12 @@
+import { 
+  fetchSupplierKycFiscal, 
+  saveSupplierKycFiscal, 
+  fetchSupplierCommercialProfile, 
+  saveSupplierCommercialProfile, 
+  DEFAULT_KYC_FISCAL, 
+  DEFAULT_COMMERCIAL_PROFILE 
+} from './supplierDatabaseService';
+
 export interface SupplierVerificationInfo {
   isVerified: boolean;
   taxId: string; // RUC / Tax ID
@@ -19,44 +28,97 @@ export interface SupplierVerificationInfo {
 
 export const DEFAULT_SUPPLIER_VERIFICATION: SupplierVerificationInfo = {
   isVerified: true,
-  taxId: '20601234567',
-  legalName: 'TechGlobal Hardware & Cryptowear S.A.C.',
-  nombreComercial: 'TechGlobal Hardware & Cryptowear',
-  country: 'Perú',
-  businessAddress: 'Av. Blockchain 404, San Isidro, Lima - Perú',
-  telefono: '+51 987 654 321',
-  whatsapp: '+51 987 654 321',
-  emailFacturacion: 'proveedor@novasats.com',
-  emailSoporte: 'soporte@novasats.com',
-  website: 'https://novasats.vercel.app',
-  giroComercial: 'Venta de Hardware Cripto, Nodos y Plataforma de Pasarela Web3',
-  autorizacionSunat: 'Resolución de Superintendencia N° 097-2012/SUNAT',
-  tipoComprobante: 'COMPROBANTE ELECTRÓNICO DE PAGO BITCOIN ON-CHAIN',
-  verifiedAt: '2026-01-15T10:00:00Z',
-  verificationHash: '0x7f9a2b8c4d1e3f5a6b7c8d9e0f1a2b3c4d5e6f7a',
+  taxId: DEFAULT_KYC_FISCAL.tax_id,
+  legalName: DEFAULT_KYC_FISCAL.legal_name,
+  nombreComercial: DEFAULT_COMMERCIAL_PROFILE.brand_name,
+  country: DEFAULT_KYC_FISCAL.country,
+  businessAddress: DEFAULT_KYC_FISCAL.business_address,
+  telefono: DEFAULT_COMMERCIAL_PROFILE.customer_phone,
+  whatsapp: DEFAULT_COMMERCIAL_PROFILE.whatsapp_number,
+  emailFacturacion: DEFAULT_KYC_FISCAL.fiscal_email,
+  emailSoporte: DEFAULT_COMMERCIAL_PROFILE.support_email,
+  website: DEFAULT_COMMERCIAL_PROFILE.website_url,
+  giroComercial: DEFAULT_COMMERCIAL_PROFILE.commercial_activity,
+  autorizacionSunat: DEFAULT_KYC_FISCAL.tax_resolution,
+  tipoComprobante: DEFAULT_KYC_FISCAL.official_receipt_type,
+  verifiedAt: DEFAULT_KYC_FISCAL.verified_at || '2026-01-15T10:00:00Z',
+  verificationHash: DEFAULT_KYC_FISCAL.verification_hash || '0x7f9a2b8c4d1e3f5a6b7c8d9e0f1a2b3c4d5e6f7a',
 };
+
+// In-memory runtime cache (Zero localStorage)
+const runtimeVerificationCache: Record<string, SupplierVerificationInfo> = {};
 
 export function getSupplierVerification(supplierId?: string): SupplierVerificationInfo {
   if (!supplierId) {
     return { ...DEFAULT_SUPPLIER_VERIFICATION };
   }
-  try {
-    const raw = localStorage.getItem(`novasats_supplier_verification_${supplierId}`);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      return {
-        ...DEFAULT_SUPPLIER_VERIFICATION,
-        ...parsed,
-      };
-    }
-  } catch {}
+  if (runtimeVerificationCache[supplierId]) {
+    return runtimeVerificationCache[supplierId];
+  }
   return { ...DEFAULT_SUPPLIER_VERIFICATION };
 }
 
-export function saveSupplierVerification(supplierId: string, data: SupplierVerificationInfo) {
+export async function fetchSupplierVerificationFromDb(supplierId: string): Promise<SupplierVerificationInfo> {
+  if (!supplierId) return { ...DEFAULT_SUPPLIER_VERIFICATION };
   try {
-    localStorage.setItem(`novasats_supplier_verification_${supplierId}`, JSON.stringify(data));
+    const [kyc, comm] = await Promise.all([
+      fetchSupplierKycFiscal(supplierId),
+      fetchSupplierCommercialProfile(supplierId),
+    ]);
+
+    const result: SupplierVerificationInfo = {
+      isVerified: kyc.is_verified,
+      taxId: kyc.tax_id,
+      legalName: kyc.legal_name,
+      nombreComercial: comm.brand_name || kyc.legal_name,
+      country: kyc.country,
+      businessAddress: kyc.business_address,
+      telefono: comm.customer_phone || kyc.fiscal_phone,
+      whatsapp: comm.whatsapp_number || kyc.fiscal_phone,
+      emailFacturacion: kyc.fiscal_email,
+      emailSoporte: comm.support_email,
+      website: comm.website_url,
+      giroComercial: comm.commercial_activity,
+      autorizacionSunat: kyc.tax_resolution,
+      tipoComprobante: kyc.official_receipt_type,
+      verifiedAt: kyc.verified_at || undefined,
+      verificationHash: kyc.verification_hash || undefined,
+    };
+
+    runtimeVerificationCache[supplierId] = result;
+    return result;
   } catch (err) {
-    console.error('Error saving supplier verification:', err);
+    console.error('Error fetching verification from Supabase:', err);
+    return { ...DEFAULT_SUPPLIER_VERIFICATION };
   }
+}
+
+export async function saveSupplierVerification(supplierId: string, data: SupplierVerificationInfo): Promise<void> {
+  // Update in-memory cache
+  runtimeVerificationCache[supplierId] = { ...data };
+
+  // Persist to Supabase in both kyc and commercial tables
+  await Promise.all([
+    saveSupplierKycFiscal(supplierId, {
+      legal_name: data.legalName,
+      tax_id: data.taxId,
+      country: data.country,
+      business_address: data.businessAddress,
+      tax_resolution: data.autorizacionSunat,
+      official_receipt_type: data.tipoComprobante,
+      fiscal_email: data.emailFacturacion,
+      fiscal_phone: data.telefono,
+      is_verified: data.isVerified,
+      verified_at: data.verifiedAt,
+      verification_hash: data.verificationHash,
+    }),
+    saveSupplierCommercialProfile(supplierId, {
+      brand_name: data.nombreComercial || data.legalName,
+      commercial_activity: data.giroComercial,
+      website_url: data.website,
+      support_email: data.emailSoporte,
+      customer_phone: data.telefono,
+      whatsapp_number: data.whatsapp,
+    }),
+  ]);
 }

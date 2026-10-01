@@ -116,14 +116,16 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
     return 'preview80mm';
   });
 
-  // Keep viewMode synchronized with active supplier configuration
+  // Set default viewMode on modal open without trapping user tab switching
   useEffect(() => {
-    if (!voucherConfig.allow80mm && voucherConfig.allowDigital) {
-      setViewMode('standard');
-    } else if (!voucherConfig.allowDigital && voucherConfig.allow80mm) {
-      setViewMode('preview80mm');
+    if (isOpen) {
+      if (!voucherConfig.allow80mm && voucherConfig.allowDigital) {
+        setViewMode('standard');
+      } else {
+        setViewMode('preview80mm');
+      }
     }
-  }, [voucherConfig.allow80mm, voucherConfig.allowDigital]);
+  }, [isOpen, voucherConfig.allow80mm, voucherConfig.allowDigital]);
 
   const [pdf80mmUrl, setPdf80mmUrl] = useState<string | null>(null);
   const [pdfA4Url, setPdfA4Url] = useState<string | null>(null);
@@ -404,31 +406,6 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
     return doc;
   };
 
-  // Re-generate 80mm PDF blob url whenever order or fiscal data changes
-  useEffect(() => {
-    if (!order) {
-      setPdf80mmUrl(null);
-      return;
-    }
-
-    try {
-      const doc = generate80mmPdfDoc(order);
-      const blob = doc.output('blob');
-      const url = URL.createObjectURL(blob);
-      setPdf80mmUrl(url);
-
-      return () => {
-        URL.revokeObjectURL(url);
-      };
-    } catch (e) {
-      console.error('Error generating 80mm preview:', e);
-    }
-  }, [order, fiscalInfo.razonSocial, fiscalInfo.ruc, fiscalInfo.direccionFiscal, fiscalInfo.telefono, fiscalInfo.emailFacturacion, fiscalInfo.web]);
-
-  if (!isOpen || !order) return null;
-
-  const taxes = calculateTaxes(order.total_usd);
-
   // Generate standard A4 PDF (Detailed Tax Invoice / Comprobante Fiscal A4)
   const generateStandardA4PdfDoc = (currentOrder: Order) => {
     const doc = new jsPDF();
@@ -598,9 +575,30 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
     return doc;
   };
 
+  // Re-generate 80mm PDF blob url whenever order or fiscal data changes
+  useEffect(() => {
+    if (!isOpen || !order) {
+      setPdf80mmUrl(null);
+      return;
+    }
+
+    try {
+      const doc = generate80mmPdfDoc(order);
+      const blob = doc.output('blob');
+      const url = URL.createObjectURL(blob);
+      setPdf80mmUrl(url);
+
+      return () => {
+        URL.revokeObjectURL(url);
+      };
+    } catch (e) {
+      console.error('Error generating 80mm preview:', e);
+    }
+  }, [isOpen, order, fiscalInfo.razonSocial, fiscalInfo.ruc, fiscalInfo.direccionFiscal, fiscalInfo.telefono, fiscalInfo.emailFacturacion, fiscalInfo.web]);
+
   // Re-generate A4 PDF blob url whenever order or fiscal data changes
   useEffect(() => {
-    if (!order) {
+    if (!isOpen || !order) {
       setPdfA4Url(null);
       return;
     }
@@ -617,7 +615,11 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
     } catch (e) {
       console.error('Error generating A4 preview:', e);
     }
-  }, [order, fiscalInfo.razonSocial, fiscalInfo.ruc, fiscalInfo.direccionFiscal, fiscalInfo.telefono, fiscalInfo.emailFacturacion, fiscalInfo.web]);
+  }, [isOpen, order, fiscalInfo.razonSocial, fiscalInfo.ruc, fiscalInfo.direccionFiscal, fiscalInfo.telefono, fiscalInfo.emailFacturacion, fiscalInfo.web, fiscalInfo.giroComercial, fiscalInfo.nombreComercial]);
+
+  if (!isOpen || !order) return null;
+
+  const taxes = calculateTaxes(order.total_usd);
 
   // Download standard A4 PDF (Detailed Tax Invoice / Comprobante Fiscal)
   const handleDownloadStandardPdf = () => {
@@ -749,35 +751,33 @@ ${fiscalInfo.web}`;
             </div>
           </div>
 
-          {/* Tab Selector: Solo se muestra si el proveedor habilitó AMBOS formatos */}
-          {voucherConfig.allow80mm && voucherConfig.allowDigital && (
-            <div className="mt-4 flex items-center gap-2 p-1 bg-black/40 rounded-xl border border-white/10 max-w-fit">
-              <button
-                type="button"
-                onClick={() => setViewMode('preview80mm')}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
-                  viewMode === 'preview80mm'
-                    ? 'bg-amber-500 text-slate-950 shadow-md'
-                    : 'text-slate-300 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <Receipt className="w-3.5 h-3.5" />
-                <span>Ticket Térmico · 80mm</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('standard')}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
-                  viewMode === 'standard'
-                    ? 'bg-blue-600 text-white shadow-md'
-                    : 'text-slate-300 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <FileText className="w-3.5 h-3.5" />
-                <span>Vista previa del A4</span>
-              </button>
-            </div>
-          )}
+          {/* Selector de Pestañas: Vista Previa del Voucher 80mm y Vista Previa del A4 */}
+          <div className="mt-4 flex flex-wrap items-center gap-2 p-1 bg-black/40 rounded-xl border border-white/10 max-w-fit">
+            <button
+              type="button"
+              onClick={() => setViewMode('preview80mm')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
+                viewMode === 'preview80mm'
+                  ? 'bg-amber-500 text-slate-950 shadow-md'
+                  : 'text-slate-300 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Receipt className="w-3.5 h-3.5" />
+              <span>Vista Previa del Voucher 80mm</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('standard')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
+                viewMode === 'standard'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'text-slate-300 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Vista Previa del A4</span>
+            </button>
+          </div>
         </div>
 
         {/* Modal Body */}
@@ -814,17 +814,17 @@ ${fiscalInfo.web}`;
                     className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white/10 hover:bg-white/15 text-slate-200 text-xs font-semibold border border-white/10 transition"
                   >
                     <FileText className="w-4 h-4" />
-                    <span>Ver Detalles en Pantalla</span>
+                    <span>Ver Vista Previa A4</span>
                   </button>
                 </div>
               </div>
             ) : (
-              /* En Laptop / PC: Vista previa del voucher · 80mm */
+              /* En Laptop / PC: Vista Previa del Voucher 80mm */
               <div className="space-y-3">
                 <div className="flex items-center justify-between bg-slate-950/80 px-4 py-2.5 rounded-xl border border-white/10 text-xs">
                   <div className="flex items-center gap-2 text-slate-300">
                     <Receipt className="w-4 h-4 text-amber-400" />
-                    <span>Formato térmico oficial <strong className="text-white">80 mm</strong> listo para impresión o descarga.</span>
+                    <span>Vista Previa del Voucher <strong className="text-white">80 mm</strong> listo para impresión térmica o descarga.</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -843,7 +843,7 @@ ${fiscalInfo.web}`;
                     <iframe
                       src={pdf80mmUrl}
                       className="w-full h-full rounded-xl bg-white"
-                      title="Vista previa del voucher · 80mm"
+                      title="Vista Previa del Voucher 80mm"
                     />
                   ) : (
                     <div className="text-center p-8 text-slate-400 text-xs">
@@ -857,36 +857,46 @@ ${fiscalInfo.web}`;
             {/* Bottom Actions for 80mm mode */}
             <div className="pt-2 flex flex-wrap gap-2.5 items-center justify-between border-t border-gray-100 dark:border-gray-800">
               <div className="flex flex-wrap gap-2">
-                {voucherConfig.allow80mm && (
-                  <button
-                    type="button"
-                    onClick={handleDownload80mmPdf}
-                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-bold rounded-xl text-xs shadow-md hover:from-amber-400 hover:to-orange-400 transition"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Descargar Ticket 80mm</span>
-                  </button>
-                )}
-                {voucherConfig.allowDigital && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={handleDownloadStandardPdf}
-                      className="flex items-center gap-2 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold transition"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>Descargar A4</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleOpenGmail}
-                      className="flex items-center gap-1.5 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition"
-                    >
-                      <Mail className="w-3.5 h-3.5" />
-                      <span>Gmail</span>
-                    </button>
-                  </>
-                )}
+                <button
+                  type="button"
+                  onClick={handleDownload80mmPdf}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-bold rounded-xl text-xs shadow-md hover:from-amber-400 hover:to-orange-400 transition"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Descargar Ticket 80mm</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('standard')}
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 border border-blue-500/30 rounded-xl text-xs font-semibold transition"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Ver Vista Previa A4</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadStandardPdf}
+                  className="flex items-center gap-2 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold transition"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Descargar A4</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleOpenGmail}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition"
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                  <span>Gmail</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePrint}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl text-xs font-medium transition"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Imprimir</span>
+                </button>
               </div>
 
               <button
@@ -935,16 +945,14 @@ ${fiscalInfo.web}`;
                     <span>Enviar por Gmail</span>
                   </button>
 
-                  {voucherConfig.allow80mm && (
-                    <button
-                      type="button"
-                      onClick={() => setViewMode('preview80mm')}
-                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white/10 hover:bg-white/15 text-slate-200 text-xs font-semibold border border-white/10 transition"
-                    >
-                      <Receipt className="w-4 h-4" />
-                      <span>Ver Ticket 80mm</span>
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('preview80mm')}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white/10 hover:bg-white/15 text-slate-200 text-xs font-semibold border border-white/10 transition"
+                  >
+                    <Receipt className="w-4 h-4" />
+                    <span>Ver Voucher 80mm</span>
+                  </button>
                 </div>
               </div>
             ) : (
@@ -995,16 +1003,23 @@ ${fiscalInfo.web}`;
                   <span>Descargar PDF A4</span>
                 </button>
 
-                {voucherConfig.allow80mm && (
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('preview80mm')}
-                    className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-semibold transition"
-                  >
-                    <Receipt className="w-3.5 h-3.5" />
-                    <span>Ver Ticket 80mm</span>
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setViewMode('preview80mm')}
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-semibold transition"
+                >
+                  <Receipt className="w-3.5 h-3.5" />
+                  <span>Ver Voucher 80mm</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDownload80mmPdf}
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-xl text-xs font-semibold transition"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Descargar 80mm</span>
+                </button>
 
                 <button
                   type="button"

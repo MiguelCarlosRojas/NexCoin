@@ -2,6 +2,11 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { supabase } from '../lib/supabaseClient';
 import { useSupplier } from './SupplierContext';
 import { fetchSupplierQuestions, fetchSupplierReviews } from '../lib/qaAndReviewsService';
+import {
+  fetchSupplierReadNotificationIds,
+  markSupplierNotificationAsReadInDb,
+  markAllSupplierNotificationsAsReadInDb
+} from '../lib/supplierDatabaseService';
 
 export type NotificationType = 'low_stock' | 'out_of_stock' | 'question' | 'review' | 'sale';
 
@@ -44,31 +49,24 @@ export const SupplierNotificationsProvider: React.FC<{ children: React.ReactNode
   const [loading, setLoading] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
 
-  // Supplier-isolated read IDs in localStorage
-  const [readIds, setReadIds] = useState<string[]>(() => {
-    if (!supplier?.id) return [];
-    try {
-      const stored = localStorage.getItem(`novasats_read_notifs_${supplier.id}`);
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
-  });
+  // Supplier-isolated read IDs from Supabase database
+  const [readIds, setReadIds] = useState<string[]>([]);
 
-  // Reload readIds whenever supplier changes
+  // Reload readIds from Supabase whenever supplier changes
   useEffect(() => {
+    let isMounted = true;
     if (!supplier?.id) {
       setReadIds([]);
       setNotifications([]);
       setHasInitialized(false);
       return;
     }
-    try {
-      const stored = localStorage.getItem(`novasats_read_notifs_${supplier.id}`);
-      setReadIds(stored ? JSON.parse(stored) : []);
-    } catch {
-      setReadIds([]);
-    }
+    fetchSupplierReadNotificationIds(supplier.id).then((ids) => {
+      if (isMounted) setReadIds(ids || []);
+    });
+    return () => {
+      isMounted = false;
+    };
   }, [supplier?.id]);
 
   // Fetch logic with optional quiet background update
@@ -235,11 +233,7 @@ export const SupplierNotificationsProvider: React.FC<{ children: React.ReactNode
     setReadIds((prev) => {
       if (prev.includes(id)) return prev;
       const next = [...prev, id];
-      try {
-        localStorage.setItem(`novasats_read_notifs_${supplier.id}`, JSON.stringify(next));
-      } catch (err) {
-        console.error(err);
-      }
+      markSupplierNotificationAsReadInDb(supplier.id, id);
       return next;
     });
   }, [supplier?.id]);
@@ -249,11 +243,7 @@ export const SupplierNotificationsProvider: React.FC<{ children: React.ReactNode
     const catIds = notifications.filter((n) => n.type === type).map((n) => n.id);
     setReadIds((prev) => {
       const next = Array.from(new Set([...prev, ...catIds]));
-      try {
-        localStorage.setItem(`novasats_read_notifs_${supplier.id}`, JSON.stringify(next));
-      } catch (err) {
-        console.error(err);
-      }
+      markAllSupplierNotificationsAsReadInDb(supplier.id, catIds);
       return next;
     });
   }, [supplier?.id, notifications]);
@@ -263,11 +253,7 @@ export const SupplierNotificationsProvider: React.FC<{ children: React.ReactNode
     const allIds = notifications.map((n) => n.id);
     const combined = Array.from(new Set([...readIds, ...allIds]));
     setReadIds(combined);
-    try {
-      localStorage.setItem(`novasats_read_notifs_${supplier.id}`, JSON.stringify(combined));
-    } catch (err) {
-      console.error(err);
-    }
+    markAllSupplierNotificationsAsReadInDb(supplier.id, allIds);
   }, [supplier?.id, notifications, readIds]);
 
   // Group notifications strictly by category

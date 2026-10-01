@@ -20,6 +20,7 @@ import {
   FileSpreadsheet,
   Lock,
   Unlock,
+  Key,
   Shuffle,
   Smile,
   Plus,
@@ -32,6 +33,7 @@ import {
   Layers,
   Palette,
   Eye,
+  EyeOff,
   Zap,
   Receipt,
   BadgeCheck,
@@ -40,13 +42,25 @@ import {
   FileText,
   MapPin,
   ExternalLink,
-  X
+  X,
+  Share2,
+  MessageSquare
 } from 'lucide-react';
 import {
-  getSupplierVerification,
-  saveSupplierVerification,
-  SupplierVerificationInfo
-} from '../../lib/supplierVerificationHelper';
+  fetchSupplierKycFiscal,
+  saveSupplierKycFiscal,
+  SupplierKycFiscal,
+  DEFAULT_KYC_FISCAL,
+  fetchSupplierCommercialProfile,
+  saveSupplierCommercialProfile,
+  SupplierCommercialProfile,
+  DEFAULT_COMMERCIAL_PROFILE,
+  fetchSupplierWallets,
+  saveSupplierWallets,
+  fetchSupplierVoucherConfig,
+  saveSupplierVoucherConfig,
+  changeSupplierPassword
+} from '../../lib/supplierDatabaseService';
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
 import {
   BLOBATAR_EXPRESSIONS,
@@ -150,15 +164,20 @@ export const SupplierProfile: React.FC = () => {
         .delete()
         .eq('supplier_id', supplier.id);
 
-      // 2. Delete supplier account
+      // 2. Delete all related subtable records in Supabase
+      await Promise.allSettled([
+        supabase.from('supplier_wallets').delete().eq('supplier_id', supplier.id),
+        supabase.from('supplier_kyc_fiscal').delete().eq('supplier_id', supplier.id),
+        supabase.from('supplier_commercial_profiles').delete().eq('supplier_id', supplier.id),
+        supabase.from('supplier_voucher_configs').delete().eq('supplier_id', supplier.id),
+        supabase.from('supplier_notifications_read').delete().eq('supplier_id', supplier.id),
+      ]);
+
+      // 3. Delete supplier account from Supabase
       await supabase
         .from('suppliers')
         .delete()
         .eq('id', supplier.id);
-
-      // 3. Clear local storage records for this supplier
-      localStorage.removeItem(`novasats_read_notifs_${supplier.id}`);
-      localStorage.removeItem(`supplier_payout_wallets_${supplier.id}`);
 
       // 4. Logout session
       logout();
@@ -208,94 +227,63 @@ export const SupplierProfile: React.FC = () => {
   // Modal state for adding a wallet manually
   const [isAddWalletModalOpen, setIsAddWalletModalOpen] = useState(false);
 
-  // Supplier Verification & Fiscal Accreditation state
-  const [verificationData, setVerificationData] = useState<SupplierVerificationInfo>(() =>
-    getSupplierVerification(supplier?.id)
-  );
-  const [taxIdInput, setTaxIdInput] = useState(verificationData.taxId || '20601234567');
-  const [legalNameInput, setLegalNameInput] = useState(verificationData.legalName || supplier?.company_name || 'TechGlobal Hardware & Cryptowear S.A.C.');
-  const [nombreComercialInput, setNombreComercialInput] = useState(verificationData.nombreComercial || supplier?.company_name || 'TechGlobal Hardware & Cryptowear');
-  const [countryInput, setCountryInput] = useState(verificationData.country || 'Perú');
-  const [businessAddressInput, setBusinessAddressInput] = useState(verificationData.businessAddress || 'Av. Blockchain 404, San Isidro, Lima - Perú');
-  const [telefonoInput, setTelefonoInput] = useState(verificationData.telefono || supplier?.phone || '+51 987 654 321');
-  const [whatsappInput, setWhatsappInput] = useState(verificationData.whatsapp || supplier?.phone || '+51 987 654 321');
-  const [emailFacturacionInput, setEmailFacturacionInput] = useState(verificationData.emailFacturacion || supplier?.email || 'proveedor@novasats.com');
-  const [emailSoporteInput, setEmailSoporteInput] = useState(verificationData.emailSoporte || supplier?.email || 'soporte@novasats.com');
-  const [websiteInput, setWebsiteInput] = useState(verificationData.website || 'https://novasats.vercel.app');
-  const [giroComercialInput, setGiroComercialInput] = useState(verificationData.giroComercial || 'Venta de Hardware Cripto, Nodos y Plataforma de Pasarela Web3');
-  const [autorizacionSunatInput, setAutorizacionSunatInput] = useState(verificationData.autorizacionSunat || 'Resolución de Superintendencia N° 097-2012/SUNAT');
-  const [tipoComprobanteInput, setTipoComprobanteInput] = useState(verificationData.tipoComprobante || 'COMPROBANTE ELECTRÓNICO DE PAGO BITCOIN ON-CHAIN');
-  const [termsAccepted, setTermsAccepted] = useState(verificationData.isVerified);
-  const [isVerifying, setIsVerifying] = useState(false);
+  // 1. KYC Fiscal State (Table: supplier_kyc_fiscal in Supabase)
+  const [kycFiscal, setKycFiscal] = useState<SupplierKycFiscal>({
+    supplier_id: supplier?.id || '',
+    legal_name: supplier?.company_name || DEFAULT_KYC_FISCAL.legal_name,
+    tax_id: DEFAULT_KYC_FISCAL.tax_id,
+    country: DEFAULT_KYC_FISCAL.country,
+    business_address: DEFAULT_KYC_FISCAL.business_address,
+    legal_representative_name: DEFAULT_KYC_FISCAL.legal_representative_name,
+    legal_representative_id_doc: DEFAULT_KYC_FISCAL.legal_representative_id_doc,
+    tax_resolution: DEFAULT_KYC_FISCAL.tax_resolution,
+    official_receipt_type: DEFAULT_KYC_FISCAL.official_receipt_type,
+    fiscal_email: supplier?.email || DEFAULT_KYC_FISCAL.fiscal_email,
+    fiscal_phone: supplier?.phone || DEFAULT_KYC_FISCAL.fiscal_phone,
+    is_verified: true,
+    terms_accepted: true,
+    verified_at: '2026-01-15T10:00:00Z',
+    verification_hash: DEFAULT_KYC_FISCAL.verification_hash,
+  });
+  const [initialKycFiscal, setInitialKycFiscal] = useState<SupplierKycFiscal>(kycFiscal);
+  const [isSavingKyc, setIsSavingKyc] = useState(false);
 
-  const isVerificationDirty =
-    taxIdInput.trim() !== (verificationData.taxId || '') ||
-    legalNameInput.trim() !== (verificationData.legalName || '') ||
-    nombreComercialInput.trim() !== (verificationData.nombreComercial || '') ||
-    countryInput.trim() !== (verificationData.country || '') ||
-    businessAddressInput.trim() !== (verificationData.businessAddress || '') ||
-    telefonoInput.trim() !== (verificationData.telefono || '') ||
-    whatsappInput.trim() !== (verificationData.whatsapp || '') ||
-    emailFacturacionInput.trim() !== (verificationData.emailFacturacion || '') ||
-    emailSoporteInput.trim() !== (verificationData.emailSoporte || '') ||
-    websiteInput.trim() !== (verificationData.website || '') ||
-    giroComercialInput.trim() !== (verificationData.giroComercial || '') ||
-    autorizacionSunatInput.trim() !== (verificationData.autorizacionSunat || '') ||
-    tipoComprobanteInput.trim() !== (verificationData.tipoComprobante || '') ||
-    (!verificationData.isVerified && termsAccepted);
+  // 2. Commercial Profile State (Table: supplier_commercial_profiles in Supabase)
+  const [commercialProfile, setCommercialProfile] = useState<SupplierCommercialProfile>({
+    supplier_id: supplier?.id || '',
+    brand_name: supplier?.company_name || DEFAULT_COMMERCIAL_PROFILE.brand_name,
+    commercial_activity: DEFAULT_COMMERCIAL_PROFILE.commercial_activity,
+    website_url: DEFAULT_COMMERCIAL_PROFILE.website_url,
+    support_email: supplier?.email || DEFAULT_COMMERCIAL_PROFILE.support_email,
+    customer_phone: supplier?.phone || DEFAULT_COMMERCIAL_PROFILE.customer_phone,
+    whatsapp_number: supplier?.phone || DEFAULT_COMMERCIAL_PROFILE.whatsapp_number,
+    commercial_address: DEFAULT_COMMERCIAL_PROFILE.commercial_address,
+    social_twitter: DEFAULT_COMMERCIAL_PROFILE.social_twitter,
+    social_telegram: DEFAULT_COMMERCIAL_PROFILE.social_telegram,
+    social_discord: DEFAULT_COMMERCIAL_PROFILE.social_discord,
+    commercial_description: DEFAULT_COMMERCIAL_PROFILE.commercial_description,
+  });
+  const [initialCommercialProfile, setInitialCommercialProfile] = useState<SupplierCommercialProfile>(commercialProfile);
+  const [isSavingCommercial, setIsSavingCommercial] = useState(false);
 
-  const handleSaveVerification = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!supplier) return;
-    if (!taxIdInput.trim() || !legalNameInput.trim()) {
-      setMessage({
-        type: 'error',
-        text: 'El RUC / Tax ID y la Razón Social son requisitos obligatorios para la verificación.',
-      });
-      return;
-    }
-    if (!termsAccepted) {
-      setMessage({
-        type: 'error',
-        text: 'Debes certificar la veracidad de la información y la autenticidad de tus productos para continuar.',
-      });
-      return;
-    }
+  // Sub-view toggle inside Tab 3 (Verificación & Fiscal / Comercial)
+  type VerifSubTab = 'fiscal' | 'comercial';
+  const [verifSubTab, setVerifSubTab] = useState<VerifSubTab>('fiscal');
 
-    setIsVerifying(true);
-    try {
-      const updated: SupplierVerificationInfo = {
-        isVerified: true,
-        taxId: taxIdInput.trim(),
-        legalName: legalNameInput.trim(),
-        nombreComercial: nombreComercialInput.trim(),
-        country: countryInput.trim(),
-        businessAddress: businessAddressInput.trim(),
-        telefono: telefonoInput.trim(),
-        whatsapp: whatsappInput.trim(),
-        emailFacturacion: emailFacturacionInput.trim(),
-        emailSoporte: emailSoporteInput.trim(),
-        website: websiteInput.trim(),
-        giroComercial: giroComercialInput.trim(),
-        autorizacionSunat: autorizacionSunatInput.trim(),
-        tipoComprobante: tipoComprobanteInput.trim(),
-        verifiedAt: verificationData.verifiedAt || new Date().toISOString(),
-        verificationHash: verificationData.verificationHash || `0x${Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}`,
-      };
-      saveSupplierVerification(supplier.id, updated);
-      setVerificationData(updated);
-      setMessage({
-        type: 'success',
-        text: '¡Enhorabuena! Tu cuenta ha sido verificada con éxito. La insignia oficial de Proveedor Verificado ya está activa.',
-      });
-    } catch (err: any) {
-      setMessage({ type: 'error', text: 'Error al procesar la verificación.' });
-    } finally {
-      setIsVerifying(false);
-    }
-  };
+  // 3. Password Change in Tab 5 (Zona de Seguridad)
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordFeedback, setPasswordFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Voucher formats configuration for customers
+  const isKycDirty = JSON.stringify(kycFiscal) !== JSON.stringify(initialKycFiscal);
+  const isCommercialDirty = JSON.stringify(commercialProfile) !== JSON.stringify(initialCommercialProfile);
+
+  // 4. Voucher formats configuration for customers
   const [voucherConfig, setVoucherConfig] = useState<SupplierVoucherConfig>(() =>
     getSupplierVoucherConfig(supplier?.id)
   );
@@ -311,18 +299,9 @@ export const SupplierProfile: React.FC = () => {
   const { open } = useAppKit();
   const { address: appKitAddress, isConnected: isAppKitConnected } = useAppKitAccount();
 
-  // Multi-wallet state
+  // Multi-wallet state initialized from Supabase / supplier account
   const getInitialWallets = (): PayoutWalletItem[] => {
     if (!supplier) return [];
-    try {
-      const stored = localStorage.getItem(`supplier_payout_wallets_${supplier.id}`);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {
-      console.error(e);
-    }
     const currentAddr = supplier.wallet_address?.trim();
     if (currentAddr) {
       return [
@@ -346,6 +325,61 @@ export const SupplierProfile: React.FC = () => {
   const [newWalletNetwork, setNewWalletNetwork] = useState('Ethereum / EVM');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  // Load all supplier data from Supabase on mount (100% Relational Database, Zero localStorage)
+  useEffect(() => {
+    if (!supplier?.id) return;
+    let isSubscribed = true;
+
+    (async () => {
+      try {
+        const [fiscalRes, commRes, walletsRes, voucherRes] = await Promise.all([
+          fetchSupplierKycFiscal(supplier.id),
+          fetchSupplierCommercialProfile(supplier.id),
+          fetchSupplierWallets(supplier.id),
+          fetchSupplierVoucherConfig(supplier.id),
+        ]);
+
+        if (!isSubscribed) return;
+
+        if (fiscalRes) {
+          setKycFiscal(fiscalRes);
+          setInitialKycFiscal(fiscalRes);
+        }
+        if (commRes) {
+          setCommercialProfile(commRes);
+          setInitialCommercialProfile(commRes);
+        }
+        if (walletsRes && walletsRes.length > 0) {
+          const mappedWallets: PayoutWalletItem[] = walletsRes.map((w) => ({
+            id: w.id,
+            address: w.address,
+            label: w.label,
+            network: w.network,
+            isPrimary: w.is_primary,
+            addedAt: w.added_at ? new Date(w.added_at).toLocaleDateString() : new Date().toLocaleDateString(),
+          }));
+          setWallets(mappedWallets);
+          setInitialWalletsJson(JSON.stringify(mappedWallets));
+        }
+        if (voucherRes) {
+          const cfg: SupplierVoucherConfig = {
+            allow80mm: voucherRes.allow_80mm,
+            allowDigital: voucherRes.allow_digital,
+          };
+          setVoucherConfig(cfg);
+          setInitialVoucherConfig(cfg);
+          setSupplierVoucherConfig(supplier.id, cfg);
+        }
+      } catch (err) {
+        console.error('Error fetching supplier data from Supabase:', err);
+      }
+    })();
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [supplier?.id]);
+
   const initialCompanyName = supplier?.company_name || '';
   const initialContactName = supplier?.contact_name || '';
   const initialPhone = supplier?.phone || '';
@@ -364,9 +398,108 @@ export const SupplierProfile: React.FC = () => {
 
   const isWalletsDirty = JSON.stringify(wallets) !== initialWalletsJson || walletAddress !== initialWalletAddress;
 
-  const persistWallets = (updatedWallets: PayoutWalletItem[]) => {
+  const persistWallets = async (updatedWallets: PayoutWalletItem[]) => {
     if (supplier?.id) {
-      localStorage.setItem(`supplier_payout_wallets_${supplier.id}`, JSON.stringify(updatedWallets));
+      await saveSupplierWallets(supplier.id, updatedWallets);
+    }
+  };
+
+  const handleSaveKycFiscal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supplier) return;
+    if (!kycFiscal.tax_id.trim() || !kycFiscal.legal_name.trim()) {
+      setMessage({ type: 'error', text: 'El RUC / Tax ID y la Razón Social Legal son requisitos obligatorios.' });
+      return;
+    }
+    if (!kycFiscal.terms_accepted) {
+      setMessage({ type: 'error', text: 'Debes certificar la veracidad de la información fiscal declarada.' });
+      return;
+    }
+
+    setIsSavingKyc(true);
+    try {
+      const res = await saveSupplierKycFiscal(supplier.id, kycFiscal);
+      if (res.success && res.data) {
+        setKycFiscal(res.data);
+        setInitialKycFiscal(res.data);
+        setMessage({
+          type: 'success',
+          text: '¡Información fiscal y cumplimiento KYC guardados exitosamente en la base de datos de Supabase (tabla supplier_kyc_fiscal)!',
+        });
+      } else {
+        setMessage({ type: 'error', text: res.error || 'Error al guardar información fiscal.' });
+      }
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Error inesperado al guardar datos fiscales.' });
+    } finally {
+      setIsSavingKyc(false);
+    }
+  };
+
+  const handleSaveCommercialProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supplier) return;
+    if (!commercialProfile.brand_name.trim()) {
+      setMessage({ type: 'error', text: 'El Nombre Comercial / Marca es obligatorio.' });
+      return;
+    }
+
+    setIsSavingCommercial(true);
+    try {
+      const res = await saveSupplierCommercialProfile(supplier.id, commercialProfile);
+      if (res.success && res.data) {
+        setCommercialProfile(res.data);
+        setInitialCommercialProfile(res.data);
+        setMessage({
+          type: 'success',
+          text: '¡Datos comerciales de la marca guardados exitosamente en la base de datos de Supabase (tabla supplier_commercial_profiles)!',
+        });
+      } else {
+        setMessage({ type: 'error', text: res.error || 'Error al guardar datos comerciales.' });
+      }
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Error inesperado al guardar datos comerciales.' });
+    } finally {
+      setIsSavingCommercial(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supplier) return;
+    setPasswordFeedback(null);
+
+    if (!currentPassword) {
+      setPasswordFeedback({ type: 'error', text: 'Por favor ingresa tu contraseña actual.' });
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPasswordFeedback({ type: 'error', text: 'La nueva contraseña debe tener un mínimo de 8 caracteres.' });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordFeedback({ type: 'error', text: 'Las nuevas contraseñas no coinciden.' });
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const res = await changeSupplierPassword(supplier.id, currentPassword, newPassword);
+      if (res.success) {
+        setPasswordFeedback({
+          type: 'success',
+          text: '¡Contraseña actualizada exitosamente en Supabase! Ya puedes usar tu nueva clave en el próximo inicio de sesión.',
+        });
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      } else {
+        setPasswordFeedback({ type: 'error', text: res.error || 'Error al actualizar contraseña.' });
+      }
+    } catch (err: any) {
+      setPasswordFeedback({ type: 'error', text: err.message || 'Error inesperado al cambiar contraseña.' });
+    } finally {
+      setIsChangingPassword(false);
     }
   };
 
@@ -507,7 +640,8 @@ export const SupplierProfile: React.FC = () => {
 
       if (error) throw error;
 
-      persistWallets(wallets);
+      await persistWallets(wallets);
+      await saveSupplierVoucherConfig(supplier.id, voucherConfig);
       setSupplierVoucherConfig(supplier.id, voucherConfig);
       setInitialWalletsJson(JSON.stringify(wallets));
       setInitialVoucherConfig(voucherConfig);
@@ -594,13 +728,13 @@ export const SupplierProfile: React.FC = () => {
             }`}
           >
             <BadgeCheck className="w-4 h-4 text-emerald-400" />
-            <span>Verificación Oficial</span>
+            <span>Datos Fiscales & Comerciales</span>
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-              verificationData.isVerified
+              kycFiscal.is_verified
                 ? activeTab === 'verificacion' ? 'bg-black/25 text-black font-black' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                 : activeTab === 'verificacion' ? 'bg-black/25 text-black font-black' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
             }`}>
-              {verificationData.isVerified ? 'Verificado' : 'Pendiente'}
+              {kycFiscal.is_verified ? 'Verificado' : 'Pendiente'}
             </span>
           </button>
 
@@ -1281,7 +1415,7 @@ export const SupplierProfile: React.FC = () => {
           
           {/* Header & Official Status Banner */}
           <div className={`p-6 sm:p-8 rounded-3xl border-2 transition relative overflow-hidden shadow-2xl ${
-            verificationData.isVerified
+            kycFiscal.is_verified
               ? 'bg-gradient-to-br from-emerald-950/40 via-[#0a1b15] to-[#060911] border-emerald-500/40'
               : 'bg-gradient-to-br from-amber-950/40 via-[#1a130a] to-[#060911] border-amber-500/40'
           }`}>
@@ -1290,11 +1424,11 @@ export const SupplierProfile: React.FC = () => {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative z-10">
               <div className="flex items-start gap-4">
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border shadow-lg ${
-                  verificationData.isVerified
+                  kycFiscal.is_verified
                     ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-emerald-500/10'
                     : 'bg-amber-500/20 text-amber-400 border-amber-500/40 shadow-amber-500/10'
                 }`}>
-                  {verificationData.isVerified ? (
+                  {kycFiscal.is_verified ? (
                     <BadgeCheck className="w-8 h-8" />
                   ) : (
                     <Award className="w-8 h-8" />
@@ -1303,53 +1437,53 @@ export const SupplierProfile: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-2.5 flex-wrap">
                     <h3 className="text-xl font-black text-white font-heading">
-                      {verificationData.isVerified
-                        ? 'Proveedor Oficialmente Verificado'
+                      {kycFiscal.is_verified
+                        ? 'Proveedor Oficialmente Verificado & Acreditado'
                         : 'Acreditación y Verificación de Proveedor'}
                     </h3>
                     <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
-                      verificationData.isVerified
+                      kycFiscal.is_verified
                         ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
                         : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
                     }`}>
-                      {verificationData.isVerified ? 'Acreditado Oficialmente' : 'Solicitud Pendiente'}
+                      {kycFiscal.is_verified ? 'Acreditado Oficialmente' : 'Solicitud Pendiente'}
                     </span>
                   </div>
                   <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
-                    {verificationData.isVerified
-                      ? 'Tu comercio cuenta con la insignia de confianza de NovaSats. Tus productos y perfil comercial están certificados para todos los compradores Web3.'
+                    {kycFiscal.is_verified
+                      ? 'Tu comercio cuenta con la insignia de confianza de NovaSats. Tus productos, información fiscal y perfil de marca están respaldados en la base de datos de Supabase.'
                       : 'Certifica tu identidad comercial y datos fiscales para activar la insignia de verificación oficial en tus productos y maximizar tus ventas.'}
                   </p>
                 </div>
               </div>
 
-              {verificationData.isVerified && (
+              {kycFiscal.is_verified && (
                 <div className="p-3.5 rounded-2xl bg-black/40 border border-emerald-500/30 font-mono text-[11px] text-emerald-400 shrink-0">
                   <span className="block text-[9px] uppercase tracking-wider text-slate-400">Hash de Verificación:</span>
-                  <span className="font-bold truncate block max-w-[200px]">{verificationData.verificationHash}</span>
+                  <span className="font-bold truncate block max-w-[200px]">{kycFiscal.verification_hash}</span>
                 </div>
               )}
             </div>
 
             {/* Data Summary if Verified */}
-            {verificationData.isVerified && (
+            {kycFiscal.is_verified && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-6 border-t border-white/[0.08] relative z-10">
                 <div className="p-3 bg-black/30 rounded-xl border border-white/[0.06]">
-                  <span className="text-[10px] text-slate-400 block uppercase font-mono">Razón Social</span>
-                  <span className="text-xs font-bold text-white truncate block mt-0.5">{verificationData.legalName}</span>
+                  <span className="text-[10px] text-slate-400 block uppercase font-mono">Razón Social Legal</span>
+                  <span className="text-xs font-bold text-white truncate block mt-0.5">{kycFiscal.legal_name}</span>
                 </div>
                 <div className="p-3 bg-black/30 rounded-xl border border-white/[0.06]">
                   <span className="text-[10px] text-slate-400 block uppercase font-mono">RUC / Tax ID</span>
-                  <span className="text-xs font-bold text-white truncate block mt-0.5">{verificationData.taxId}</span>
+                  <span className="text-xs font-bold text-white truncate block mt-0.5">{kycFiscal.tax_id}</span>
                 </div>
                 <div className="p-3 bg-black/30 rounded-xl border border-white/[0.06]">
                   <span className="text-[10px] text-slate-400 block uppercase font-mono">Jurisdicción / País</span>
-                  <span className="text-xs font-bold text-white truncate block mt-0.5">{verificationData.country}</span>
+                  <span className="text-xs font-bold text-white truncate block mt-0.5">{kycFiscal.country}</span>
                 </div>
                 <div className="p-3 bg-black/30 rounded-xl border border-white/[0.06]">
                   <span className="text-[10px] text-slate-400 block uppercase font-mono">Fecha de Validación</span>
                   <span className="text-xs font-bold text-emerald-400 block mt-0.5">
-                    {new Date(verificationData.verifiedAt || Date.now()).toLocaleDateString()}
+                    {new Date(kycFiscal.verified_at || Date.now()).toLocaleDateString()}
                   </span>
                 </div>
               </div>
@@ -1364,7 +1498,7 @@ export const SupplierProfile: React.FC = () => {
               </div>
               <h4 className="text-xs font-bold text-white uppercase tracking-wider">Insignia Oficial de Confianza</h4>
               <p className="text-[11px] text-slate-400 leading-relaxed">
-                Tu marca e ítems mostrarán el badge de verificación en el Header, en la tienda y en la vista de compra, inspirando total seguridad al comprador.
+                Tu marca e ítems mostrarán el badge de verificación en el Header, en la tienda y en el comprobante, inspirando total seguridad al comprador.
               </p>
             </div>
 
@@ -1389,274 +1523,474 @@ export const SupplierProfile: React.FC = () => {
             </div>
           </div>
 
-          {/* Formulario de Acreditación Fiscal */}
-          <form onSubmit={handleSaveVerification} className="bg-[#0a0f1d] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
-            <div className="flex items-center gap-3 border-b border-white/[0.08] pb-4">
-              <div className="p-2.5 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
-                <FileText className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-white">
-                  Registro de Información Fiscal y Cumplimiento (KYC Proveedores)
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Ingresa o actualiza la razón social y acreditación fiscal de tu negocio para activar el badge verificado.
-                </p>
-              </div>
-            </div>
+          {/* Sub-navegación entre Información Fiscal vs Datos Comerciales */}
+          <div className="flex flex-col sm:flex-row items-center gap-2 p-1.5 bg-[#060911] border border-white/[0.08] rounded-2xl">
+            <button
+              type="button"
+              onClick={() => setVerifSubTab('fiscal')}
+              className={`flex-1 w-full flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider transition ${
+                verifSubTab === 'fiscal'
+                  ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20'
+                  : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              <span>1. Registro de Información Fiscal y Cumplimiento (KYC Proveedores)</span>
+            </button>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Razón Social / Nombre Legal Registrado *
-                </label>
-                <div className="relative">
-                  <Building className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <input
-                    type="text"
-                    required
-                    value={legalNameInput}
-                    onChange={(e) => setLegalNameInput(e.target.value)}
-                    placeholder="Ej: TechGlobal Hardware & Cryptowear S.A.C."
-                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
+            <button
+              type="button"
+              onClick={() => setVerifSubTab('comercial')}
+              className={`flex-1 w-full flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider transition ${
+                verifSubTab === 'comercial'
+                  ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20'
+                  : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+              }`}
+            >
+              <Building className="w-4 h-4" />
+              <span>2. Datos Comerciales de la Empresa / Marca</span>
+            </button>
+          </div>
+
+          {/* FORMULARIO 1: REGISTRO DE INFORMACIÓN FISCAL Y CUMPLIMIENTO (KYC PROVEEDORES) */}
+          {verifSubTab === 'fiscal' && (
+            <form onSubmit={handleSaveKycFiscal} className="bg-[#0a0f1d] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+              <div className="flex items-center gap-3 border-b border-white/[0.08] pb-4">
+                <div className="p-2.5 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <span>Registro de Información Fiscal y Cumplimiento (KYC Proveedores)</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      Tabla: supplier_kyc_fiscal
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Acreditación tributaria, personería jurídica y resolución fiscal ante SUNAT. Datos respaldados en Supabase.
+                  </p>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Nombre Comercial de la Marca *
-                </label>
-                <div className="relative">
-                  <Building className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <input
-                    type="text"
-                    required
-                    value={nombreComercialInput}
-                    onChange={(e) => setNombreComercialInput(e.target.value)}
-                    placeholder="Ej: TechGlobal Hardware & Cryptowear"
-                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Razón Social / Nombre Legal Registrado *
+                  </label>
+                  <div className="relative">
+                    <Building className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="text"
+                      required
+                      value={kycFiscal.legal_name}
+                      onChange={(e) => setKycFiscal({ ...kycFiscal, legal_name: e.target.value })}
+                      placeholder="Ej: TechGlobal Hardware & Cryptowear S.A.C."
+                      className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    RUC / Tax ID / Número de Identificación Tributaria *
+                  </label>
+                  <div className="relative">
+                    <FileText className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="text"
+                      required
+                      value={kycFiscal.tax_id}
+                      onChange={(e) => setKycFiscal({ ...kycFiscal, tax_id: e.target.value })}
+                      placeholder="Ej: 20601234567 o RFC / NIF"
+                      className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    País o Jurisdicción Legal *
+                  </label>
+                  <div className="relative">
+                    <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="text"
+                      required
+                      value={kycFiscal.country}
+                      onChange={(e) => setKycFiscal({ ...kycFiscal, country: e.target.value })}
+                      placeholder="Ej: Perú, Colombia, México, España, USA"
+                      className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Domicilio Fiscal Registrado *
+                  </label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="text"
+                      required
+                      value={kycFiscal.business_address}
+                      onChange={(e) => setKycFiscal({ ...kycFiscal, business_address: e.target.value })}
+                      placeholder="Ej: Av. Blockchain 404, San Isidro, Lima - Perú"
+                      className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Nombre del Representante Legal
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="text"
+                      value={kycFiscal.legal_representative_name}
+                      onChange={(e) => setKycFiscal({ ...kycFiscal, legal_representative_name: e.target.value })}
+                      placeholder="Ej: Carlos Morales"
+                      className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Documento de Identidad del Representante (DNI / Cédula / Pasaporte)
+                  </label>
+                  <div className="relative">
+                    <FileText className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="text"
+                      value={kycFiscal.legal_representative_id_doc}
+                      onChange={(e) => setKycFiscal({ ...kycFiscal, legal_representative_id_doc: e.target.value })}
+                      placeholder="Ej: 47829104"
+                      className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Correo Electrónico Fiscal / Facturación *
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="email"
+                      required
+                      value={kycFiscal.fiscal_email}
+                      onChange={(e) => setKycFiscal({ ...kycFiscal, fiscal_email: e.target.value })}
+                      placeholder="facturacion@empresa.com"
+                      className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Teléfono Fiscal Oficial *
+                  </label>
+                  <div className="relative">
+                    <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="text"
+                      required
+                      value={kycFiscal.fiscal_phone}
+                      onChange={(e) => setKycFiscal({ ...kycFiscal, fiscal_phone: e.target.value })}
+                      placeholder="+51 987 654 321"
+                      className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Resolución / Autorización Tributaria SUNAT
+                  </label>
+                  <div className="relative">
+                    <FileText className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="text"
+                      value={kycFiscal.tax_resolution}
+                      onChange={(e) => setKycFiscal({ ...kycFiscal, tax_resolution: e.target.value })}
+                      placeholder="Resolución de Superintendencia N° 097-2012/SUNAT"
+                      className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Tipo de Comprobante Oficial Emitido
+                  </label>
+                  <div className="relative">
+                    <FileText className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="text"
+                      value={kycFiscal.official_receipt_type}
+                      onChange={(e) => setKycFiscal({ ...kycFiscal, official_receipt_type: e.target.value })}
+                      placeholder="COMPROBANTE ELECTRÓNICO DE PAGO BITCOIN ON-CHAIN"
+                      className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  RUC / Tax ID / Número de Identificación Tributaria *
-                </label>
-                <div className="relative">
-                  <FileText className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              {/* Declaración Jurada */}
+              <div className="p-4 rounded-2xl bg-[#060911] border border-white/[0.08] space-y-2">
+                <label className="flex items-start gap-3 cursor-pointer select-none">
                   <input
-                    type="text"
-                    required
-                    value={taxIdInput}
-                    onChange={(e) => setTaxIdInput(e.target.value)}
-                    placeholder="Ej: 20601234567 o RFC / NIF"
-                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    type="checkbox"
+                    checked={kycFiscal.terms_accepted}
+                    onChange={(e) => setKycFiscal({ ...kycFiscal, terms_accepted: e.target.checked })}
+                    className="w-4 h-4 mt-0.5 rounded border-white/20 bg-slate-900 text-emerald-500 focus:ring-emerald-500 shrink-0"
                   />
+                  <span className="text-xs text-slate-300 leading-relaxed">
+                    Declaro bajo juramento que represento legalmente a esta persona jurídica/natural con negocio, que los datos fiscales suministrados son fidedignos y que todos los comprobantes emitidos corresponden a operaciones comerciales lícitas dentro de NovaSats Marketplace.
+                  </span>
+                </label>
+              </div>
+
+              {/* Submit Button KYC */}
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={!isKycDirty || isSavingKyc}
+                  className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-xl shadow-emerald-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>
+                    {isSavingKyc
+                      ? 'Guardando en Supabase...'
+                      : 'Guardar Información Fiscal (KYC)'}
+                  </span>
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* FORMULARIO 2: DATOS COMERCIALES DE LA EMPRESA / MARCA */}
+          {verifSubTab === 'comercial' && (
+            <form onSubmit={handleSaveCommercialProfile} className="bg-[#0a0f1d] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+              <div className="flex items-center gap-3 border-b border-white/[0.08] pb-4">
+                <div className="p-2.5 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20">
+                  <Building className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <span>Datos Comerciales de la Empresa / Marca</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      Tabla: supplier_commercial_profiles
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Marca de tienda, canales de atención al cliente y redes sociales visibles para tus compradores en NovaSats.
+                  </p>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  País o Jurisdicción Legal *
-                </label>
-                <div className="relative">
-                  <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <input
-                    type="text"
-                    required
-                    value={countryInput}
-                    onChange={(e) => setCountryInput(e.target.value)}
-                    placeholder="Ej: Perú, Colombia, México, España, USA"
-                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Nombre Comercial de la Marca / Tienda *
+                  </label>
+                  <div className="relative">
+                    <Building className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="text"
+                      required
+                      value={commercialProfile.brand_name}
+                      onChange={(e) => setCommercialProfile({ ...commercialProfile, brand_name: e.target.value })}
+                      placeholder="Ej: TechGlobal Hardware & Cryptowear"
+                      className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Giro Comercial / Actividad Económica *
+                  </label>
+                  <div className="relative">
+                    <Sparkles className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="text"
+                      required
+                      value={commercialProfile.commercial_activity}
+                      onChange={(e) => setCommercialProfile({ ...commercialProfile, commercial_activity: e.target.value })}
+                      placeholder="Ej: Venta de Hardware Cripto, Nodos y Pasarela Web3"
+                      className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Descripción Comercial / Propuesta de Valor
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={commercialProfile.commercial_description}
+                    onChange={(e) => setCommercialProfile({ ...commercialProfile, commercial_description: e.target.value })}
+                    placeholder="Describe los productos, servicios y valor diferencial que ofreces a los clientes de NovaSats..."
+                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl p-3.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500 leading-relaxed"
                   />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Dirección Comercial / Despacho Físico / Almacén *
+                  </label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="text"
+                      required
+                      value={commercialProfile.commercial_address}
+                      onChange={(e) => setCommercialProfile({ ...commercialProfile, commercial_address: e.target.value })}
+                      placeholder="Ej: Av. Principal 123, Módulo 4, Lima"
+                      className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Teléfono Comercial de Atención al Cliente *
+                  </label>
+                  <div className="relative">
+                    <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="text"
+                      required
+                      value={commercialProfile.customer_phone}
+                      onChange={(e) => setCommercialProfile({ ...commercialProfile, customer_phone: e.target.value })}
+                      placeholder="+51 987 654 321"
+                      className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    WhatsApp Directo de Soporte y Ventas *
+                  </label>
+                  <div className="relative">
+                    <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="text"
+                      required
+                      value={commercialProfile.whatsapp_number}
+                      onChange={(e) => setCommercialProfile({ ...commercialProfile, whatsapp_number: e.target.value })}
+                      placeholder="+51 987 654 321"
+                      className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Email Público de Soporte al Cliente *
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="email"
+                      required
+                      value={commercialProfile.support_email}
+                      onChange={(e) => setCommercialProfile({ ...commercialProfile, support_email: e.target.value })}
+                      placeholder="soporte@empresa.com"
+                      className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Sitio Web Oficial o Tienda Online
+                  </label>
+                  <div className="relative">
+                    <ExternalLink className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="url"
+                      value={commercialProfile.website_url}
+                      onChange={(e) => setCommercialProfile({ ...commercialProfile, website_url: e.target.value })}
+                      placeholder="https://novasats.vercel.app"
+                      className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Usuario de Red Social X / Twitter
+                  </label>
+                  <div className="relative">
+                    <Share2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="text"
+                      value={commercialProfile.social_twitter || ''}
+                      onChange={(e) => setCommercialProfile({ ...commercialProfile, social_twitter: e.target.value })}
+                      placeholder="@MiMarcaOficial"
+                      className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Canal o Usuario de Telegram
+                  </label>
+                  <div className="relative">
+                    <MessageSquare className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="text"
+                      value={commercialProfile.social_telegram || ''}
+                      onChange={(e) => setCommercialProfile({ ...commercialProfile, social_telegram: e.target.value })}
+                      placeholder="t.me/mimarca"
+                      className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Comunidad o Servidor de Discord
+                  </label>
+                  <div className="relative">
+                    <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="text"
+                      value={commercialProfile.social_discord || ''}
+                      onChange={(e) => setCommercialProfile({ ...commercialProfile, social_discord: e.target.value })}
+                      placeholder="discord.gg/mimarca"
+                      className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Domicilio Fiscal / Dirección Comercial *
-                </label>
-                <div className="relative">
-                  <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <input
-                    type="text"
-                    required
-                    value={businessAddressInput}
-                    onChange={(e) => setBusinessAddressInput(e.target.value)}
-                    placeholder="Ej: Av. Blockchain 404, San Isidro, Lima - Perú"
-                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
+              {/* Submit Button Commercial */}
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={!isCommercialDirty || isSavingCommercial}
+                  className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-xl shadow-amber-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>
+                    {isSavingCommercial
+                      ? 'Guardando en Supabase...'
+                      : 'Guardar Datos Comerciales de la Marca'}
+                  </span>
+                </button>
               </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Teléfono Comercial *
-                </label>
-                <div className="relative">
-                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <input
-                    type="text"
-                    required
-                    value={telefonoInput}
-                    onChange={(e) => setTelefonoInput(e.target.value)}
-                    placeholder="+51 987 654 321"
-                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  WhatsApp de Contacto Directo *
-                </label>
-                <div className="relative">
-                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <input
-                    type="text"
-                    required
-                    value={whatsappInput}
-                    onChange={(e) => setWhatsappInput(e.target.value)}
-                    placeholder="+51 987 654 321"
-                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Email Fiscal / Facturación *
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <input
-                    type="email"
-                    required
-                    value={emailFacturacionInput}
-                    onChange={(e) => setEmailFacturacionInput(e.target.value)}
-                    placeholder="proveedor@novasats.com"
-                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Email de Soporte al Cliente *
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <input
-                    type="email"
-                    required
-                    value={emailSoporteInput}
-                    onChange={(e) => setEmailSoporteInput(e.target.value)}
-                    placeholder="soporte@novasats.com"
-                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Sitio Web Oficial o Perfil Empresarial
-                </label>
-                <div className="relative">
-                  <ExternalLink className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <input
-                    type="url"
-                    value={websiteInput}
-                    onChange={(e) => setWebsiteInput(e.target.value)}
-                    placeholder="https://novasats.vercel.app"
-                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Giro Comercial / Actividad Económica
-                </label>
-                <div className="relative">
-                  <Building className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <input
-                    type="text"
-                    value={giroComercialInput}
-                    onChange={(e) => setGiroComercialInput(e.target.value)}
-                    placeholder="Ej: Venta de Hardware Cripto, Nodos y Pasarela Web3"
-                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Resolución / Autorización Tributaria SUNAT
-                </label>
-                <div className="relative">
-                  <FileText className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <input
-                    type="text"
-                    value={autorizacionSunatInput}
-                    onChange={(e) => setAutorizacionSunatInput(e.target.value)}
-                    placeholder="Resolución de Superintendencia N° 097-2012/SUNAT"
-                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Tipo de Comprobante Oficial Emitido
-                </label>
-                <div className="relative">
-                  <FileText className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <input
-                    type="text"
-                    value={tipoComprobanteInput}
-                    onChange={(e) => setTipoComprobanteInput(e.target.value)}
-                    placeholder="COMPROBANTE ELECTRÓNICO DE PAGO BITCOIN ON-CHAIN"
-                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Declaración Jurada */}
-            <div className="p-4 rounded-2xl bg-[#060911] border border-white/[0.08] space-y-2">
-              <label className="flex items-start gap-3 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={termsAccepted}
-                  onChange={(e) => setTermsAccepted(e.target.checked)}
-                  className="w-4 h-4 mt-0.5 rounded border-white/20 bg-slate-900 text-emerald-500 focus:ring-emerald-500 shrink-0"
-                />
-                <span className="text-xs text-slate-300 leading-relaxed">
-                  Declaro bajo juramento que represento legalmente a esta empresa comercial, que los datos suministrados son fidedignos y que todos los productos ofertados en NovaSats Marketplace son auténticos, lícitos y cuentan con garantía de entrega al comprador.
-                </span>
-              </label>
-            </div>
-
-            {/* Submit Button */}
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="submit"
-                disabled={!isVerificationDirty || isVerifying}
-                className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-xl shadow-emerald-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
-              >
-                <BadgeCheck className="w-4 h-4" />
-                <span>
-                  {isVerifying
-                    ? 'Procesando Acreditación...'
-                    : verificationData.isVerified
-                    ? 'Actualizar Datos de Registro Fiscal'
-                    : 'Solicitar y Activar Verificación Oficial'}
-                </span>
-              </button>
-            </div>
-          </form>
+            </form>
+          )}
 
         </div>
       )}
@@ -1697,7 +2031,10 @@ export const SupplierProfile: React.FC = () => {
                     }
                     const next = { ...voucherConfig, allow80mm: e.target.checked };
                     setVoucherConfig(next);
-                    if (supplier?.id) setSupplierVoucherConfig(supplier.id, next);
+                    if (supplier?.id) {
+                      setSupplierVoucherConfig(supplier.id, next);
+                      saveSupplierVoucherConfig(supplier.id, next);
+                    }
                   }}
                   className="w-4 h-4 mt-0.5 rounded border-white/20 bg-slate-900 text-amber-500 focus:ring-amber-500"
                 />
@@ -1725,7 +2062,10 @@ export const SupplierProfile: React.FC = () => {
                     }
                     const next = { ...voucherConfig, allowDigital: e.target.checked };
                     setVoucherConfig(next);
-                    if (supplier?.id) setSupplierVoucherConfig(supplier.id, next);
+                    if (supplier?.id) {
+                      setSupplierVoucherConfig(supplier.id, next);
+                      saveSupplierVoucherConfig(supplier.id, next);
+                    }
                   }}
                   className="w-4 h-4 mt-0.5 rounded border-white/20 bg-slate-900 text-blue-500 focus:ring-blue-500"
                 />
@@ -1755,121 +2095,253 @@ export const SupplierProfile: React.FC = () => {
 
       {/* TAB 5: ZONA DE SEGURIDAD */}
       {activeTab === 'seguridad' && (
-        <div className="p-6 sm:p-8 rounded-3xl bg-[#13070b] border-2 border-rose-500/30 space-y-6">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/40 flex items-center justify-center text-rose-400 shrink-0">
-              <AlertTriangle className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-white font-heading">
-                Zona de Peligro: Eliminar Cuenta de Proveedor
-              </h3>
-              <p className="text-xs text-rose-200/80 mt-1 leading-relaxed">
-                Esta acción es destructiva e irreversible. Si eliminas tu cuenta, todos tus productos activos y archivados se eliminarán inmediatamente del catálogo de NovaSats Marketplace.
-              </p>
-            </div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-rose-950/40 border border-rose-500/20 text-xs text-rose-300 space-y-2">
-            <div className="flex items-center gap-2 font-bold text-rose-200">
-              <AlertOctagon className="w-4 h-4 shrink-0 text-rose-400" />
-              <span>Requisito Obligatorio de Seguridad</span>
-            </div>
-            <p className="leading-relaxed">
-              Para no perder el inventario de tus productos ni las referencias de tus precios y SKUs, el sistema exige que hagas una copia de seguridad en Excel antes de habilitar el botón de eliminación.
-            </p>
-          </div>
-
-          {deleteError && (
-            <div className="p-4 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-200 text-xs font-semibold flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-              <span>{deleteError}</span>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-            {/* Paso 1: Generar Copia de Seguridad */}
-            <div className={`p-5 rounded-2xl border transition ${
-              hasExportedBackup 
-                ? 'bg-emerald-950/30 border-emerald-500/40' 
-                : 'bg-white/[0.02] border-white/[0.08]'
-            }`}>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-mono uppercase tracking-wider font-bold text-slate-400">
-                  Paso 1: Copia de Respaldo
-                </span>
-                {hasExportedBackup && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30">
-                    <CheckCircle2 className="w-3 h-3" />
-                    Copia Generada
+        <div className="space-y-8 w-full max-w-full">
+          {/* SECCIÓN 1: CAMBIAR CONTRASEÑA DE ACCESO DEL PROVEEDOR */}
+          <form onSubmit={handleChangePassword} className="p-6 sm:p-8 rounded-3xl bg-[#0a0f1d] border border-white/[0.08] shadow-2xl space-y-6">
+            <div className="flex items-start gap-4 border-b border-white/[0.08] pb-5">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 shadow-lg">
+                <Key className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white font-heading flex items-center gap-2">
+                  <span>Cambiar Contraseña de Acceso del Proveedor</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    Tabla: suppliers (Supabase)
                   </span>
-                )}
+                </h3>
+                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                  Actualiza tu contraseña secreta de inicio de sesión. La nueva clave se actualiza directamente en la base de datos de Supabase.
+                </p>
               </div>
-              <h4 className="text-sm font-bold text-white mb-1.5">
-                Generar Inventario de Productos
-              </h4>
-              <p className="text-xs text-slate-400 mb-4 leading-relaxed">
-                Descarga una hoja de cálculo Excel completa con todos tus productos, precios, stocks y detalles antes de continuar.
-              </p>
-              <button
-                type="button"
-                onClick={handleExportInventoryBackup}
-                disabled={isExportingBackup}
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition active:scale-95 disabled:opacity-50"
-              >
-                <FileSpreadsheet className="w-4 h-4" />
-                <span>
-                  {isExportingBackup 
-                    ? 'Generando Archivo Excel...' 
-                    : hasExportedBackup 
-                    ? 'Descargar Copia Nuevamente (Excel)' 
-                    : 'Generar Inventario (Excel)'}
-                </span>
-              </button>
             </div>
 
-            {/* Paso 2: Confirmación y Eliminación */}
-            <div className={`p-5 rounded-2xl border transition ${
-              !hasExportedBackup
-                ? 'opacity-40 pointer-events-none bg-white/[0.01] border-white/[0.05]'
-                : 'bg-white/[0.02] border-rose-500/30'
-            }`}>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-mono uppercase tracking-wider font-bold text-slate-400">
-                  Paso 2: Confirmación Final
-                </span>
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-400">
-                  {hasExportedBackup ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
-                  {hasExportedBackup ? 'Desbloqueado' : 'Bloqueado'}
-                </span>
-              </div>
-              <h4 className="text-sm font-bold text-white mb-1.5">
-                Escribe "ELIMINAR CUENTA"
-              </h4>
-              <p className="text-xs text-slate-400 mb-3 leading-relaxed">
-                Para confirmar la eliminación definitiva e irreversible de la cuenta y los productos:
-              </p>
-              
-              <input
-                type="text"
-                disabled={!hasExportedBackup || isDeletingAccount}
-                value={confirmDeleteInput}
-                onChange={(e) => setConfirmDeleteInput(e.target.value)}
-                placeholder="Escribe ELIMINAR CUENTA"
-                className="w-full bg-[#060911] border border-rose-500/40 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-600 font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-rose-500 mb-3"
-              />
-
-              <button
-                type="button"
-                onClick={handleDeleteAccount}
-                disabled={!hasExportedBackup || confirmDeleteInput.trim() !== 'ELIMINAR CUENTA' || isDeletingAccount}
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-rose-600/30 transition disabled:opacity-30 disabled:cursor-not-allowed active:scale-95"
+            {/* Password Feedback */}
+            {passwordFeedback && (
+              <div
+                className={`p-4 rounded-xl flex items-center gap-3 text-xs font-bold transition-all shadow-md ${
+                  passwordFeedback.type === 'success'
+                    ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300'
+                    : 'bg-red-500/10 border border-red-500/30 text-red-300'
+                }`}
               >
-                <Trash2 className="w-4 h-4" />
-                <span>
-                  {isDeletingAccount ? 'Eliminando Cuenta y Catálogo...' : 'Eliminar Cuenta Definitivamente'}
-                </span>
+                {passwordFeedback.type === 'success' ? (
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                ) : (
+                  <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
+                )}
+                <span>{passwordFeedback.text}</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Contraseña Actual */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Contraseña Actual *
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <input
+                    type={showCurrentPassword ? 'text' : 'password'}
+                    required
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition"
+                    title={showCurrentPassword ? 'Ocultar' : 'Mostrar'}
+                  >
+                    {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Nueva Contraseña */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Nueva Contraseña (mínimo 8 caracteres) *
+                </label>
+                <div className="relative">
+                  <Key className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    required
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition"
+                    title={showNewPassword ? 'Ocultar' : 'Mostrar'}
+                  >
+                    {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Confirmar Nueva Contraseña */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Confirmar Nueva Contraseña *
+                </label>
+                <div className="relative">
+                  <Key className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full bg-[#060911] border border-white/[0.1] rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition"
+                    title={showConfirmPassword ? 'Ocultar' : 'Mostrar'}
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end pt-2">
+              <button
+                type="submit"
+                disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
+                className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-xl shadow-amber-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
+              >
+                <Lock className="w-4 h-4" />
+                <span>{isChangingPassword ? 'Actualizando Contraseña en Supabase...' : 'Actualizar Contraseña de Proveedor'}</span>
               </button>
+            </div>
+          </form>
+
+          {/* SECCIÓN 2: ZONA DE PELIGRO: ELIMINAR CUENTA */}
+          <div className="p-6 sm:p-8 rounded-3xl bg-[#13070b] border-2 border-rose-500/30 space-y-6 shadow-2xl">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/40 flex items-center justify-center text-rose-400 shrink-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white font-heading">
+                  Zona de Peligro: Eliminar Cuenta de Proveedor
+                </h3>
+                <p className="text-xs text-rose-200/80 mt-1 leading-relaxed">
+                  Esta acción es destructiva e irreversible. Si eliminas tu cuenta, todos tus productos activos y archivados se eliminarán inmediatamente del catálogo de NovaSats Marketplace.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-rose-950/40 border border-rose-500/20 text-xs text-rose-300 space-y-2">
+              <div className="flex items-center gap-2 font-bold text-rose-200">
+                <AlertOctagon className="w-4 h-4 shrink-0 text-rose-400" />
+                <span>Requisito Obligatorio de Seguridad</span>
+              </div>
+              <p className="leading-relaxed">
+                Para no perder el inventario de tus productos ni las referencias de tus precios y SKUs, el sistema exige que hagas una copia de seguridad en Excel antes de habilitar el botón de eliminación.
+              </p>
+            </div>
+
+            {deleteError && (
+              <div className="p-4 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-200 text-xs font-semibold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span>{deleteError}</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+              {/* Paso 1: Generar Copia de Seguridad */}
+              <div className={`p-5 rounded-2xl border transition ${
+                hasExportedBackup 
+                  ? 'bg-emerald-950/30 border-emerald-500/40' 
+                  : 'bg-white/[0.02] border-white/[0.08]'
+              }`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-mono uppercase tracking-wider font-bold text-slate-400">
+                    Paso 1: Copia de Respaldo
+                  </span>
+                  {hasExportedBackup && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                      <CheckCircle2 className="w-3 h-3" />
+                      Copia Generada
+                    </span>
+                  )}
+                </div>
+                <h4 className="text-sm font-bold text-white mb-1.5">
+                  Generar Inventario de Productos
+                </h4>
+                <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+                  Descarga una hoja de cálculo Excel completa con todos tus productos, precios, stocks y detalles antes de continuar.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleExportInventoryBackup}
+                  disabled={isExportingBackup}
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition active:scale-95 disabled:opacity-50"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  <span>
+                    {isExportingBackup 
+                      ? 'Generando Archivo Excel...' 
+                      : hasExportedBackup 
+                      ? 'Descargar Copia Nuevamente (Excel)' 
+                      : 'Generar Inventario (Excel)'}
+                  </span>
+                </button>
+              </div>
+
+              {/* Paso 2: Confirmación y Eliminación */}
+              <div className={`p-5 rounded-2xl border transition ${
+                !hasExportedBackup
+                  ? 'opacity-40 pointer-events-none bg-white/[0.01] border-white/[0.05]'
+                  : 'bg-white/[0.02] border-rose-500/30'
+              }`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-mono uppercase tracking-wider font-bold text-slate-400">
+                    Paso 2: Confirmación Final
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-400">
+                    {hasExportedBackup ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+                    {hasExportedBackup ? 'Desbloqueado' : 'Bloqueado'}
+                  </span>
+                </div>
+                <h4 className="text-sm font-bold text-white mb-1.5">
+                  Escribe "ELIMINAR CUENTA"
+                </h4>
+                <p className="text-xs text-slate-400 mb-3 leading-relaxed">
+                  Para confirmar la eliminación definitiva e irreversible de la cuenta y los productos:
+                </p>
+                
+                <input
+                  type="text"
+                  disabled={!hasExportedBackup || isDeletingAccount}
+                  value={confirmDeleteInput}
+                  onChange={(e) => setConfirmDeleteInput(e.target.value)}
+                  placeholder="Escribe ELIMINAR CUENTA"
+                  className="w-full bg-[#060911] border border-rose-500/40 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-600 font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-rose-500 mb-3"
+                />
+
+                <button
+                  type="button"
+                  onClick={handleDeleteAccount}
+                  disabled={!hasExportedBackup || confirmDeleteInput.trim() !== 'ELIMINAR CUENTA' || isDeletingAccount}
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-rose-600/30 transition disabled:opacity-30 disabled:cursor-not-allowed active:scale-95"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>
+                    {isDeletingAccount ? 'Eliminando Cuenta y Catálogo...' : 'Eliminar Cuenta Definitivamente'}
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

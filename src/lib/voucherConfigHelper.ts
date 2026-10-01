@@ -1,29 +1,45 @@
+import { 
+  fetchSupplierVoucherConfig as fetchFromDb, 
+  saveSupplierVoucherConfig as saveToDb 
+} from './supplierDatabaseService';
+
 export interface SupplierVoucherConfig {
   allow80mm: boolean;
   allowDigital: boolean;
 }
 
+// In-memory runtime cache (Zero localStorage)
+const runtimeVoucherConfigCache: Record<string, SupplierVoucherConfig> = {};
+
 export function getSupplierVoucherConfig(supplierId?: string): SupplierVoucherConfig {
   if (!supplierId) {
     return { allow80mm: true, allowDigital: true };
   }
-  try {
-    const raw = localStorage.getItem(`novasats_voucher_config_${supplierId}`);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      return {
-        allow80mm: parsed.allow80mm !== false,
-        allowDigital: parsed.allowDigital !== false,
-      };
-    }
-  } catch {}
+  if (runtimeVoucherConfigCache[supplierId]) {
+    return runtimeVoucherConfigCache[supplierId];
+  }
   return { allow80mm: true, allowDigital: true };
 }
 
-export function setSupplierVoucherConfig(supplierId: string, config: SupplierVoucherConfig) {
+export async function fetchSupplierVoucherConfigFromDb(supplierId: string): Promise<SupplierVoucherConfig> {
+  if (!supplierId) return { allow80mm: true, allowDigital: true };
   try {
-    localStorage.setItem(`novasats_voucher_config_${supplierId}`, JSON.stringify(config));
+    const config = await fetchFromDb(supplierId);
+    const parsed: SupplierVoucherConfig = {
+      allow80mm: config.allow_80mm !== false,
+      allowDigital: config.allow_digital !== false,
+    };
+    runtimeVoucherConfigCache[supplierId] = parsed;
+    return parsed;
   } catch (err) {
-    console.error('Error saving supplier voucher config:', err);
+    return { allow80mm: true, allowDigital: true };
   }
+}
+
+export async function setSupplierVoucherConfig(supplierId: string, config: SupplierVoucherConfig): Promise<void> {
+  runtimeVoucherConfigCache[supplierId] = { ...config };
+  await saveToDb(supplierId, {
+    allow80mm: config.allow80mm,
+    allowDigital: config.allowDigital,
+  });
 }
